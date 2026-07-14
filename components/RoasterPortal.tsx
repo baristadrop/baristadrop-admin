@@ -151,7 +151,7 @@ export function RoasterPortal() {
                 <input
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="السعر (ر.س)"
+                  placeholder="السعر (د.إ)"
                   type="number"
                   className="rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold"
                 />
@@ -173,7 +173,7 @@ export function RoasterPortal() {
                   <div>
                     <p className="text-sm font-medium text-ink">{b.name}</p>
                     <p className="text-xs text-mocha">
-                      {b.origin} {b.process ? `· ${b.process}` : ''} {b.price ? `· ${b.price} ر.س` : ''}
+                      {b.origin} {b.process ? `· ${b.process}` : ''} {b.price ? `· ${b.price} د.إ` : ''}
                     </p>
                   </div>
                   <div className="text-left">

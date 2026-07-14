@@ -106,7 +106,7 @@ export function BeansTab() {
           <Detail label="المنشأ" value={selected.origin} />
           <Detail label="المعالجة" value={selected.process} />
           <Detail label="درجة التحميص" value={selected.roast_level} />
-          <Detail label="السعر" value={selected.price ? `${selected.price} ر.س` : null} />
+          <Detail label="السعر" value={selected.price ? `${selected.price} د.إ` : null} />
           <Detail label="اقترحه" value={selected.suggester?.full_name} />
           <Detail label="تاريخ الاقتراح" value={new Date(selected.created_at).toLocaleString('ar')} />
         </div>

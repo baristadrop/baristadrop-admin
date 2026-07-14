@@ -9,6 +9,9 @@ import { RoastersTab } from './tabs/RoastersTab';
 import { SuppliersTab } from './tabs/SuppliersTab';
 import { TeamTab } from './tabs/TeamTab';
 import { TopBeansTab } from './tabs/TopBeansTab';
+import { ProductsTab } from './tabs/ProductsTab';
+import { OrdersTab } from './tabs/OrdersTab';
+import { SubscribersTab } from './tabs/SubscribersTab';
 
 const TABS = [
   { key: 'overview', label: 'نظرة عامة' },
@@ -17,6 +20,9 @@ const TABS = [
   { key: 'beans', label: 'المحاصيل المعلّقة' },
   { key: 'roasters', label: 'المحامص' },
   { key: 'suppliers', label: 'الموردين' },
+  { key: 'store', label: 'متجري' },
+  { key: 'orders', label: 'الطلبات' },
+  { key: 'subscribers', label: 'المشتركين' },
   { key: 'team', label: 'الفريق' },
 ] as const;
 
@@ -65,6 +71,9 @@ export function Dashboard() {
         {active === 'beans' && <BeansTab />}
         {active === 'roasters' && <RoastersTab />}
         {active === 'suppliers' && <SuppliersTab />}
+        {active === 'store' && <ProductsTab />}
+        {active === 'orders' && <OrdersTab />}
+        {active === 'subscribers' && <SubscribersTab />}
         {active === 'team' && <TeamTab />}
       </main>
     </div>
