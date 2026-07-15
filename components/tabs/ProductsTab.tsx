@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { DirhamIcon } from '@/components/icons/DirhamIcon';
 
 type ProductCategory = 'cups' | 'clean' | 'tools' | 'subscription';
 
@@ -116,7 +117,9 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs text-mocha">السعر (د.إ)</label>
+          <label className="mb-1 flex items-center gap-1 text-xs text-mocha">
+            السعر (<DirhamIcon />)
+          </label>
           <input
             value={price}
             onChange={(e) => setPrice(e.target.value)}

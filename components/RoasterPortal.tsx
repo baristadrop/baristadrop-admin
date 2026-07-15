@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAdminAuth } from '@/lib/useAdminAuth';
+import { DirhamIcon } from '@/components/icons/DirhamIcon';
 
 type Roaster = {
   id: string;
@@ -172,8 +173,14 @@ export function RoasterPortal() {
                 <div key={b.id} className="flex items-center justify-between border-b border-latte/60 p-4 last:border-0">
                   <div>
                     <p className="text-sm font-medium text-ink">{b.name}</p>
-                    <p className="text-xs text-mocha">
-                      {b.origin} {b.process ? `· ${b.process}` : ''} {b.price ? `· ${b.price} د.إ` : ''}
+                    <p className="inline-flex flex-wrap items-center gap-1 text-xs text-mocha">
+                      <span>{b.origin}</span>
+                      {b.process && <span>· {b.process}</span>}
+                      {b.price != null && (
+                        <span className="inline-flex items-center gap-1">
+                          · {b.price} <DirhamIcon />
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="text-left">

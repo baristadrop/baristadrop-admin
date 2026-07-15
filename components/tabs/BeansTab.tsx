@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
+import { DirhamIcon } from '@/components/icons/DirhamIcon';
 
 type RoasterInfo = {
   name: string;
@@ -106,7 +107,16 @@ export function BeansTab() {
           <Detail label="المنشأ" value={selected.origin} />
           <Detail label="المعالجة" value={selected.process} />
           <Detail label="درجة التحميص" value={selected.roast_level} />
-          <Detail label="السعر" value={selected.price ? `${selected.price} د.إ` : null} />
+          <Detail
+            label="السعر"
+            value={
+              selected.price ? (
+                <span className="inline-flex items-center gap-1">
+                  {selected.price} <DirhamIcon />
+                </span>
+              ) : null
+            }
+          />
           <Detail label="اقترحه" value={selected.suggester?.full_name} />
           <Detail label="تاريخ الاقتراح" value={new Date(selected.created_at).toLocaleString('ar')} />
         </div>
@@ -147,7 +157,7 @@ export function BeansTab() {
   );
 }
 
-function Detail({ label, value }: { label: string; value?: string | null }) {
+function Detail({ label, value }: { label: string; value?: ReactNode }) {
   return (
     <div>
       <p className="text-xs text-stone">{label}</p>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { DirhamIcon } from '@/components/icons/DirhamIcon';
 
 type OrderItemRow = {
   qty: number;
@@ -126,10 +127,12 @@ export function OrdersTab() {
               <p className="mb-1 font-medium text-ink">المنتجات</p>
               {o.order_items.map((i, idx) => (
                 <p key={idx} className="text-mocha">
-                  {i.products?.name ?? 'منتج'} × {i.qty} — {i.unit_price * i.qty} د.إ
+                  {i.products?.name ?? 'منتج'} × {i.qty} — {i.unit_price * i.qty} <DirhamIcon />
                 </p>
               ))}
-              <p className="mt-1 font-bold text-coffee">الإجمالي: {o.total} د.إ</p>
+              <p className="mt-1 font-bold text-coffee">
+                الإجمالي: {o.total} <DirhamIcon />
+              </p>
             </div>
           </div>
         </div>
