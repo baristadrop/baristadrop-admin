@@ -7,6 +7,7 @@ import { RecipesTab } from './tabs/RecipesTab';
 import { BeansTab } from './tabs/BeansTab';
 import { RoastersTab } from './tabs/RoastersTab';
 import { SuppliersTab } from './tabs/SuppliersTab';
+import { CafesTab } from './tabs/CafesTab';
 import { TeamTab } from './tabs/TeamTab';
 import { TopBeansTab } from './tabs/TopBeansTab';
 import { ProductsTab } from './tabs/ProductsTab';
@@ -19,6 +20,7 @@ const TABS = [
   { key: 'recipes', label: 'الوصفات المعلّقة' },
   { key: 'beans', label: 'المحاصيل المعلّقة' },
   { key: 'roasters', label: 'المحامص' },
+  { key: 'cafes', label: 'الكوفي شوب' },
   { key: 'suppliers', label: 'الموردين' },
   { key: 'store', label: 'متجري' },
   { key: 'orders', label: 'الطلبات' },
@@ -70,6 +72,7 @@ export function Dashboard() {
         {active === 'recipes' && <RecipesTab />}
         {active === 'beans' && <BeansTab />}
         {active === 'roasters' && <RoastersTab />}
+        {active === 'cafes' && <CafesTab />}
         {active === 'suppliers' && <SuppliersTab />}
         {active === 'store' && <ProductsTab />}
         {active === 'orders' && <OrdersTab />}

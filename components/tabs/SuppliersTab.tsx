@@ -9,6 +9,8 @@ type SupplierRow = {
   country: string;
   website: string;
   is_verified: boolean;
+  is_sponsor: boolean;
+  is_advertiser: boolean;
   status: 'pending' | 'approved' | 'rejected';
   owner_id: string | null;
 };
@@ -25,7 +27,7 @@ export function SuppliersTab() {
     const [{ data }, sessionRes] = await Promise.all([
       supabase
         .from('suppliers')
-        .select('id, name, country, website, is_verified, status, owner_id')
+        .select('id, name, country, website, is_verified, is_sponsor, is_advertiser, status, owner_id')
         .order('name')
         .returns<SupplierRow[]>(),
       supabase.auth.getSession(),
@@ -52,6 +54,11 @@ export function SuppliersTab() {
   const toggleVerified = async (id: string, value: boolean) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, is_verified: value } : r)) ?? null);
     await supabase.from('suppliers').update({ is_verified: value }).eq('id', id);
+  };
+
+  const togglePlacement = async (id: string, field: 'is_sponsor' | 'is_advertiser', value: boolean) => {
+    setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, [field]: value } : r)) ?? null);
+    await supabase.from('suppliers').update({ [field]: value }).eq('id', id);
   };
 
   const linkOwner = async (supplierId: string) => {
@@ -81,6 +88,8 @@ export function SuppliersTab() {
             <th className="p-3 text-right">الاسم</th>
             <th className="p-3 text-right">الدولة</th>
             <th className="p-3 text-right">الموقع</th>
+            <th className="p-3 text-right">معلن</th>
+            <th className="p-3 text-right">Sponsor</th>
             <th className="p-3 text-right">موثّق؟</th>
             <th className="p-3 text-right">الحالة</th>
             <th className="p-3 text-right">حساب المورّد (بوابته)</th>
@@ -95,6 +104,20 @@ export function SuppliersTab() {
                 <a href={s.website} target="_blank" rel="noreferrer" className="underline">
                   {s.website}
                 </a>
+              </td>
+              <td className="p-3">
+                <input
+                  type="checkbox"
+                  checked={s.is_advertiser}
+                  onChange={(e) => togglePlacement(s.id, 'is_advertiser', e.target.checked)}
+                />
+              </td>
+              <td className="p-3">
+                <input
+                  type="checkbox"
+                  checked={s.is_sponsor}
+                  onChange={(e) => togglePlacement(s.id, 'is_sponsor', e.target.checked)}
+                />
               </td>
               <td className="p-3">
                 <input

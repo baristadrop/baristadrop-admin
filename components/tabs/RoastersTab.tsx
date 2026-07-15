@@ -8,6 +8,8 @@ type RoasterRow = {
   name: string;
   country: string;
   is_verified: boolean;
+  is_sponsor: boolean;
+  is_advertiser: boolean;
   can_edit_links: boolean;
   affiliate_base_url: string | null;
   commission_percent: number | null;
@@ -29,7 +31,7 @@ export function RoastersTab() {
       supabase
         .from('roasters')
         .select(
-          'id, name, country, is_verified, can_edit_links, affiliate_base_url, commission_percent, promo_code, owner_id'
+          'id, name, country, is_verified, is_sponsor, is_advertiser, can_edit_links, affiliate_base_url, commission_percent, promo_code, owner_id'
         )
         .order('name')
         .returns<RoasterRow[]>(),
@@ -56,7 +58,11 @@ export function RoastersTab() {
     load();
   }, []);
 
-  const toggle = async (id: string, field: 'is_verified' | 'can_edit_links', value: boolean) => {
+  const toggle = async (
+    id: string,
+    field: 'is_verified' | 'is_sponsor' | 'is_advertiser' | 'can_edit_links',
+    value: boolean
+  ) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, [field]: value } : r)) ?? null);
     await supabase.from('roasters').update({ [field]: value }).eq('id', id);
   };
@@ -101,6 +107,8 @@ export function RoastersTab() {
           <tr className="border-b border-latte bg-sand/40 text-mocha">
             <th className="p-3 text-right">الاسم</th>
             <th className="p-3 text-right">الدولة</th>
+            <th className="p-3 text-right">معلن</th>
+            <th className="p-3 text-right">Sponsor</th>
             <th className="p-3 text-right">موثّقة؟</th>
             <th className="p-3 text-right">تقدر تعدّل روابطها؟</th>
             <th className="p-3 text-right">رابط الأفيليت</th>
@@ -115,6 +123,20 @@ export function RoastersTab() {
             <tr key={r.id} className="border-b border-latte/60">
               <td className="p-3 font-medium text-ink">{r.name}</td>
               <td className="p-3 text-mocha">{r.country}</td>
+              <td className="p-3">
+                <input
+                  type="checkbox"
+                  checked={r.is_advertiser}
+                  onChange={(e) => toggle(r.id, 'is_advertiser', e.target.checked)}
+                />
+              </td>
+              <td className="p-3">
+                <input
+                  type="checkbox"
+                  checked={r.is_sponsor}
+                  onChange={(e) => toggle(r.id, 'is_sponsor', e.target.checked)}
+                />
+              </td>
               <td className="p-3">
                 <input
                   type="checkbox"
