@@ -12,7 +12,7 @@ type UserRow = {
   created_at: string;
 };
 
-const ROLE_OPTIONS = ['user', 'roaster', 'supplier', 'admin'];
+const ROLE_OPTIONS = ['user', 'roaster', 'supplier', 'cafe', 'admin'];
 
 async function authHeader() {
   const { data } = await supabase.auth.getSession();

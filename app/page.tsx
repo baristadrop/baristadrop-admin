@@ -5,6 +5,7 @@ import { LoginForm } from '@/components/LoginForm';
 import { Dashboard } from '@/components/Dashboard';
 import { RoasterPortal } from '@/components/RoasterPortal';
 import { SupplierPortal } from '@/components/SupplierPortal';
+import { CafePortal } from '@/components/CafePortal';
 
 export default function Home() {
   const { session, profile, loading, signOut } = useAdminAuth();
@@ -24,6 +25,7 @@ export default function Home() {
   if (profile?.role === 'admin') return <Dashboard />;
   if (profile?.role === 'roaster') return <RoasterPortal />;
   if (profile?.role === 'supplier') return <SupplierPortal />;
+  if (profile?.role === 'cafe') return <CafePortal />;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">

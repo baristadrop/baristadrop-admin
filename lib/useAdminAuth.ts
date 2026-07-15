@@ -7,7 +7,7 @@ import { supabase } from './supabase';
 type Profile = {
   id: string;
   full_name: string | null;
-  role: 'user' | 'roaster' | 'supplier' | 'admin';
+  role: 'user' | 'roaster' | 'supplier' | 'cafe' | 'admin';
   country: string | null;
 };
 
