@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAdminAuth } from '@/lib/useAdminAuth';
+import { uploadBusinessLogo } from '@/lib/logoUpload';
 
 type Cafe = {
   id: string;
@@ -11,6 +12,7 @@ type Cafe = {
   location: string | null;
   is_verified: boolean;
   status: 'pending' | 'approved' | 'rejected';
+  logo_url: string | null;
   supplying_roaster: { name: string } | null;
 };
 
@@ -26,12 +28,15 @@ export function CafePortal() {
   const [location, setLocation] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const load = async () => {
     if (!session?.user) return;
     const { data } = await supabase
       .from('cafes')
-      .select('id, name, country, location, is_verified, status, supplying_roaster:supplying_roaster_id ( name )')
+      .select(
+        'id, name, country, location, is_verified, status, logo_url, supplying_roaster:supplying_roaster_id ( name )'
+      )
       .eq('owner_id', session.user.id)
       .maybeSingle();
     setCafe((data as unknown as Cafe) ?? null);
@@ -51,6 +56,15 @@ export function CafePortal() {
     const { error } = await supabase.from('cafes').update({ location: location.trim() || null }).eq('id', cafe.id);
     setMessage(error ? 'صار خطأ، جرّب مرة ثانية' : 'تم الحفظ ✓');
     setSaving(false);
+  };
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !cafe) return;
+    setUploadingLogo(true);
+    const logoUrl = await uploadBusinessLogo('cafes', cafe.id, file);
+    if (logoUrl) setCafe({ ...cafe, logo_url: logoUrl });
+    setUploadingLogo(false);
   };
 
   return (
@@ -80,17 +94,31 @@ export function CafePortal() {
 
         {cafe && (
           <>
-            <div className="mb-6 rounded-2xl border border-latte bg-white p-5">
-              <p className="font-[var(--font-el-messiri)] text-xl text-ink">{cafe.name}</p>
-              <p className="text-sm text-mocha">{cafe.country}</p>
-              <p className="mt-1 text-xs text-stone">
-                {cafe.is_verified ? 'كوفي شوب موثّق ✓' : 'بانتظار التوثيق'} · {STATUS_LABEL[cafe.status]}
-              </p>
-              {cafe.supplying_roaster && (
-                <p className="mt-2 inline-block rounded-full bg-sand px-3 py-1 text-xs text-coffee">
-                  توردها: {cafe.supplying_roaster.name}
+            <div className="mb-6 flex items-center gap-4 rounded-2xl border border-latte bg-white p-5">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-latte bg-sand">
+                {cafe.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={cafe.logo_url} alt={cafe.name} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-xs text-stone">لا يوجد</span>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="font-[var(--font-el-messiri)] text-xl text-ink">{cafe.name}</p>
+                <p className="text-sm text-mocha">{cafe.country}</p>
+                <p className="mt-1 text-xs text-stone">
+                  {cafe.is_verified ? 'كوفي شوب موثّق ✓' : 'بانتظار التوثيق'} · {STATUS_LABEL[cafe.status]}
                 </p>
-              )}
+                {cafe.supplying_roaster && (
+                  <p className="mt-2 inline-block rounded-full bg-sand px-3 py-1 text-xs text-coffee">
+                    توردها: {cafe.supplying_roaster.name}
+                  </p>
+                )}
+                <label className="mt-2 block cursor-pointer text-xs text-gold underline">
+                  {uploadingLogo ? 'جاري الرفع...' : 'تغيير الشعار'}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} disabled={uploadingLogo} />
+                </label>
+              </div>
             </div>
 
             <form onSubmit={handleSave} className="rounded-2xl border border-latte bg-white p-5">

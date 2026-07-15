@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAdminAuth } from '@/lib/useAdminAuth';
+import { uploadBusinessLogo } from '@/lib/logoUpload';
 
 type Supplier = {
   id: string;
@@ -27,6 +28,7 @@ export function SupplierPortal() {
   const [website, setWebsite] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const load = async () => {
     if (!session?.user) return;
@@ -57,6 +59,15 @@ export function SupplierPortal() {
     setSaving(false);
   };
 
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !supplier) return;
+    setUploadingLogo(true);
+    const logoUrl = await uploadBusinessLogo('suppliers', supplier.id, file);
+    if (logoUrl) setSupplier({ ...supplier, logo_url: logoUrl });
+    setUploadingLogo(false);
+  };
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-latte bg-cream/90 px-6 py-4">
@@ -84,15 +95,28 @@ export function SupplierPortal() {
 
         {supplier && (
           <>
-            <div className="mb-6 rounded-2xl border border-latte bg-white p-5">
-              <p className="font-[var(--font-el-messiri)] text-xl text-ink">{supplier.name}</p>
-              <p className="text-sm text-mocha">
-                {supplier.country} · {supplier.categories.join('، ')}
-              </p>
-              <p className="mt-1 text-xs text-stone">
-                {supplier.is_verified ? 'مورّد موثّق ✓' : 'بانتظار التوثيق'} ·{' '}
-                {STATUS_LABEL[supplier.status]}
-              </p>
+            <div className="mb-6 flex items-center gap-4 rounded-2xl border border-latte bg-white p-5">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-latte bg-sand">
+                {supplier.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={supplier.logo_url} alt={supplier.name} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-xs text-stone">لا يوجد</span>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="font-[var(--font-el-messiri)] text-xl text-ink">{supplier.name}</p>
+                <p className="text-sm text-mocha">
+                  {supplier.country} · {supplier.categories.join('، ')}
+                </p>
+                <p className="mt-1 text-xs text-stone">
+                  {supplier.is_verified ? 'مورّد موثّق ✓' : 'بانتظار التوثيق'} · {STATUS_LABEL[supplier.status]}
+                </p>
+                <label className="mt-2 inline-block cursor-pointer text-xs text-gold underline">
+                  {uploadingLogo ? 'جاري الرفع...' : 'تغيير الشعار'}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} disabled={uploadingLogo} />
+                </label>
+              </div>
             </div>
 
             <form onSubmit={handleSave} className="rounded-2xl border border-latte bg-white p-5">

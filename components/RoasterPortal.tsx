@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAdminAuth } from '@/lib/useAdminAuth';
+import { uploadBusinessLogo } from '@/lib/logoUpload';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
 
 type Roaster = {
@@ -34,6 +35,7 @@ export function RoasterPortal() {
   const [price, setPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const load = async () => {
     if (!session?.user) return;
@@ -86,6 +88,15 @@ export function RoasterPortal() {
     setSubmitting(false);
   };
 
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !roaster) return;
+    setUploadingLogo(true);
+    const logoUrl = await uploadBusinessLogo('roasters', roaster.id, file);
+    if (logoUrl) setRoaster({ ...roaster, logo_url: logoUrl });
+    setUploadingLogo(false);
+  };
+
   const STATUS_LABEL: Record<Bean['status'], string> = {
     pending: 'بانتظار المراجعة',
     approved: 'مقبول ✓',
@@ -119,11 +130,25 @@ export function RoasterPortal() {
 
         {roaster && (
           <>
-            <div className="mb-6 rounded-2xl border border-latte bg-white p-5">
-              <p className="font-[var(--font-el-messiri)] text-xl text-ink">{roaster.name}</p>
-              <p className="text-sm text-mocha">
-                {roaster.country} {roaster.is_verified ? '· محمصة موثّقة ✓' : '· بانتظار التوثيق'}
-              </p>
+            <div className="mb-6 flex items-center gap-4 rounded-2xl border border-latte bg-white p-5">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-latte bg-sand">
+                {roaster.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={roaster.logo_url} alt={roaster.name} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-xs text-stone">لا يوجد</span>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="font-[var(--font-el-messiri)] text-xl text-ink">{roaster.name}</p>
+                <p className="text-sm text-mocha">
+                  {roaster.country} {roaster.is_verified ? '· محمصة موثّقة ✓' : '· بانتظار التوثيق'}
+                </p>
+                <label className="mt-2 inline-block cursor-pointer text-xs text-gold underline">
+                  {uploadingLogo ? 'جاري الرفع...' : 'تغيير الشعار'}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} disabled={uploadingLogo} />
+                </label>
+              </div>
             </div>
 
             <form onSubmit={handleAddBean} className="mb-6 rounded-2xl border border-latte bg-white p-5">
