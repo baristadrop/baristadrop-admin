@@ -19,6 +19,7 @@ type Bean = {
   name: string;
   origin: string | null;
   process: string | null;
+  flavor_notes: string[] | null;
   price: number | null;
   status: 'pending' | 'approved' | 'rejected';
   avg_rating: number;
@@ -32,6 +33,7 @@ export function RoasterPortal() {
   const [name, setName] = useState('');
   const [origin, setOrigin] = useState('');
   const [process, setProcess] = useState('');
+  const [flavorNotes, setFlavorNotes] = useState('');
   const [price, setPrice] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export function RoasterPortal() {
     if (r) {
       const { data: b } = await supabase
         .from('beans')
-        .select('id, name, origin, process, price, status, avg_rating, reviews_count')
+        .select('id, name, origin, process, flavor_notes, price, status, avg_rating, reviews_count')
         .eq('roaster_id', r.id)
         .order('created_at', { ascending: false })
         .returns<Bean[]>();
@@ -67,11 +69,16 @@ export function RoasterPortal() {
     if (!roaster) return;
     setSubmitting(true);
     setMessage(null);
+    const notes = flavorNotes
+      .split(',')
+      .map((n) => n.trim())
+      .filter(Boolean);
     const { error } = await supabase.from('beans').insert({
       roaster_id: roaster.id,
       name: name.trim(),
       origin: origin.trim() || null,
       process: process.trim() || null,
+      flavor_notes: notes,
       price: price.trim() ? Number(price) : null,
       status: 'pending',
     });
@@ -81,6 +88,7 @@ export function RoasterPortal() {
       setName('');
       setOrigin('');
       setProcess('');
+      setFlavorNotes('');
       setPrice('');
       setMessage('تم إرسال المحصول للمراجعة ✓');
       load();
@@ -175,6 +183,12 @@ export function RoasterPortal() {
                   className="rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold"
                 />
                 <input
+                  value={flavorNotes}
+                  onChange={(e) => setFlavorNotes(e.target.value)}
+                  placeholder="نكهات القهوة (افصل بينها بفاصلة: توت، شوكولاتة، حمضيات)"
+                  className="rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold sm:col-span-2"
+                />
+                <input
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="السعر (د.إ)"
@@ -207,6 +221,15 @@ export function RoasterPortal() {
                         </span>
                       )}
                     </p>
+                    {b.flavor_notes && b.flavor_notes.length > 0 && (
+                      <p className="mt-1 flex flex-wrap gap-1">
+                        {b.flavor_notes.map((n) => (
+                          <span key={n} className="rounded-full bg-sand px-2 py-0.5 text-xs text-coffee">
+                            {n}
+                          </span>
+                        ))}
+                      </p>
+                    )}
                   </div>
                   <div className="text-left">
                     <p className="text-xs text-stone">{STATUS_LABEL[b.status]}</p>
