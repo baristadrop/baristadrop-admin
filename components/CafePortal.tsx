@@ -13,7 +13,14 @@ type Cafe = {
   is_verified: boolean;
   status: 'pending' | 'approved' | 'rejected';
   logo_url: string | null;
+  supplying_roaster_id: string | null;
   supplying_roaster: { name: string } | null;
+};
+
+type RoasterBean = {
+  id: string;
+  name: string;
+  status: 'pending' | 'approved' | 'rejected';
 };
 
 const STATUS_LABEL: Record<Cafe['status'], string> = {
@@ -29,24 +36,56 @@ export function CafePortal() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [roasterBeans, setRoasterBeans] = useState<RoasterBean[]>([]);
+  const [menuBeanIds, setMenuBeanIds] = useState<Set<string>>(new Set());
 
   const load = async () => {
     if (!session?.user) return;
     const { data } = await supabase
       .from('cafes')
       .select(
-        'id, name, country, location, is_verified, status, logo_url, supplying_roaster:supplying_roaster_id ( name )'
+        'id, name, country, location, is_verified, status, logo_url, supplying_roaster_id, supplying_roaster:supplying_roaster_id ( name )'
       )
       .eq('owner_id', session.user.id)
       .maybeSingle();
-    setCafe((data as unknown as Cafe) ?? null);
-    setLocation(data?.location ?? '');
+    const c = (data as unknown as Cafe) ?? null;
+    setCafe(c);
+    setLocation(c?.location ?? '');
+
+    if (c) {
+      const [{ data: menuRows }, roasterBeansRes] = await Promise.all([
+        supabase.from('cafe_beans').select('bean_id').eq('cafe_id', c.id),
+        c.supplying_roaster_id
+          ? supabase
+              .from('beans')
+              .select('id, name, status')
+              .eq('roaster_id', c.supplying_roaster_id)
+              .returns<RoasterBean[]>()
+          : Promise.resolve({ data: [] as RoasterBean[] }),
+      ]);
+      setMenuBeanIds(new Set((menuRows ?? []).map((r) => r.bean_id as string)));
+      setRoasterBeans(roasterBeansRes.data ?? []);
+    }
   };
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user.id]);
+
+  const toggleMenuBean = async (beanId: string) => {
+    if (!cafe) return;
+    const inMenu = menuBeanIds.has(beanId);
+    const next = new Set(menuBeanIds);
+    if (inMenu) {
+      next.delete(beanId);
+      await supabase.from('cafe_beans').delete().eq('cafe_id', cafe.id).eq('bean_id', beanId);
+    } else {
+      next.add(beanId);
+      await supabase.from('cafe_beans').insert({ cafe_id: cafe.id, bean_id: beanId });
+    }
+    setMenuBeanIds(next);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,6 +177,33 @@ export function CafePortal() {
                 {saving ? '...' : 'حفظ'}
               </button>
             </form>
+
+            <div className="mt-6 rounded-2xl border border-latte bg-white p-5">
+              <p className="mb-1 font-[var(--font-el-messiri)] text-base text-ink">منيو الكوفي شوب</p>
+              <p className="mb-3 text-xs text-mocha">
+                اختر المحاصيل اللي تبي تعرضها بمنيوك بالتطبيق (من محاصيل محمصتك المورّدة).
+              </p>
+              {!cafe.supplying_roaster_id && (
+                <p className="text-sm text-stone">لازم تكون مربوط بمحمصة مورّدة أول عشان تقدر تختار محاصيل.</p>
+              )}
+              {cafe.supplying_roaster_id && roasterBeans.length === 0 && (
+                <p className="text-sm text-stone">ما فيه محاصيل عند محمصتك المورّدة بعد.</p>
+              )}
+              <div className="flex flex-col gap-2">
+                {roasterBeans.map((b) => (
+                  <label key={b.id} className="flex items-center gap-2 rounded-lg border border-latte px-3 py-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={menuBeanIds.has(b.id)}
+                      onChange={() => toggleMenuBean(b.id)}
+                      disabled={b.status !== 'approved'}
+                    />
+                    <span className="flex-1 text-ink">{b.name}</span>
+                    {b.status !== 'approved' && <span className="text-xs text-stone">(بانتظار موافقة الأدمن)</span>}
+                  </label>
+                ))}
+              </div>
+            </div>
           </>
         )}
       </main>
