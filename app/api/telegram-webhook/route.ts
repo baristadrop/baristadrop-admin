@@ -37,8 +37,17 @@ function extractXbloomLink(text: string): string | null {
   return match ? match[0] : null;
 }
 
+/** يقرا كلمة "حار"/"بارد" (أو ثلج/cold/iced) من نص الرسالة نفسه بدل ما يفترض حار دايم */
+function detectBrewTemp(text: string): 'hot' | 'cold' {
+  if (/بارد|ثلج|cold|iced/i.test(text)) return 'cold';
+  return 'hot';
+}
+
 function parseBeanInfo(text: string): { name: string; origin: string | null } {
-  const stripped = text.replace(/^\/submit(@\w+)?/i, '').trim();
+  const stripped = text
+    .replace(/^\/submit(@\w+)?/i, '')
+    .replace(/https?:\/\/\S+/gi, '')
+    .trim();
   const [namePart, ...rest] = stripped.split('-');
   const name = namePart.trim() || 'بانتظار التسمية';
   const origin = rest.join('-').trim() || null;
@@ -50,6 +59,7 @@ type BeanVisionResult = {
   origin: string | null;
   process: string | null;
   flavorNotes: string[];
+  altitude: string | null;
 };
 
 /** يقرا اسم المحصول ونكهاته ومنشأه من كتابة كيس القهوة الفعلية بالصورة — يرجّع حقول فاضية لو ما فيه كتابة واضحة بالصورة */
@@ -76,8 +86,8 @@ async function analyzeBeanPhoto(photoBuffer: Buffer): Promise<BeanVisionResult |
               type: 'text',
               text:
                 'هذي صورة كيس قهوة مختص. اقرا الكتابة المطبوعة على الكيس فقط (لا تخمّن) وطلّع لي JSON بالضبط بهذا الشكل، بدون أي نص إضافي قبله أو بعده:\n' +
-                '{"name": string|null, "origin": string|null, "process": string|null, "flavorNotes": string[]}\n' +
-                'name = اسم المحصول/التحميصة كما مكتوب بالضبط. origin = بلد/منطقة المنشأ لو مكتوبة. process = طريقة المعالجة (مغسولة/طبيعية/عسلية...) لو مكتوبة. flavorNotes = قائمة نكهات القهوة المكتوبة (مثل: توت، شوكولاتة، حمضيات). لو ما فيه كتابة واضحة تقدر تقرأها بثقة لأي حقل، رجّعه null أو مصفوفة فاضية — لا تخترع معلومات.',
+                '{"name": string|null, "origin": string|null, "process": string|null, "flavorNotes": string[], "altitude": string|null}\n' +
+                'name = اسم المحصول/التحميصة كما مكتوب بالضبط. origin = بلد/منطقة المنشأ لو مكتوبة. process = طريقة المعالجة (مغسولة/طبيعية/عسلية...) لو مكتوبة. flavorNotes = قائمة نكهات القهوة المكتوبة (مثل: توت، شوكولاتة، حمضيات). altitude = الارتفاع فوق سطح البحر لو مكتوب (مثل "1900-2100m" أو "1950 masl"). لو ما فيه كتابة واضحة تقدر تقرأها بثقة لأي حقل، رجّعه null أو مصفوفة فاضية — لا تخترع معلومات.',
             },
           ],
         },
@@ -99,6 +109,7 @@ async function analyzeBeanPhoto(photoBuffer: Buffer): Promise<BeanVisionResult |
       origin: parsed.origin || null,
       process: parsed.process || null,
       flavorNotes: Array.isArray(parsed.flavorNotes) ? parsed.flavorNotes : [],
+      altitude: parsed.altitude || null,
     };
   } catch {
     return null;
@@ -121,7 +132,8 @@ async function downloadTelegramPhoto(fileId: string): Promise<Buffer | null> {
 async function createBeanFromPhoto(
   photo: TelegramPhotoSize,
   typedText: string,
-  xbloomLink: string | null
+  xbloomLink: string | null,
+  brewTextForTemp: string = typedText
 ): Promise<{ beanId: string; name: string } | null> {
   const photoBuffer = await downloadTelegramPhoto(photo.file_id);
   if (!photoBuffer) return null;
@@ -132,6 +144,7 @@ async function createBeanFromPhoto(
   const origin = vision?.origin || typed.origin;
   const process = vision?.process ?? null;
   const flavorNotes = vision?.flavorNotes ?? [];
+  const altitude = vision?.altitude ?? null;
 
   const admin = adminClient();
   const path = `telegram/${Date.now()}-${photo.file_id}.jpg`;
@@ -149,6 +162,7 @@ async function createBeanFromPhoto(
       origin,
       process,
       flavor_notes: flavorNotes,
+      altitude,
       image_url: publicUrlData.publicUrl,
       status: 'pending',
     })
@@ -160,7 +174,7 @@ async function createBeanFromPhoto(
     await admin.from('recipes').insert({
       bean_id: bean.id,
       user_id: submitterUserId,
-      method: 'xbloom_hot',
+      method: `xbloom_${detectBrewTemp(brewTextForTemp)}`,
       xbloom_link: xbloomLink,
       status: 'pending',
       submitter_name: 'mohammed',
@@ -187,7 +201,7 @@ async function handleGroupSubmit(message: TelegramMessage) {
   const xbloomLink = extractXbloomLink(combinedText);
   const largestPhoto = photoSource[photoSource.length - 1];
 
-  const result = await createBeanFromPhoto(largestPhoto, rawText, xbloomLink);
+  const result = await createBeanFromPhoto(largestPhoto, rawText, xbloomLink, combinedText);
   if (!result) {
     await sendReply(chatId, replyTarget, 'صار خطأ بإضافة المحصول، جرّب مرة ثانية.');
     return;
@@ -245,7 +259,7 @@ async function handlePrivateMessage(message: TelegramMessage) {
     await admin.from('recipes').insert({
       bean_id: pending.bean_id,
       user_id: submitterUserId,
-      method: 'xbloom_hot',
+      method: `xbloom_${detectBrewTemp(rawText)}`,
       xbloom_link: xbloomLink,
       status: 'pending',
       submitter_name: 'mohammed',
