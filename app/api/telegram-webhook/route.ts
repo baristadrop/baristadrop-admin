@@ -163,7 +163,7 @@ async function createBeanFromPhoto(
       method: 'xbloom_hot',
       xbloom_link: xbloomLink,
       status: 'pending',
-      submitter_name: 'مجتمع تيليجرام',
+      submitter_name: 'mohammed',
     });
   }
 
@@ -248,7 +248,7 @@ async function handlePrivateMessage(message: TelegramMessage) {
       method: 'xbloom_hot',
       xbloom_link: xbloomLink,
       status: 'pending',
-      submitter_name: 'مجتمع تيليجرام',
+      submitter_name: 'mohammed',
     });
     await admin.from('telegram_pending_beans').delete().eq('chat_id', chatId);
 
