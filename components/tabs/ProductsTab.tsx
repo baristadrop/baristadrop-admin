@@ -90,7 +90,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <div className="rounded-2xl border border-latte bg-white p-5">
+    <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
       <h3 className="mb-4 font-medium text-ink">إضافة منتج جديد</h3>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>

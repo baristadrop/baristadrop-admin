@@ -87,7 +87,7 @@ export function BeansTab() {
 
   return (
     <div className="flex gap-6">
-      <div className="w-72 shrink-0 rounded-2xl border border-latte bg-white">
+      <div className="w-72 shrink-0 rounded-2xl border border-latte bg-white shadow-sm">
         {rows.map((b) => (
           <button
             key={b.id}
@@ -156,7 +156,7 @@ function BeanReviewPanel({
   }
 
   return (
-    <div className="flex-1 rounded-2xl border border-latte bg-white p-6">
+    <div className="flex-1 rounded-2xl border border-latte bg-white p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <input

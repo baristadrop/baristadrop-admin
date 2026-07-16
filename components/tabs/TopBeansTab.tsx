@@ -44,7 +44,7 @@ export function TopBeansTab() {
           الوصفات بالتطبيق.
         </p>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-latte bg-white">
+        <div className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
           {rows.map((b, i) => (
             <div
               key={b.id}

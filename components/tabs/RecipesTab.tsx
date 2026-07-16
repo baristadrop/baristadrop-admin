@@ -85,7 +85,7 @@ export function RecipesTab() {
 
   return (
     <div className="flex gap-6">
-      <div className="w-72 shrink-0 rounded-2xl border border-latte bg-white">
+      <div className="w-72 shrink-0 rounded-2xl border border-latte bg-white shadow-sm">
         {rows.map((r) => (
           <button
             key={r.id}
@@ -141,7 +141,7 @@ function RecipeReviewPanel({
   });
 
   return (
-    <div className="flex-1 rounded-2xl border border-latte bg-white p-6">
+    <div className="flex-1 rounded-2xl border border-latte bg-white p-6 shadow-sm">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-[var(--font-el-messiri)] text-xl text-ink">{selected.beans?.name}</h2>

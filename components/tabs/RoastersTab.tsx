@@ -101,7 +101,7 @@ export function RoastersTab() {
   if (!rows) return <p className="text-mocha">تحميل...</p>;
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-latte bg-white">
+    <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
       <table className="w-full min-w-[1120px] text-sm">
         <thead>
           <tr className="border-b border-latte bg-sand/40 text-mocha">

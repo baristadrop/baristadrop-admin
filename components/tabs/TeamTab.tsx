@@ -82,7 +82,7 @@ export function TeamTab() {
     <div>
       <form
         onSubmit={handleCreate}
-        className="mb-6 rounded-2xl border border-latte bg-white p-5"
+        className="mb-6 rounded-2xl border border-latte bg-white p-5 shadow-sm"
       >
         <p className="mb-3 font-[var(--font-el-messiri)] text-base text-ink">إضافة عضو فريق جديد</p>
         {createError && <p className="mb-3 rounded-lg bg-sand px-3 py-2 text-sm text-[#B3392C]">{createError}</p>}
@@ -133,7 +133,7 @@ export function TeamTab() {
       <p className="mb-4 text-sm text-mocha">
         كل مستخدم مسجّل بالتطبيق (أو أضفته هنا) يظهر بالجدول. أعطِ أي حساب صلاحية "أدمن" أو "محمصة" أو "مورّد" حسب دوره.
       </p>
-      <div className="overflow-x-auto rounded-2xl border border-latte bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b border-latte bg-sand/40 text-mocha">

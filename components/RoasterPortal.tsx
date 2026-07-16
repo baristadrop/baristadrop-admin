@@ -138,7 +138,7 @@ export function RoasterPortal() {
 
         {roaster && (
           <>
-            <div className="mb-6 flex items-center gap-4 rounded-2xl border border-latte bg-white p-5">
+            <div className="mb-6 flex items-center gap-4 rounded-2xl border border-latte bg-white p-5 shadow-sm">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-latte bg-sand">
                 {roaster.logo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -159,7 +159,7 @@ export function RoasterPortal() {
               </div>
             </div>
 
-            <form onSubmit={handleAddBean} className="mb-6 rounded-2xl border border-latte bg-white p-5">
+            <form onSubmit={handleAddBean} className="mb-6 rounded-2xl border border-latte bg-white p-5 shadow-sm">
               <p className="mb-3 font-[var(--font-el-messiri)] text-base text-ink">أضف محصول جديد</p>
               {message && <p className="mb-3 rounded-lg bg-sand px-3 py-2 text-sm text-coffee">{message}</p>}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -206,7 +206,7 @@ export function RoasterPortal() {
             </form>
 
             <p className="mb-3 font-[var(--font-el-messiri)] text-base text-ink">محاصيلك</p>
-            <div className="overflow-hidden rounded-2xl border border-latte bg-white">
+            <div className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
               {beans.length === 0 && <p className="p-4 text-sm text-mocha">ما أضفت أي محصول بعد.</p>}
               {beans.map((b) => (
                 <div key={b.id} className="flex items-center justify-between border-b border-latte/60 p-4 last:border-0">

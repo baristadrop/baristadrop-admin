@@ -16,7 +16,7 @@ type Counts = {
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-2xl border border-latte bg-white p-5">
+    <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
       <p className="text-sm text-mocha">{label}</p>
       <p className="mt-1 font-[var(--font-el-messiri)] text-3xl text-ink">{value}</p>
     </div>

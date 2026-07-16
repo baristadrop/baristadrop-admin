@@ -84,7 +84,7 @@ export function OrdersTab() {
   return (
     <div className="space-y-4">
       {orders.map((o) => (
-        <div key={o.id} className="rounded-2xl border border-latte bg-white p-5">
+        <div key={o.id} className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <span className="font-[var(--font-cormorant)] text-xl font-bold text-ink">#{o.order_number}</span>

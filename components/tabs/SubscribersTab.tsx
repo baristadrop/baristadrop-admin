@@ -69,7 +69,7 @@ export function SubscribersTab() {
   if (rows.length === 0) return <p className="text-mocha">ما فيه مشتركين بعد.</p>;
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-latte bg-white">
+    <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
       <table className="w-full min-w-[900px] text-sm">
         <thead>
           <tr className="border-b border-latte bg-sand/40 text-mocha">
