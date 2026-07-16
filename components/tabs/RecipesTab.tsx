@@ -25,7 +25,13 @@ type RecipeRow = {
   notes: string | null;
   image_url: string | null;
   created_at: string;
-  beans: { name: string; origin: string | null; process: string | null; roasters: RoasterInfo | null } | null;
+  beans: {
+    name: string;
+    origin: string | null;
+    process: string | null;
+    image_url: string | null;
+    roasters: RoasterInfo | null;
+  } | null;
   submitter: { full_name: string | null } | null;
 };
 
@@ -42,7 +48,7 @@ export function RecipesTab() {
     const { data } = await supabase
       .from('recipes')
       .select(
-        'id, method, xbloom_link, grinder, grind, temp, ratio, water, dose, tool, pours, notes, image_url, created_at, beans(name, origin, process, roasters(name, is_verified, affiliate_base_url, commission_percent)), submitter:profiles(full_name)'
+        'id, method, xbloom_link, grinder, grind, temp, ratio, water, dose, tool, pours, notes, image_url, created_at, beans(name, origin, process, image_url, roasters(name, is_verified, affiliate_base_url, commission_percent)), submitter:profiles(full_name)'
       )
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
@@ -160,6 +166,17 @@ function RecipeReviewPanel({
           </button>
         </div>
       </div>
+
+      {selected.beans?.image_url && (
+        <div className="mt-4 overflow-hidden rounded-2xl border border-latte">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={selected.beans.image_url}
+            alt={selected.beans.name}
+            className="max-h-96 w-full object-contain bg-sand/30"
+          />
+        </div>
+      )}
 
       <div className="mt-4">
         <p className="mb-1 text-xs text-stone">حار أو بارد؟ (تأكد منها بنفسك — يمديها تكون غلط)</p>
