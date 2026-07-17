@@ -13,7 +13,6 @@ import { TopBeansTab } from './tabs/TopBeansTab';
 import { ProductsTab } from './tabs/ProductsTab';
 import { OrdersTab } from './tabs/OrdersTab';
 import { SubscribersTab } from './tabs/SubscribersTab';
-import { NetworkTab } from './tabs/NetworkTab';
 import {
   OverviewIcon,
   TrophyIcon,
@@ -26,13 +25,11 @@ import {
   ReceiptIcon,
   UsersIcon,
   ShieldIcon,
-  NetworkIcon,
 } from './icons/NavIcons';
 
 type TabKey =
   | 'overview'
   | 'top'
-  | 'network'
   | 'recipes'
   | 'beans'
   | 'roasters'
@@ -52,7 +49,6 @@ const NAV_GROUPS: NavGroup[] = [
     tabs: [
       { key: 'overview', label: 'نظرة عامة', Icon: OverviewIcon },
       { key: 'top', label: 'أفضل 10 محاصيل', Icon: TrophyIcon },
-      { key: 'network', label: 'الشبكة', Icon: NetworkIcon },
     ],
   },
   {
@@ -158,7 +154,6 @@ export function Dashboard() {
           {active === 'orders' && <OrdersTab />}
           {active === 'subscribers' && <SubscribersTab />}
           {active === 'team' && <TeamTab />}
-          {active === 'network' && <NetworkTab />}
         </main>
       </div>
     </div>
