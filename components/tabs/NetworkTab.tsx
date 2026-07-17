@@ -167,18 +167,16 @@ export function NetworkTab() {
               const color = NODE_COLOR[node.type as NodeType];
               const r = NODE_SIZE[node.type as NodeType];
 
-              ctx.save();
-              ctx.shadowColor = color;
-              ctx.shadowBlur = 18;
+              // دائرة مسطحة بدون shadowBlur (مكلف على المعالج ويعيد حسابه
+              // مع كل سحب/تكبير للشبكة، مو بس أول ما تفتح) — تدرّج خفيف
+              // بدل الظل يعطي إحساس التوهج بتكلفة أقل بكثير.
+              const grad = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, r);
+              grad.addColorStop(0, 'rgba(255,255,255,0.9)');
+              grad.addColorStop(0.35, color);
+              grad.addColorStop(1, color);
               ctx.beginPath();
               ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
-              ctx.fillStyle = color;
-              ctx.fill();
-              ctx.restore();
-
-              ctx.beginPath();
-              ctx.arc(node.x, node.y, r * 0.45, 0, 2 * Math.PI);
-              ctx.fillStyle = 'rgba(255,255,255,0.85)';
+              ctx.fillStyle = grad;
               ctx.fill();
 
               if (node.label) {
