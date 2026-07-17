@@ -14,6 +14,13 @@ type Counts = {
   subscriptionInterests: number;
 };
 
+type PostHogStats = {
+  connected: boolean;
+  uniqueVisitors30d: number;
+  appOpens30d: number;
+  newInstalls30d: number;
+};
+
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
@@ -25,10 +32,11 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
 
 export function OverviewTab() {
   const [counts, setCounts] = useState<Counts | null>(null);
+  const [ph, setPh] = useState<PostHogStats | null>(null);
 
   useEffect(() => {
     const load = async () => {
-      const [recipes, beans, suppliers, roasters, allSuppliers, profiles, clicks, subInterests] =
+      const [recipes, beans, suppliers, roasters, allSuppliers, profiles, clicks, subInterests, sessionRes] =
         await Promise.all([
           supabase.from('recipes').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('beans').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -38,6 +46,7 @@ export function OverviewTab() {
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('affiliate_clicks').select('id', { count: 'exact', head: true }),
           supabase.from('subscription_interests').select('id', { count: 'exact', head: true }),
+          supabase.auth.getSession(),
         ]);
       setCounts({
         pendingRecipes: recipes.count ?? 0,
@@ -49,6 +58,10 @@ export function OverviewTab() {
         affiliateClicks: clicks.count ?? 0,
         subscriptionInterests: subInterests.count ?? 0,
       });
+
+      const token = sessionRes.data.session?.access_token;
+      const phRes = await fetch('/api/admin/posthog-stats', { headers: { Authorization: `Bearer ${token}` } });
+      if (phRes.ok) setPh(await phRes.json());
     };
     load();
   }, []);
@@ -66,12 +79,21 @@ export function OverviewTab() {
         <StatCard label="إجمالي المستخدمين" value={counts.totalProfiles} />
         <StatCard label="ضغطات روابط الشراء" value={counts.affiliateClicks} />
         <StatCard label="طلبات اهتمام بالاشتراك" value={counts.subscriptionInterests} />
+        {ph?.connected && (
+          <>
+            <StatCard label="زوار فريدين (٣٠ يوم)" value={ph.uniqueVisitors30d} />
+            <StatCard label="مرات فتح التطبيق (٣٠ يوم)" value={ph.appOpens30d} />
+            <StatCard label="تثبيتات جديدة (٣٠ يوم)" value={ph.newInstalls30d} />
+          </>
+        )}
       </div>
 
-      <div className="mt-6 rounded-2xl border border-dashed border-stone bg-sand/40 p-5 text-sm text-mocha">
-        <strong className="text-coffee">الزيارات وتنزيلات التطبيق:</strong> لسه ما مربوطة —
-        تحتاج تفعيل PostHog بتطبيق الجوال أول عشان يكون عندنا أرقام حقيقية نعرضها هنا.
-      </div>
+      {!ph?.connected && (
+        <div className="mt-6 rounded-2xl border border-dashed border-stone bg-sand/40 p-5 text-sm text-mocha">
+          <strong className="text-coffee">الزيارات وتنزيلات التطبيق:</strong> ما قدرنا نجيب بيانات PostHog
+          الحين — تأكد إن مفتاح POSTHOG_PERSONAL_API_KEY صحيح ومفعّل.
+        </div>
+      )}
     </div>
   );
 }
