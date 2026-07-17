@@ -29,82 +29,138 @@ import {
   NetworkIcon,
 } from './icons/NavIcons';
 
-const TABS = [
-  { key: 'overview', label: 'نظرة عامة', Icon: OverviewIcon },
-  { key: 'top', label: 'أفضل 10 محاصيل', Icon: TrophyIcon },
-  { key: 'recipes', label: 'الوصفات المعلّقة', Icon: CupIcon },
-  { key: 'beans', label: 'المحاصيل المعلّقة', Icon: BeanIcon },
-  { key: 'roasters', label: 'المحامص', Icon: FlameIcon },
-  { key: 'cafes', label: 'الكوفي شوب', Icon: StorefrontIcon },
-  { key: 'suppliers', label: 'الموردين', Icon: TruckIcon },
-  { key: 'store', label: 'متجري', Icon: BagIcon },
-  { key: 'orders', label: 'الطلبات', Icon: ReceiptIcon },
-  { key: 'subscribers', label: 'المشتركين', Icon: UsersIcon },
-  { key: 'team', label: 'الفريق', Icon: ShieldIcon },
-  { key: 'network', label: 'الشبكة', Icon: NetworkIcon },
-] as const;
+type TabKey =
+  | 'overview'
+  | 'top'
+  | 'network'
+  | 'recipes'
+  | 'beans'
+  | 'roasters'
+  | 'cafes'
+  | 'suppliers'
+  | 'store'
+  | 'orders'
+  | 'subscribers'
+  | 'team';
 
-type TabKey = (typeof TABS)[number]['key'];
+type NavTab = { key: TabKey; label: string; Icon: (props: { className?: string }) => React.JSX.Element };
+type NavGroup = { label: string; tabs: NavTab[] };
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'نظرة عامة وتحليلات',
+    tabs: [
+      { key: 'overview', label: 'نظرة عامة', Icon: OverviewIcon },
+      { key: 'top', label: 'أفضل 10 محاصيل', Icon: TrophyIcon },
+      { key: 'network', label: 'الشبكة', Icon: NetworkIcon },
+    ],
+  },
+  {
+    label: 'قائمة المراجعة',
+    tabs: [
+      { key: 'recipes', label: 'الوصفات المعلّقة', Icon: CupIcon },
+      { key: 'beans', label: 'المحاصيل المعلّقة', Icon: BeanIcon },
+    ],
+  },
+  {
+    label: 'الشركاء',
+    tabs: [
+      { key: 'roasters', label: 'المحامص', Icon: FlameIcon },
+      { key: 'cafes', label: 'الكوفي شوب', Icon: StorefrontIcon },
+      { key: 'suppliers', label: 'الموردين', Icon: TruckIcon },
+    ],
+  },
+  {
+    label: 'المتجر والطلبات',
+    tabs: [
+      { key: 'store', label: 'متجري', Icon: BagIcon },
+      { key: 'orders', label: 'الطلبات', Icon: ReceiptIcon },
+      { key: 'subscribers', label: 'المشتركين', Icon: UsersIcon },
+    ],
+  },
+  {
+    label: 'الفريق',
+    tabs: [{ key: 'team', label: 'الفريق', Icon: ShieldIcon }],
+  },
+];
+
+const ALL_TABS: NavTab[] = NAV_GROUPS.flatMap((g) => g.tabs);
 
 export function Dashboard() {
   const { profile, session, signOut } = useAdminAuth();
   const [active, setActive] = useState<TabKey>('overview');
+  const activeLabel = ALL_TABS.find((t) => t.key === active)?.label ?? '';
 
   return (
-    <div className="min-h-screen bg-paper">
-      <header className="sticky top-0 z-10 border-b border-latte/70 bg-cream/95 shadow-[0_1px_0_0_rgba(0,0,0,0.02)] backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <h1 className="font-[var(--font-cormorant)] text-2xl font-bold tracking-wide text-ink">
-            BARISTA DROP <span className="text-base font-normal text-mocha">· لوحة التحكم</span>
-          </h1>
-          <div className="flex items-center gap-3 text-sm text-mocha">
-            <span className="rounded-full bg-sand/70 px-3 py-1.5 font-medium text-coffee">
-              {profile?.full_name || session?.user.email}
-            </span>
-            <button
-              onClick={() => signOut()}
-              className="rounded-full border border-latte px-3 py-1.5 font-medium text-coffee transition hover:border-coffee hover:bg-sand"
-            >
-              تسجيل خروج
-            </button>
-          </div>
+    <div className="min-h-screen bg-paper lg:flex">
+      <aside className="border-b border-latte/70 bg-cream lg:h-screen lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-l">
+        <div className="px-5 py-5">
+          <h1 className="font-[var(--font-cormorant)] text-xl font-bold tracking-wide text-ink">BARISTA DROP</h1>
+          <p className="text-xs text-mocha">لوحة التحكم</p>
         </div>
-        <nav className="mx-auto flex max-w-6xl gap-1.5 overflow-x-auto px-6 pb-3">
-          {TABS.map((tab) => {
-            const Icon = tab.Icon;
-            const isActive = active === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActive(tab.key)}
-                className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${
-                  isActive
-                    ? 'bg-ink text-cream shadow-sm'
-                    : 'border border-latte bg-white text-coffee hover:border-coffee/40 hover:bg-sand/40'
-                }`}
-              >
-                <Icon className={`h-4 w-4 ${isActive ? 'text-gold' : 'text-mocha'}`} />
-                {tab.label}
-              </button>
-            );
-          })}
-        </nav>
-      </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
-        {active === 'overview' && <OverviewTab />}
-        {active === 'top' && <TopBeansTab />}
-        {active === 'recipes' && <RecipesTab />}
-        {active === 'beans' && <BeansTab />}
-        {active === 'roasters' && <RoastersTab />}
-        {active === 'cafes' && <CafesTab />}
-        {active === 'suppliers' && <SuppliersTab />}
-        {active === 'store' && <ProductsTab />}
-        {active === 'orders' && <OrdersTab />}
-        {active === 'subscribers' && <SubscribersTab />}
-        {active === 'team' && <TeamTab />}
-        {active === 'network' && <NetworkTab />}
-      </main>
+        <nav className="flex flex-col gap-5 px-3 pb-6">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="mb-1.5 px-2 text-[11px] font-semibold tracking-wide text-stone">{group.label}</p>
+              <div className="flex flex-col gap-1">
+                {group.tabs.map((tab) => {
+                  const Icon = tab.Icon;
+                  const isActive = active === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActive(tab.key)}
+                      className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                        isActive
+                          ? 'bg-ink text-cream shadow-sm'
+                          : 'text-coffee hover:bg-sand/50'
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-gold' : 'text-mocha'}`} />
+                      <span className="text-right">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+      </aside>
+
+      <div className="min-w-0 flex-1">
+        <header className="sticky top-0 z-10 border-b border-latte/70 bg-cream/95 shadow-[0_1px_0_0_rgba(0,0,0,0.02)] backdrop-blur">
+          <div className="flex items-center justify-between px-6 py-4">
+            <h2 className="font-[var(--font-el-messiri)] text-lg text-ink">{activeLabel}</h2>
+            <div className="flex items-center gap-3 text-sm text-mocha">
+              <span className="rounded-full bg-sand/70 px-3 py-1.5 font-medium text-coffee">
+                {profile?.full_name || session?.user.email}
+              </span>
+              <button
+                onClick={() => signOut()}
+                className="rounded-full border border-latte px-3 py-1.5 font-medium text-coffee transition hover:border-coffee hover:bg-sand"
+              >
+                تسجيل خروج
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main className="px-6 py-8">
+          {active === 'overview' && <OverviewTab />}
+          {active === 'top' && <TopBeansTab />}
+          {active === 'recipes' && <RecipesTab />}
+          {active === 'beans' && <BeansTab />}
+          {active === 'roasters' && <RoastersTab />}
+          {active === 'cafes' && <CafesTab />}
+          {active === 'suppliers' && <SuppliersTab />}
+          {active === 'store' && <ProductsTab />}
+          {active === 'orders' && <OrdersTab />}
+          {active === 'subscribers' && <SubscribersTab />}
+          {active === 'team' && <TeamTab />}
+          {active === 'network' && <NetworkTab />}
+        </main>
+      </div>
     </div>
   );
 }
