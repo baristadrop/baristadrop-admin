@@ -80,18 +80,30 @@ export function NetworkTab() {
   }, []);
 
   return (
-    <div>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        {LEGEND.map((item) => (
-          <span key={item.type} className="flex items-center gap-1.5 text-xs text-mocha">
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: NODE_COLOR[item.type] }}
-            />
-            {item.label}
-          </span>
-        ))}
-        <span className="text-xs text-stone">({NODE_COUNT} عقدة)</span>
+    <div className="flex flex-col gap-5">
+      <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="font-[var(--font-el-messiri)] text-xl text-ink">خريطة الشبكة</h2>
+            <p className="mt-1 text-sm text-mocha">تصوّر بصري لحجم المجتمع المتصل بمشروع Barista Drop</p>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-latte bg-sand/40 px-4 py-2">
+            <span className="text-xs text-mocha">إجمالي العُقَد</span>
+            <span className="font-[var(--font-el-messiri)] text-lg text-ink">{NODE_COUNT}</span>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2.5 border-t border-latte/70 pt-4 sm:grid-cols-3 lg:grid-cols-6">
+          {LEGEND.map((item) => (
+            <div key={item.type} className="flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-3 shrink-0 rounded-full"
+                style={{ backgroundColor: NODE_COLOR[item.type] }}
+              />
+              <span className="text-sm text-coffee">{item.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div ref={containerRef} className="overflow-hidden rounded-2xl border border-latte bg-[#0b0a09] shadow-sm">
