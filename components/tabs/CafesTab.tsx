@@ -7,6 +7,7 @@ type CafeRow = {
   id: string;
   name: string;
   country: string;
+  trade_license_number: string | null;
   location: string | null;
   supplying_roaster_id: string | null;
   is_verified: boolean;
@@ -30,7 +31,7 @@ export function CafesTab() {
     const [{ data }, { data: roasterRows }, sessionRes] = await Promise.all([
       supabase
         .from('cafes')
-        .select('id, name, country, location, supplying_roaster_id, is_verified, is_sponsor, is_advertiser, status, owner_id')
+        .select('id, name, country, trade_license_number, location, supplying_roaster_id, is_verified, is_sponsor, is_advertiser, status, owner_id')
         .order('name')
         .returns<CafeRow[]>(),
       supabase.from('roasters').select('id, name').order('name'),
@@ -97,6 +98,7 @@ export function CafesTab() {
           <tr className="border-b border-latte bg-sand/40 text-mocha">
             <th className="p-3 text-right">الاسم</th>
             <th className="p-3 text-right">الدولة</th>
+            <th className="p-3 text-right">رخصة تجارية</th>
             <th className="p-3 text-right">تورّده محمصة</th>
             <th className="p-3 text-right">معلن</th>
             <th className="p-3 text-right">Sponsor</th>
@@ -110,6 +112,7 @@ export function CafesTab() {
             <tr key={c.id} className="border-b border-latte/60">
               <td className="p-3 font-medium text-ink">{c.name}</td>
               <td className="p-3 text-mocha">{c.country}</td>
+              <td className="p-3 text-xs text-mocha" dir="ltr">{c.trade_license_number ?? '—'}</td>
               <td className="p-3">
                 <select
                   value={c.supplying_roaster_id ?? ''}
@@ -197,7 +200,7 @@ export function CafesTab() {
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={8} className="p-6 text-center text-mocha">
+              <td colSpan={9} className="p-6 text-center text-mocha">
                 ما فيه كوفي شوب مضاف بعد.
               </td>
             </tr>

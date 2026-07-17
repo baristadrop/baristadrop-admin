@@ -7,6 +7,7 @@ type RoasterRow = {
   id: string;
   name: string;
   country: string;
+  trade_license_number: string | null;
   is_verified: boolean;
   is_sponsor: boolean;
   is_advertiser: boolean;
@@ -14,6 +15,7 @@ type RoasterRow = {
   affiliate_base_url: string | null;
   commission_percent: number | null;
   promo_code: string | null;
+  status: 'pending' | 'approved' | 'rejected';
   owner_id: string | null;
 };
 
@@ -31,7 +33,7 @@ export function RoastersTab() {
       supabase
         .from('roasters')
         .select(
-          'id, name, country, is_verified, is_sponsor, is_advertiser, can_edit_links, affiliate_base_url, commission_percent, promo_code, owner_id'
+          'id, name, country, trade_license_number, is_verified, is_sponsor, is_advertiser, can_edit_links, affiliate_base_url, commission_percent, promo_code, status, owner_id'
         )
         .order('name')
         .returns<RoasterRow[]>(),
@@ -57,6 +59,11 @@ export function RoastersTab() {
   useEffect(() => {
     load();
   }, []);
+
+  const setStatus = async (id: string, status: RoasterRow['status']) => {
+    setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, status } : r)) ?? null);
+    await supabase.from('roasters').update({ status }).eq('id', id);
+  };
 
   const toggle = async (
     id: string,
@@ -107,6 +114,8 @@ export function RoastersTab() {
           <tr className="border-b border-latte bg-sand/40 text-mocha">
             <th className="p-3 text-right">الاسم</th>
             <th className="p-3 text-right">الدولة</th>
+            <th className="p-3 text-right">رخصة تجارية</th>
+            <th className="p-3 text-right">الحالة</th>
             <th className="p-3 text-right">معلن</th>
             <th className="p-3 text-right">Sponsor</th>
             <th className="p-3 text-right">موثّقة؟</th>
@@ -123,6 +132,29 @@ export function RoastersTab() {
             <tr key={r.id} className="border-b border-latte/60">
               <td className="p-3 font-medium text-ink">{r.name}</td>
               <td className="p-3 text-mocha">{r.country}</td>
+              <td className="p-3 text-xs text-mocha" dir="ltr">{r.trade_license_number ?? '—'}</td>
+              <td className="p-3">
+                {r.status === 'pending' ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setStatus(r.id, 'approved')}
+                      className="rounded-full bg-gold px-3 py-1 text-xs font-bold text-white"
+                    >
+                      قبول
+                    </button>
+                    <button
+                      onClick={() => setStatus(r.id, 'rejected')}
+                      className="rounded-full border border-latte px-3 py-1 text-xs text-coffee"
+                    >
+                      رفض
+                    </button>
+                  </div>
+                ) : (
+                  <span className={r.status === 'approved' ? 'text-sm text-gold' : 'text-sm text-stone'}>
+                    {r.status === 'approved' ? 'مقبول' : 'مرفوض'}
+                  </span>
+                )}
+              </td>
               <td className="p-3">
                 <input
                   type="checkbox"

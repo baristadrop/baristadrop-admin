@@ -7,7 +7,8 @@ type SupplierRow = {
   id: string;
   name: string;
   country: string;
-  website: string;
+  trade_license_number: string | null;
+  website: string | null;
   is_verified: boolean;
   is_sponsor: boolean;
   is_advertiser: boolean;
@@ -27,7 +28,7 @@ export function SuppliersTab() {
     const [{ data }, sessionRes] = await Promise.all([
       supabase
         .from('suppliers')
-        .select('id, name, country, website, is_verified, is_sponsor, is_advertiser, status, owner_id')
+        .select('id, name, country, trade_license_number, website, is_verified, is_sponsor, is_advertiser, status, owner_id')
         .order('name')
         .returns<SupplierRow[]>(),
       supabase.auth.getSession(),
@@ -87,6 +88,7 @@ export function SuppliersTab() {
           <tr className="border-b border-latte bg-sand/40 text-mocha">
             <th className="p-3 text-right">الاسم</th>
             <th className="p-3 text-right">الدولة</th>
+            <th className="p-3 text-right">رخصة تجارية</th>
             <th className="p-3 text-right">الموقع</th>
             <th className="p-3 text-right">معلن</th>
             <th className="p-3 text-right">Sponsor</th>
@@ -100,10 +102,15 @@ export function SuppliersTab() {
             <tr key={s.id} className="border-b border-latte/60">
               <td className="p-3 font-medium text-ink">{s.name}</td>
               <td className="p-3 text-mocha">{s.country}</td>
+              <td className="p-3 text-xs text-mocha" dir="ltr">{s.trade_license_number ?? '—'}</td>
               <td className="p-3 text-xs text-mocha" dir="ltr">
-                <a href={s.website} target="_blank" rel="noreferrer" className="underline">
-                  {s.website}
-                </a>
+                {s.website ? (
+                  <a href={s.website} target="_blank" rel="noreferrer" className="underline">
+                    {s.website}
+                  </a>
+                ) : (
+                  '—'
+                )}
               </td>
               <td className="p-3">
                 <input
