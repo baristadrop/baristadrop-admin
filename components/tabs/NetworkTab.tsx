@@ -45,6 +45,15 @@ const LEGEND: { type: NodeType; label: string }[] = [
   { type: 'user', label: 'مستخدم' },
 ];
 
+/** رقم ثابت 0..1 من نص (لكل عقدة نبضة/إيقاع خاص فيها مو متزامن مع البقية) */
+function seed(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return (h % 1000) / 1000;
+}
+
+type Star = { x: number; y: number; r: number; phase: number; speed: number };
+
 export function NetworkTab() {
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [links, setLinks] = useState<GraphLink[]>([]);
@@ -52,8 +61,11 @@ export function NetworkTab() {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<any>(null);
   const [size, setSize] = useState({ width: 900, height: 600 });
-
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const hoveredIdRef = useRef<string | null>(null);
+  const connectedRef = useRef<Set<string>>(new Set());
+  const starsRef = useRef<Star[]>([]);
 
   const tuneForces = () => {
     const fg = graphRef.current;
@@ -111,6 +123,14 @@ export function NetworkTab() {
         n.push({ id: `user-${uid}`, label: profileName.get(uid) ?? 'مستخدم', type: 'user' });
       }
 
+      starsRef.current = Array.from({ length: 120 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        r: 0.4 + Math.random() * 1.1,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.3 + Math.random() * 0.6,
+      }));
+
       setNodes(n);
       setLinks(l);
       setLoading(false);
@@ -143,6 +163,8 @@ export function NetworkTab() {
     };
   }, []);
 
+  const isRelated = (id: string) => !hoveredIdRef.current || connectedRef.current.has(id);
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -168,8 +190,8 @@ export function NetworkTab() {
         ref={containerRef}
         className={
           isFullscreen
-            ? 'bg-[#07070a]'
-            : 'overflow-hidden rounded-2xl border border-latte bg-[#0b0a09] shadow-sm'
+            ? 'bg-[#050506]'
+            : 'overflow-hidden rounded-2xl border border-latte bg-[#050506] shadow-sm'
         }
       >
         {loading ? (
@@ -184,16 +206,48 @@ export function NetworkTab() {
             nodeLabel="label"
             nodeColor={(n: any) => NODE_COLOR[n.type as NodeType]}
             nodeVal={(n: any) => NODE_SIZE[n.type as NodeType]}
+            backgroundColor="#050506"
+            cooldownTime={Infinity}
+            onRenderFramePre={(ctx: CanvasRenderingContext2D) => {
+              const t = Date.now() / 1000;
+              for (const s of starsRef.current) {
+                const alpha = 0.25 + 0.55 * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+                ctx.beginPath();
+                ctx.arc(s.x * size.width, s.y * size.height, s.r, 0, 2 * Math.PI);
+                ctx.fillStyle = `rgba(210,225,255,${alpha.toFixed(3)})`;
+                ctx.fill();
+              }
+            }}
+            onNodeHover={(node: any) => {
+              hoveredIdRef.current = node?.id ?? null;
+              if (node) {
+                const s = new Set<string>([node.id]);
+                for (const l of links) {
+                  if (l.source === node.id) s.add(l.target);
+                  if (l.target === node.id) s.add(l.source);
+                }
+                connectedRef.current = s;
+              } else {
+                connectedRef.current = new Set();
+              }
+            }}
             linkCanvasObjectMode={() => 'replace'}
             linkCanvasObject={(link: any, ctx: CanvasRenderingContext2D) => {
               const src = link.source;
               const tgt = link.target;
               if (typeof src !== 'object' || typeof tgt !== 'object') return;
+              const active = isRelated(src.id) && isRelated(tgt.id);
+              const hot = hoveredIdRef.current && (src.id === hoveredIdRef.current || tgt.id === hoveredIdRef.current);
+
               ctx.save();
               ctx.shadowColor = LINK_GLOW;
-              ctx.shadowBlur = 8;
-              ctx.strokeStyle = 'rgba(95,200,255,0.55)';
-              ctx.lineWidth = 1;
+              ctx.shadowBlur = hot ? 16 : 8;
+              ctx.strokeStyle = hot
+                ? 'rgba(150,225,255,0.95)'
+                : active
+                  ? 'rgba(95,200,255,0.55)'
+                  : 'rgba(95,200,255,0.06)';
+              ctx.lineWidth = hot ? 1.6 : 1;
               ctx.beginPath();
               ctx.moveTo(src.x, src.y);
               ctx.lineTo(tgt.x, tgt.y);
@@ -204,35 +258,61 @@ export function NetworkTab() {
             linkDirectionalParticleWidth={2.2}
             linkDirectionalParticleSpeed={0.006}
             linkDirectionalParticleColor={() => '#dff5ff'}
-            backgroundColor="#07070a"
-            cooldownTime={Infinity}
             nodeCanvasObjectMode={() => 'replace'}
             nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
               const color = NODE_COLOR[node.type as NodeType];
-              const r = NODE_SIZE[node.type as NodeType];
+              const baseR = NODE_SIZE[node.type as NodeType];
+              const t = Date.now() / 1000;
+              const off = seed(node.id) * 100;
+              const pulse = 1 + 0.18 * Math.sin(t * 1.3 + off);
+              const r = baseR * pulse;
+              const related = isRelated(node.id);
+              const dim = !related;
 
               ctx.save();
+              if (dim) ctx.globalAlpha = 0.15;
+
+              // bloom (تدرّج شعاعي)
+              const bloom = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, r * 3.2);
+              bloom.addColorStop(0, color + 'aa');
+              bloom.addColorStop(0.5, color + '33');
+              bloom.addColorStop(1, color + '00');
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, r * 3.2, 0, 2 * Math.PI);
+              ctx.fillStyle = bloom;
+              ctx.fill();
+
+              // نواة العقدة
               ctx.shadowColor = color;
-              ctx.shadowBlur = 18;
+              ctx.shadowBlur = related && hoveredIdRef.current ? 28 : 16;
               ctx.beginPath();
               ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
               ctx.fillStyle = color;
               ctx.fill();
-              ctx.restore();
+              ctx.shadowBlur = 0;
 
               ctx.beginPath();
-              ctx.arc(node.x, node.y, r * 0.45, 0, 2 * Math.PI);
-              ctx.fillStyle = 'rgba(255,255,255,0.85)';
+              ctx.arc(node.x, node.y, r * 0.42, 0, 2 * Math.PI);
+              ctx.fillStyle = 'rgba(255,255,255,0.9)';
               ctx.fill();
+
+              // نبضة رادار متمددة للخارج
+              const cyclePos = ((t * 0.5 + off) % 3) / 3;
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, r + cyclePos * 16, 0, 2 * Math.PI);
+              ctx.strokeStyle = color + Math.round((1 - cyclePos) * 90).toString(16).padStart(2, '0');
+              ctx.lineWidth = 1.2;
+              ctx.stroke();
 
               if (node.label) {
                 const fontSize = Math.max(9 / globalScale, 2.5);
                 ctx.font = `${fontSize}px Cairo, sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'top';
-                ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                ctx.fillText(node.label, node.x, node.y + r + 2);
+                ctx.fillStyle = related ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.2)';
+                ctx.fillText(node.label, node.x, node.y + r + 3);
               }
+              ctx.restore();
             }}
             onNodeDragEnd={(node: any) => {
               node.fx = node.x;
