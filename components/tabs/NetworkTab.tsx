@@ -17,13 +17,15 @@ type GraphNode = {
 type GraphLink = { source: string; target: string };
 
 const NODE_COLOR: Record<NodeType, string> = {
-  roaster: '#A9793F',
-  cafe: '#3B82F6',
-  supplier: '#4C9A6A',
-  bean: '#C9A876',
-  recipe: '#7A6A57',
-  user: '#E8E2D6',
+  roaster: '#FF3B4E',
+  cafe: '#2F8FFF',
+  supplier: '#2ECC71',
+  bean: '#FFC107',
+  recipe: '#B84BFF',
+  user: '#00E5FF',
 };
+
+const LINK_GLOW = '#5FC8FF';
 
 const NODE_SIZE: Record<NodeType, number> = {
   roaster: 7,
@@ -51,13 +53,23 @@ export function NetworkTab() {
   const graphRef = useRef<any>(null);
   const [size, setSize] = useState({ width: 900, height: 600 });
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   const tuneForces = () => {
     const fg = graphRef.current;
     if (!fg) return;
-    fg.d3Force('charge')?.strength(-45);
-    fg.d3Force('link')?.distance(28);
+    fg.d3Force('charge')?.strength(-18);
+    fg.d3Force('link')?.distance(14);
     fg.d3AlphaDecay(0.003);
     fg.d3VelocityDecay(0.15);
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
   };
 
   useEffect(() => {
@@ -114,13 +126,21 @@ export function NetworkTab() {
 
   useEffect(() => {
     const update = () => {
-      if (containerRef.current) {
+      const fsActive = document.fullscreenElement === containerRef.current;
+      setIsFullscreen(fsActive);
+      if (fsActive) {
+        setSize({ width: window.innerWidth, height: window.innerHeight });
+      } else if (containerRef.current) {
         setSize({ width: containerRef.current.clientWidth, height: 620 });
       }
     };
     update();
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    document.addEventListener('fullscreenchange', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      document.removeEventListener('fullscreenchange', update);
+    };
   }, []);
 
   return (
@@ -136,9 +156,22 @@ export function NetworkTab() {
           </span>
         ))}
         <span className="text-xs text-stone">({nodes.length} عقدة)</span>
+        <button
+          onClick={toggleFullscreen}
+          className="mr-auto rounded-full border border-latte bg-white px-3 py-1.5 text-xs font-medium text-coffee transition hover:border-coffee hover:bg-sand"
+        >
+          {isFullscreen ? 'تصغير' : 'ملء الشاشة'}
+        </button>
       </div>
 
-      <div ref={containerRef} className="overflow-hidden rounded-2xl border border-latte bg-[#0b0a09] shadow-sm">
+      <div
+        ref={containerRef}
+        className={
+          isFullscreen
+            ? 'bg-[#07070a]'
+            : 'overflow-hidden rounded-2xl border border-latte bg-[#0b0a09] shadow-sm'
+        }
+      >
         {loading ? (
           <p className="p-6 text-sm text-stone">تحميل الشبكة...</p>
         ) : (
@@ -151,12 +184,26 @@ export function NetworkTab() {
             nodeLabel="label"
             nodeColor={(n: any) => NODE_COLOR[n.type as NodeType]}
             nodeVal={(n: any) => NODE_SIZE[n.type as NodeType]}
-            linkColor={() => 'rgba(180,200,255,0.35)'}
-            linkWidth={1}
+            linkCanvasObjectMode={() => 'replace'}
+            linkCanvasObject={(link: any, ctx: CanvasRenderingContext2D) => {
+              const src = link.source;
+              const tgt = link.target;
+              if (typeof src !== 'object' || typeof tgt !== 'object') return;
+              ctx.save();
+              ctx.shadowColor = LINK_GLOW;
+              ctx.shadowBlur = 8;
+              ctx.strokeStyle = 'rgba(95,200,255,0.55)';
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(src.x, src.y);
+              ctx.lineTo(tgt.x, tgt.y);
+              ctx.stroke();
+              ctx.restore();
+            }}
             linkDirectionalParticles={2}
             linkDirectionalParticleWidth={2.2}
             linkDirectionalParticleSpeed={0.006}
-            linkDirectionalParticleColor={() => '#dff0ff'}
+            linkDirectionalParticleColor={() => '#dff5ff'}
             backgroundColor="#07070a"
             cooldownTime={Infinity}
             nodeCanvasObjectMode={() => 'replace'}
