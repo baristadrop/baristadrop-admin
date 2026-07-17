@@ -25,8 +25,6 @@ const NODE_COLOR: Record<NodeType, string> = {
   user: '#00E5FF',
 };
 
-const LINK_GLOW = '#5FC8FF';
-
 const NODE_SIZE: Record<NodeType, number> = {
   roaster: 7,
   cafe: 7,
@@ -207,7 +205,7 @@ export function NetworkTab() {
             nodeColor={(n: any) => NODE_COLOR[n.type as NodeType]}
             nodeVal={(n: any) => NODE_SIZE[n.type as NodeType]}
             backgroundColor="#050506"
-            cooldownTime={Infinity}
+            cooldownTime={8000}
             onRenderFramePre={(ctx: CanvasRenderingContext2D) => {
               const t = Date.now() / 1000;
               for (const s of starsRef.current) {
@@ -239,20 +237,16 @@ export function NetworkTab() {
               const active = isRelated(src.id) && isRelated(tgt.id);
               const hot = hoveredIdRef.current && (src.id === hoveredIdRef.current || tgt.id === hoveredIdRef.current);
 
-              ctx.save();
-              ctx.shadowColor = LINK_GLOW;
-              ctx.shadowBlur = hot ? 16 : 8;
               ctx.strokeStyle = hot
                 ? 'rgba(150,225,255,0.95)'
                 : active
-                  ? 'rgba(95,200,255,0.55)'
+                  ? 'rgba(95,200,255,0.5)'
                   : 'rgba(95,200,255,0.06)';
-              ctx.lineWidth = hot ? 1.6 : 1;
+              ctx.lineWidth = hot ? 1.8 : 1;
               ctx.beginPath();
               ctx.moveTo(src.x, src.y);
               ctx.lineTo(tgt.x, tgt.y);
               ctx.stroke();
-              ctx.restore();
             }}
             linkDirectionalParticles={2}
             linkDirectionalParticleWidth={2.2}
@@ -272,24 +266,22 @@ export function NetworkTab() {
               ctx.save();
               if (dim) ctx.globalAlpha = 0.15;
 
-              // bloom (تدرّج شعاعي)
-              const bloom = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, r * 3.2);
+              // bloom (تدرّج شعاعي) — هذا هو التوهج، بدون shadowBlur المكلف على المعالج
+              const bloomR = (related && hoveredIdRef.current ? 4.2 : 3.2) * r;
+              const bloom = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, bloomR);
               bloom.addColorStop(0, color + 'aa');
               bloom.addColorStop(0.5, color + '33');
               bloom.addColorStop(1, color + '00');
               ctx.beginPath();
-              ctx.arc(node.x, node.y, r * 3.2, 0, 2 * Math.PI);
+              ctx.arc(node.x, node.y, bloomR, 0, 2 * Math.PI);
               ctx.fillStyle = bloom;
               ctx.fill();
 
               // نواة العقدة
-              ctx.shadowColor = color;
-              ctx.shadowBlur = related && hoveredIdRef.current ? 28 : 16;
               ctx.beginPath();
               ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
               ctx.fillStyle = color;
               ctx.fill();
-              ctx.shadowBlur = 0;
 
               ctx.beginPath();
               ctx.arc(node.x, node.y, r * 0.42, 0, 2 * Math.PI);
