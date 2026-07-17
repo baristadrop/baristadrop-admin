@@ -48,7 +48,17 @@ export function NetworkTab() {
   const [links, setLinks] = useState<GraphLink[]>([]);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  const graphRef = useRef<any>(null);
   const [size, setSize] = useState({ width: 900, height: 600 });
+
+  const tuneForces = () => {
+    const fg = graphRef.current;
+    if (!fg) return;
+    fg.d3Force('charge')?.strength(-45);
+    fg.d3Force('link')?.distance(28);
+    fg.d3AlphaDecay(0.003);
+    fg.d3VelocityDecay(0.15);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -97,6 +107,12 @@ export function NetworkTab() {
   }, []);
 
   useEffect(() => {
+    if (loading) return;
+    const t = setTimeout(tuneForces, 100);
+    return () => clearTimeout(t);
+  }, [loading]);
+
+  useEffect(() => {
     const update = () => {
       if (containerRef.current) {
         setSize({ width: containerRef.current.clientWidth, height: 620 });
@@ -127,6 +143,7 @@ export function NetworkTab() {
           <p className="p-6 text-sm text-stone">تحميل الشبكة...</p>
         ) : (
           <ForceGraph2D
+            ref={graphRef}
             width={size.width}
             height={size.height}
             graphData={{ nodes: nodes.map((n) => ({ ...n })), links: links.map((l) => ({ ...l })) }}
@@ -134,19 +151,46 @@ export function NetworkTab() {
             nodeLabel="label"
             nodeColor={(n: any) => NODE_COLOR[n.type as NodeType]}
             nodeVal={(n: any) => NODE_SIZE[n.type as NodeType]}
-            linkColor={() => 'rgba(255,255,255,0.15)'}
-            backgroundColor="#0b0a09"
-            nodeCanvasObjectMode={() => 'after'}
+            linkColor={() => 'rgba(180,200,255,0.35)'}
+            linkWidth={1}
+            linkDirectionalParticles={2}
+            linkDirectionalParticleWidth={2.2}
+            linkDirectionalParticleSpeed={0.006}
+            linkDirectionalParticleColor={() => '#dff0ff'}
+            backgroundColor="#07070a"
+            cooldownTime={Infinity}
+            nodeCanvasObjectMode={() => 'replace'}
             nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-              if (!node.label) return;
-              const fontSize = Math.max(9 / globalScale, 2.5);
-              ctx.font = `${fontSize}px Cairo, sans-serif`;
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'top';
-              ctx.fillStyle = 'rgba(255,255,255,0.75)';
-              ctx.fillText(node.label, node.x, node.y + 6);
+              const color = NODE_COLOR[node.type as NodeType];
+              const r = NODE_SIZE[node.type as NodeType];
+
+              ctx.save();
+              ctx.shadowColor = color;
+              ctx.shadowBlur = 18;
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+              ctx.fillStyle = color;
+              ctx.fill();
+              ctx.restore();
+
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, r * 0.45, 0, 2 * Math.PI);
+              ctx.fillStyle = 'rgba(255,255,255,0.85)';
+              ctx.fill();
+
+              if (node.label) {
+                const fontSize = Math.max(9 / globalScale, 2.5);
+                ctx.font = `${fontSize}px Cairo, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.fillText(node.label, node.x, node.y + r + 2);
+              }
             }}
-            cooldownTicks={100}
+            onNodeDragEnd={(node: any) => {
+              node.fx = node.x;
+              node.fy = node.y;
+            }}
           />
         )}
       </div>
