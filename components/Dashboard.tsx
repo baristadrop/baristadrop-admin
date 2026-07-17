@@ -13,6 +13,7 @@ import { TopBeansTab } from './tabs/TopBeansTab';
 import { ProductsTab } from './tabs/ProductsTab';
 import { OrdersTab } from './tabs/OrdersTab';
 import { SubscribersTab } from './tabs/SubscribersTab';
+import { NetworkTab } from './tabs/NetworkTab';
 import {
   OverviewIcon,
   TrophyIcon,
@@ -25,6 +26,7 @@ import {
   ReceiptIcon,
   UsersIcon,
   ShieldIcon,
+  NetworkIcon,
 } from './icons/NavIcons';
 
 const TABS = [
@@ -39,6 +41,7 @@ const TABS = [
   { key: 'orders', label: 'الطلبات', Icon: ReceiptIcon },
   { key: 'subscribers', label: 'المشتركين', Icon: UsersIcon },
   { key: 'team', label: 'الفريق', Icon: ShieldIcon },
+  { key: 'network', label: 'الشبكة', Icon: NetworkIcon },
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
@@ -100,6 +103,7 @@ export function Dashboard() {
         {active === 'orders' && <OrdersTab />}
         {active === 'subscribers' && <SubscribersTab />}
         {active === 'team' && <TeamTab />}
+        {active === 'network' && <NetworkTab />}
       </main>
     </div>
   );

@@ -129,3 +129,15 @@ export function ShieldIcon({ className = base }: Props) {
     </svg>
   );
 }
+
+export function NetworkIcon({ className = base }: Props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <circle cx="12" cy="5" r="2.2" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="5" cy="19" r="2.2" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="19" cy="19" r="2.2" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="12" cy="13" r="1.8" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M12 7.2V11M10.5 14.2 6.3 17.3M13.5 14.2l4.2 3.1M6.7 18l10.6 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
