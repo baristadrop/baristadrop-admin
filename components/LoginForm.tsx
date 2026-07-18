@@ -9,6 +9,7 @@ export function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const isPartnerHost = typeof window !== 'undefined' && window.location.hostname === 'partner.baristadrop.com';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,9 +27,11 @@ export function LoginForm() {
         className="w-full max-w-sm rounded-3xl border border-latte bg-white p-8 shadow-sm"
       >
         <h1 className="mb-1 text-center font-[var(--font-el-messiri)] text-2xl text-ink">
-          لوحة تحكم Barista Drop
+          {isPartnerHost ? 'بوابة شركاء Barista Drop' : 'لوحة تحكم Barista Drop'}
         </h1>
-        <p className="mb-6 text-center text-sm text-mocha">دخول الأدمن فقط</p>
+        <p className="mb-6 text-center text-sm text-mocha">
+          {isPartnerHost ? 'دخول المحامص، الموردين، والكوفي شوبات' : 'دخول الأدمن فقط'}
+        </p>
 
         {error && (
           <p className="mb-4 rounded-lg bg-sand px-3 py-2 text-center text-sm text-[#B3392C]">
