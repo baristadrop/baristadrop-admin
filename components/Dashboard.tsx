@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAdminAuth } from '@/lib/useAdminAuth';
 import { OverviewTab } from './tabs/OverviewTab';
+import { TrackingTab } from './tabs/TrackingTab';
 import { RecipesTab } from './tabs/RecipesTab';
 import { BeansTab } from './tabs/BeansTab';
 import { RoastersTab } from './tabs/RoastersTab';
@@ -15,6 +16,7 @@ import { OrdersTab } from './tabs/OrdersTab';
 import { SubscribersTab } from './tabs/SubscribersTab';
 import {
   OverviewIcon,
+  PulseIcon,
   TrophyIcon,
   CupIcon,
   BeanIcon,
@@ -29,6 +31,7 @@ import {
 
 type TabKey =
   | 'overview'
+  | 'tracking'
   | 'top'
   | 'recipes'
   | 'beans'
@@ -48,6 +51,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'نظرة عامة وتحليلات',
     tabs: [
       { key: 'overview', label: 'نظرة عامة', Icon: OverviewIcon },
+      { key: 'tracking', label: 'التتبع', Icon: PulseIcon },
       { key: 'top', label: 'أفضل 10 محاصيل', Icon: TrophyIcon },
     ],
   },
@@ -144,6 +148,7 @@ export function Dashboard() {
 
         <main className="px-6 py-8">
           {active === 'overview' && <OverviewTab />}
+          {active === 'tracking' && <TrackingTab />}
           {active === 'top' && <TopBeansTab />}
           {active === 'recipes' && <RecipesTab />}
           {active === 'beans' && <BeansTab />}

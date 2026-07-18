@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAdminAuth } from '@/lib/useAdminAuth';
 import { uploadBusinessLogo } from '@/lib/logoUpload';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
+import { PortalShell } from '@/components/PortalShell';
 
 type Roaster = {
   id: string;
@@ -112,22 +113,12 @@ export function RoasterPortal() {
   };
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-latte bg-cream/90 px-6 py-4">
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <h1 className="font-[var(--font-cormorant)] text-2xl font-bold text-ink">
-            BARISTA DROP <span className="text-base font-normal text-mocha">· بوابة المحمصة</span>
-          </h1>
-          <button
-            onClick={() => signOut()}
-            className="rounded-full border border-latte px-3 py-1.5 text-sm text-coffee hover:bg-sand"
-          >
-            تسجيل خروج
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-6 py-8">
+    <PortalShell
+      subtitle="بوابة المحمصة"
+      title={roaster ? roaster.name : 'بوابة المحمصة'}
+      userLabel={session?.user.email}
+      onSignOut={() => signOut()}
+    >
         {roaster === undefined && <p className="text-mocha">تحميل...</p>}
 
         {roaster === null && (
@@ -242,7 +233,6 @@ export function RoasterPortal() {
             </div>
           </>
         )}
-      </main>
-    </div>
+    </PortalShell>
   );
 }

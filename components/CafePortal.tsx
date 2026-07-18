@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAdminAuth } from '@/lib/useAdminAuth';
 import { uploadBusinessLogo } from '@/lib/logoUpload';
+import { PortalShell } from '@/components/PortalShell';
 
 type Cafe = {
   id: string;
@@ -107,22 +108,12 @@ export function CafePortal() {
   };
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-latte bg-cream/90 px-6 py-4">
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <h1 className="font-[var(--font-cormorant)] text-2xl font-bold text-ink">
-            BARISTA DROP <span className="text-base font-normal text-mocha">· بوابة الكوفي شوب</span>
-          </h1>
-          <button
-            onClick={() => signOut()}
-            className="rounded-full border border-latte px-3 py-1.5 text-sm text-coffee hover:bg-sand"
-          >
-            تسجيل خروج
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-6 py-8">
+    <PortalShell
+      subtitle="بوابة الكوفي شوب"
+      title={cafe ? cafe.name : 'بوابة الكوفي شوب'}
+      userLabel={session?.user.email}
+      onSignOut={() => signOut()}
+    >
         {cafe === undefined && <p className="text-mocha">تحميل...</p>}
 
         {cafe === null && (
@@ -206,7 +197,6 @@ export function CafePortal() {
             </div>
           </>
         )}
-      </main>
-    </div>
+    </PortalShell>
   );
 }
