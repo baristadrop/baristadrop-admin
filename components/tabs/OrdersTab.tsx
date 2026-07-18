@@ -51,6 +51,7 @@ function formatOrderText(o: OrderRow) {
 export function OrdersTab() {
   const [orders, setOrders] = useState<OrderRow[] | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const load = async () => {
     const { data } = await supabase
@@ -76,6 +77,21 @@ export function OrdersTab() {
     await navigator.clipboard.writeText(formatOrderText(o));
     setCopiedId(o.id);
     setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const removeOrder = async (id: string) => {
+    if (confirmingId !== id) {
+      setConfirmingId(id);
+      return;
+    }
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if (error) {
+      alert('فشل الحذف: ' + error.message);
+      setConfirmingId(null);
+      return;
+    }
+    setOrders((prev) => prev?.filter((o) => o.id !== id) ?? null);
+    setConfirmingId(null);
   };
 
   if (!orders) return <p className="text-mocha">تحميل...</p>;
@@ -107,6 +123,24 @@ export function OrdersTab() {
                 className="rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-cream"
               >
                 {copiedId === o.id ? 'تم النسخ ✓' : 'نسخ لبيانات المخزن'}
+              </button>
+              {confirmingId === o.id && (
+                <button
+                  onClick={() => setConfirmingId(null)}
+                  className="rounded-full border border-latte px-3 py-1.5 text-xs font-medium text-coffee"
+                >
+                  تراجع
+                </button>
+              )}
+              <button
+                onClick={() => removeOrder(o.id)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                  confirmingId === o.id
+                    ? 'bg-red-700 text-white'
+                    : 'border border-red-300 text-red-600'
+                }`}
+              >
+                {confirmingId === o.id ? 'تأكيد الحذف؟' : 'حذف'}
               </button>
             </div>
           </div>
