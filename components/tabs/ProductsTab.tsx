@@ -168,6 +168,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
 function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const saveField = async (field: 'name' | 'price' | 'description', value: string) => {
     const payload = field === 'price' ? { price: Number(value) } : { [field]: value.trim() || null };
@@ -196,8 +197,16 @@ function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: (
   };
 
   const remove = async () => {
-    if (!confirm(`حذف "${product.name}"؟`)) return;
-    await supabase.from('products').delete().eq('id', product.id);
+    if (!confirmingDelete) {
+      setConfirmingDelete(true);
+      return;
+    }
+    const { error } = await supabase.from('products').delete().eq('id', product.id);
+    if (error) {
+      alert('فشل الحذف: ' + error.message);
+      setConfirmingDelete(false);
+      return;
+    }
     onChanged();
   };
 
@@ -263,9 +272,22 @@ function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: (
           <input type="checkbox" checked={product.is_active} onChange={toggleActive} />
           مفعّل بالمتجر
         </label>
-        <button onClick={remove} className="text-xs text-red-600 underline">
-          حذف
-        </button>
+        <div className="flex items-center gap-2">
+          {confirmingDelete && (
+            <button
+              onClick={() => setConfirmingDelete(false)}
+              className="text-xs text-mocha underline"
+            >
+              تراجع
+            </button>
+          )}
+          <button
+            onClick={remove}
+            className={`text-xs underline ${confirmingDelete ? 'font-bold text-red-700' : 'text-red-600'}`}
+          >
+            {confirmingDelete ? 'تأكيد الحذف؟' : 'حذف'}
+          </button>
+        </div>
       </div>
     </div>
   );
