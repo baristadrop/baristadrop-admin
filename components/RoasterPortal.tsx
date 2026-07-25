@@ -6,6 +6,7 @@ import { useAdminAuth } from '@/lib/useAdminAuth';
 import { uploadBusinessLogo } from '@/lib/logoUpload';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
 import { PortalShell } from '@/components/PortalShell';
+import { OwnerProductsPanel } from '@/components/OwnerProductsPanel';
 
 type Roaster = {
   id: string;
@@ -231,6 +232,8 @@ export function RoasterPortal() {
                 </div>
               ))}
             </div>
+
+            <OwnerProductsPanel ownerType="roaster" ownerId={roaster.id} />
           </>
         )}
     </PortalShell>

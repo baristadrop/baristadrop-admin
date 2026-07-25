@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAdminAuth } from '@/lib/useAdminAuth';
 import { uploadBusinessLogo } from '@/lib/logoUpload';
 import { PortalShell } from '@/components/PortalShell';
+import { OwnerProductsPanel } from '@/components/OwnerProductsPanel';
 
 type Cafe = {
   id: string;
@@ -195,6 +196,8 @@ export function CafePortal() {
                 ))}
               </div>
             </div>
+
+            <OwnerProductsPanel ownerType="cafe" ownerId={cafe.id} />
           </>
         )}
     </PortalShell>

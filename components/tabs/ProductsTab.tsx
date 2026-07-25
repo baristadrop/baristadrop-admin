@@ -9,11 +9,19 @@ type ProductCategory = 'cups' | 'clean' | 'tools' | 'subscription';
 type ProductRow = {
   id: string;
   name: string;
-  category: ProductCategory;
+  category: ProductCategory | null;
   price: number;
   description: string | null;
   image_url: string | null;
+  external_url: string | null;
   is_active: boolean;
+  status: 'pending' | 'approved' | 'rejected';
+  supplier_id: string | null;
+  cafe_id: string | null;
+  roaster_id: string | null;
+  supplier: { name: string } | null;
+  cafe: { name: string } | null;
+  roaster: { name: string } | null;
 };
 
 const CATEGORY_LABEL: Record<ProductCategory, string> = {
@@ -24,6 +32,19 @@ const CATEGORY_LABEL: Record<ProductCategory, string> = {
 };
 
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as ProductCategory[];
+
+const STATUS_LABEL: Record<ProductRow['status'], string> = {
+  pending: 'بانتظار المراجعة',
+  approved: 'مقبول ✓',
+  rejected: 'مرفوض',
+};
+
+function ownerLabel(p: ProductRow): string {
+  if (p.supplier) return `مورّد: ${p.supplier.name}`;
+  if (p.cafe) return `كوفي شوب: ${p.cafe.name}`;
+  if (p.roaster) return `محمصة: ${p.roaster.name}`;
+  return 'باريستا دروب';
+}
 
 async function uploadImage(file: File): Promise<string | null> {
   const ext = file.name.split('.').pop();
@@ -91,7 +112,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
-      <h3 className="mb-4 font-medium text-ink">إضافة منتج جديد</h3>
+      <h3 className="mb-4 font-medium text-ink">إضافة منتج جديد (باريستا دروب)</h3>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-xs text-mocha">اسم المنتج</label>
@@ -141,6 +162,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
           />
           {uploading && <p className="mt-1 text-xs text-mocha">جاري الرفع...</p>}
           {imageUrl && !uploading && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={imageUrl} alt="" className="mt-2 h-16 w-16 rounded-lg object-cover" />
           )}
         </div>
@@ -169,8 +191,9 @@ function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: (
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const isVendorOwned = Boolean(product.supplier_id || product.cafe_id || product.roaster_id);
 
-  const saveField = async (field: 'name' | 'price' | 'description', value: string) => {
+  const saveField = async (field: 'name' | 'price' | 'description' | 'external_url', value: string) => {
     const payload = field === 'price' ? { price: Number(value) } : { [field]: value.trim() || null };
     await supabase.from('products').update(payload).eq('id', product.id);
   };
@@ -182,6 +205,11 @@ function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: (
 
   const toggleActive = async () => {
     await supabase.from('products').update({ is_active: !product.is_active }).eq('id', product.id);
+    onChanged();
+  };
+
+  const setStatus = async (status: 'approved' | 'rejected') => {
+    await supabase.from('products').update({ status }).eq('id', product.id);
     onChanged();
   };
 
@@ -212,6 +240,13 @@ function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: (
 
   return (
     <div className={`rounded-2xl border border-latte bg-white p-4 ${!product.is_active ? 'opacity-50' : ''}`}>
+      <div className="mb-2 flex items-center justify-between">
+        <span className={`rounded-full px-2 py-0.5 text-[10px] ${isVendorOwned ? 'bg-sand text-coffee' : 'bg-gold/20 text-gold'}`}>
+          {ownerLabel(product)}
+        </span>
+        <span className="text-[10px] text-stone">{STATUS_LABEL[product.status]}</span>
+      </div>
+
       <div className="mb-3 flex items-start gap-3">
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-sand">
           {product.image_url && (
@@ -238,17 +273,21 @@ function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: (
       />
 
       <div className="mb-2 grid grid-cols-2 gap-2">
-        <select
-          defaultValue={product.category}
-          onChange={(e) => saveCategory(e.target.value as ProductCategory)}
-          className="rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
-        >
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {CATEGORY_LABEL[c]}
-            </option>
-          ))}
-        </select>
+        {isVendorOwned ? (
+          <div />
+        ) : (
+          <select
+            defaultValue={product.category ?? 'cups'}
+            onChange={(e) => saveCategory(e.target.value as ProductCategory)}
+            className="rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {CATEGORY_LABEL[c]}
+              </option>
+            ))}
+          </select>
+        )}
         <input
           defaultValue={product.price}
           onBlur={(e) => saveField('price', e.target.value)}
@@ -259,6 +298,16 @@ function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: (
         />
       </div>
 
+      {isVendorOwned && (
+        <input
+          defaultValue={product.external_url ?? ''}
+          onBlur={(e) => saveField('external_url', e.target.value)}
+          placeholder="رابط المنتج (يودّي مباشرة له عند التاجر)"
+          dir="ltr"
+          className="mb-2 w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs text-gold outline-none focus:border-gold"
+        />
+      )}
+
       <textarea
         defaultValue={product.description ?? ''}
         onBlur={(e) => saveField('description', e.target.value)}
@@ -267,10 +316,27 @@ function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: (
         className="mb-3 w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
       />
 
+      {isVendorOwned && product.status === 'pending' && (
+        <div className="mb-3 flex gap-2">
+          <button
+            onClick={() => setStatus('approved')}
+            className="flex-1 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-white"
+          >
+            قبول
+          </button>
+          <button
+            onClick={() => setStatus('rejected')}
+            className="flex-1 rounded-full border border-latte px-3 py-1.5 text-xs text-coffee"
+          >
+            رفض
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <label className="flex items-center gap-1.5 text-xs text-mocha">
           <input type="checkbox" checked={product.is_active} onChange={toggleActive} />
-          مفعّل بالمتجر
+          مفعّل
         </label>
         <div className="flex items-center gap-2">
           {confirmingDelete && (
@@ -295,11 +361,14 @@ function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: (
 
 export function ProductsTab() {
   const [products, setProducts] = useState<ProductRow[] | null>(null);
+  const [ownerFilter, setOwnerFilter] = useState<'all' | 'platform' | 'vendor'>('all');
 
   const load = async () => {
     const { data } = await supabase
       .from('products')
-      .select('id, name, category, price, description, image_url, is_active')
+      .select(
+        'id, name, category, price, description, image_url, external_url, is_active, status, supplier_id, cafe_id, roaster_id, supplier:supplier_id ( name ), cafe:cafe_id ( name ), roaster:roaster_id ( name )'
+      )
       .order('created_at', { ascending: false })
       .returns<ProductRow[]>();
     setProducts(data ?? []);
@@ -309,17 +378,51 @@ export function ProductsTab() {
     load();
   }, []);
 
+  const filtered = (products ?? []).filter((p) => {
+    const isVendor = Boolean(p.supplier_id || p.cafe_id || p.roaster_id);
+    if (ownerFilter === 'platform') return !isVendor;
+    if (ownerFilter === 'vendor') return isVendor;
+    return true;
+  });
+
+  const pendingCount = (products ?? []).filter((p) => p.status === 'pending').length;
+
   return (
     <div className="space-y-6">
       <NewProductForm onCreated={load} />
 
+      <div className="flex items-center gap-2">
+        {(
+          [
+            ['all', 'الكل'],
+            ['platform', 'باريستا دروب'],
+            ['vendor', 'الشركاء (موردين/محامص/كوفي)'],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            onClick={() => setOwnerFilter(value)}
+            className={`rounded-full border px-3 py-1.5 text-xs ${
+              ownerFilter === value ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        {pendingCount > 0 && (
+          <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
+            {pendingCount} بانتظار المراجعة
+          </span>
+        )}
+      </div>
+
       {!products ? (
         <p className="text-mocha">تحميل...</p>
-      ) : products.length === 0 ? (
-        <p className="text-mocha">ما فيه منتجات بعد — أضف أول منتج من الفورم فوق.</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-mocha">ما فيه منتجات هنا.</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((p) => (
+          {filtered.map((p) => (
             <ProductCard key={p.id} product={p} onChanged={load} />
           ))}
         </div>

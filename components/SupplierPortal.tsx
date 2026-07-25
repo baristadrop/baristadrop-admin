@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAdminAuth } from '@/lib/useAdminAuth';
 import { uploadBusinessLogo } from '@/lib/logoUpload';
 import { PortalShell } from '@/components/PortalShell';
+import { OwnerProductsPanel } from '@/components/OwnerProductsPanel';
 
 type Supplier = {
   id: string;
@@ -128,6 +129,8 @@ export function SupplierPortal() {
                 {saving ? '...' : 'حفظ'}
               </button>
             </form>
+
+            <OwnerProductsPanel ownerType="supplier" ownerId={supplier.id} />
           </>
         )}
     </PortalShell>
