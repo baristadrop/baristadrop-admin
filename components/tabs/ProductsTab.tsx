@@ -4,12 +4,18 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
 
-type ProductCategory = 'cups' | 'clean' | 'tools' | 'subscription';
+type ProductCategoryRow = {
+  key: string;
+  name_ar: string;
+  name_en: string;
+  icon: string;
+  sort_order: number;
+};
 
 type ProductRow = {
   id: string;
   name: string;
-  category: ProductCategory | null;
+  category: string | null;
   price: number;
   description: string | null;
   image_url: string | null;
@@ -23,15 +29,6 @@ type ProductRow = {
   cafe: { name: string } | null;
   roaster: { name: string } | null;
 };
-
-const CATEGORY_LABEL: Record<ProductCategory, string> = {
-  cups: 'أكواب سيراميك',
-  clean: 'تنظيف xBloom',
-  tools: 'فلاتر وموازين',
-  subscription: 'الاشتراكات',
-};
-
-const CATEGORIES = Object.keys(CATEGORY_LABEL) as ProductCategory[];
 
 const STATUS_LABEL: Record<ProductRow['status'], string> = {
   pending: 'بانتظار المراجعة',
@@ -61,15 +58,144 @@ async function uploadImage(file: File): Promise<string | null> {
   return data.publicUrl;
 }
 
-function NewProductForm({ onCreated }: { onCreated: () => void }) {
+// التصنيفات تُدار من هنا بدل ما تكون ثابتة بالكود — الأدمن يضيف/يعدّل/يحذف
+// تصنيف بضغطة زر، والشركاء يختارون من هالقائمة بس (ما يقدرون ينشئون تصنيف حر)،
+// نفس طريقة Amazon/Etsy/Shopify في إدارة تصنيفات المتجر.
+function CategoryManager({
+  categories,
+  onChanged,
+}: {
+  categories: ProductCategoryRow[];
+  onChanged: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [newKey, setNewKey] = useState('');
+  const [newNameAr, setNewNameAr] = useState('');
+  const [newNameEn, setNewNameEn] = useState('');
+  const [newIcon, setNewIcon] = useState('📦');
+  const [submitting, setSubmitting] = useState(false);
+
+  const addCategory = async () => {
+    const key = newKey.trim().toLowerCase().replace(/\s+/g, '_');
+    if (!key || !newNameAr.trim()) return;
+    setSubmitting(true);
+    const { error } = await supabase.from('product_categories').insert({
+      key,
+      name_ar: newNameAr.trim(),
+      name_en: newNameEn.trim() || newNameAr.trim(),
+      icon: newIcon.trim() || '📦',
+      sort_order: categories.length + 1,
+    });
+    setSubmitting(false);
+    if (error) {
+      alert('صار خطأ: ' + error.message);
+      return;
+    }
+    setNewKey('');
+    setNewNameAr('');
+    setNewNameEn('');
+    setNewIcon('📦');
+    onChanged();
+  };
+
+  const removeCategory = async (key: string) => {
+    if (!confirm('حذف هذا التصنيف؟ المنتجات اللي فيه بتصير بدون تصنيف.')) return;
+    await supabase.from('product_categories').delete().eq('key', key);
+    onChanged();
+  };
+
+  return (
+    <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between text-right"
+      >
+        <h3 className="font-medium text-ink">إدارة تصنيفات المتجر ({categories.length})</h3>
+        <span className="text-xs text-mocha">{expanded ? 'إخفاء' : 'عرض وتعديل'}</span>
+      </button>
+
+      {expanded && (
+        <div className="mt-4 space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {categories.map((c) => (
+              <div
+                key={c.key}
+                className="flex items-center gap-2 rounded-full border border-latte bg-paper py-1.5 pl-2 pr-3 text-sm"
+              >
+                <span>{c.icon}</span>
+                <span className="text-ink">{c.name_ar}</span>
+                <button
+                  onClick={() => removeCategory(c.key)}
+                  className="text-xs text-red-600 hover:text-red-800"
+                  title="حذف"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 border-t border-latte pt-4 sm:grid-cols-5">
+            <input
+              value={newIcon}
+              onChange={(e) => setNewIcon(e.target.value)}
+              placeholder="🪴"
+              maxLength={4}
+              className="rounded-lg border border-latte bg-paper px-2 py-1.5 text-center text-sm outline-none focus:border-gold"
+            />
+            <input
+              value={newNameAr}
+              onChange={(e) => setNewNameAr(e.target.value)}
+              placeholder="الاسم بالعربي"
+              className="rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold sm:col-span-2"
+            />
+            <input
+              value={newNameEn}
+              onChange={(e) => setNewNameEn(e.target.value)}
+              placeholder="Name in English"
+              dir="ltr"
+              className="rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold sm:col-span-2"
+            />
+            <input
+              value={newKey}
+              onChange={(e) => setNewKey(e.target.value)}
+              placeholder="معرّف فريد (بالإنجليزي)"
+              dir="ltr"
+              className="col-span-2 rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold sm:col-span-3"
+            />
+            <button
+              onClick={addCategory}
+              disabled={submitting || !newKey.trim() || !newNameAr.trim()}
+              className="col-span-2 rounded-full bg-ink px-4 py-1.5 text-xs font-medium text-cream disabled:opacity-40 sm:col-span-2"
+            >
+              {submitting ? '...' : 'إضافة تصنيف'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NewProductForm({
+  categories,
+  onCreated,
+}: {
+  categories: ProductCategoryRow[];
+  onCreated: () => void;
+}) {
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<ProductCategory>('cups');
+  const [category, setCategory] = useState(categories[0]?.key ?? '');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!category && categories[0]) setCategory(categories[0].key);
+  }, [categories, category]);
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
@@ -81,7 +207,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
 
   const reset = () => {
     setName('');
-    setCategory('cups');
+    setCategory(categories[0]?.key ?? '');
     setPrice('');
     setDescription('');
     setImageUrl(null);
@@ -95,7 +221,7 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
     setSubmitting(true);
     const { error } = await supabase.from('products').insert({
       name: name.trim(),
-      category,
+      category: category || null,
       price: Number(price),
       description: description.trim() || null,
       image_url: imageUrl,
@@ -127,12 +253,12 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
           <label className="mb-1 block text-xs text-mocha">التصنيف</label>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value as ProductCategory)}
+            onChange={(e) => setCategory(e.target.value)}
             className="w-full rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold"
           >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {CATEGORY_LABEL[c]}
+            {categories.map((c) => (
+              <option key={c.key} value={c.key}>
+                {c.icon} {c.name_ar}
               </option>
             ))}
           </select>
@@ -187,7 +313,15 @@ function NewProductForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
-function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: () => void }) {
+function ProductCard({
+  product,
+  categories,
+  onChanged,
+}: {
+  product: ProductRow;
+  categories: ProductCategoryRow[];
+  onChanged: () => void;
+}) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -198,7 +332,7 @@ function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: (
     await supabase.from('products').update(payload).eq('id', product.id);
   };
 
-  const saveCategory = async (category: ProductCategory) => {
+  const saveCategory = async (category: string) => {
     await supabase.from('products').update({ category }).eq('id', product.id);
     onChanged();
   };
@@ -277,13 +411,13 @@ function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: (
           <div />
         ) : (
           <select
-            defaultValue={product.category ?? 'cups'}
-            onChange={(e) => saveCategory(e.target.value as ProductCategory)}
+            defaultValue={product.category ?? categories[0]?.key ?? ''}
+            onChange={(e) => saveCategory(e.target.value)}
             className="rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
           >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {CATEGORY_LABEL[c]}
+            {categories.map((c) => (
+              <option key={c.key} value={c.key}>
+                {c.icon} {c.name_ar}
               </option>
             ))}
           </select>
@@ -361,9 +495,10 @@ function ProductCard({ product, onChanged }: { product: ProductRow; onChanged: (
 
 export function ProductsTab() {
   const [products, setProducts] = useState<ProductRow[] | null>(null);
+  const [categories, setCategories] = useState<ProductCategoryRow[]>([]);
   const [ownerFilter, setOwnerFilter] = useState<'all' | 'platform' | 'vendor'>('all');
 
-  const load = async () => {
+  const loadProducts = async () => {
     const { data } = await supabase
       .from('products')
       .select(
@@ -374,8 +509,18 @@ export function ProductsTab() {
     setProducts(data ?? []);
   };
 
+  const loadCategories = async () => {
+    const { data } = await supabase
+      .from('product_categories')
+      .select('key, name_ar, name_en, icon, sort_order')
+      .order('sort_order')
+      .returns<ProductCategoryRow[]>();
+    setCategories(data ?? []);
+  };
+
   useEffect(() => {
-    load();
+    loadProducts();
+    loadCategories();
   }, []);
 
   const filtered = (products ?? []).filter((p) => {
@@ -389,7 +534,9 @@ export function ProductsTab() {
 
   return (
     <div className="space-y-6">
-      <NewProductForm onCreated={load} />
+      <CategoryManager categories={categories} onChanged={loadCategories} />
+
+      <NewProductForm categories={categories} onCreated={loadProducts} />
 
       <div className="flex items-center gap-2">
         {(
@@ -423,7 +570,7 @@ export function ProductsTab() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => (
-            <ProductCard key={p.id} product={p} onChanged={load} />
+            <ProductCard key={p.id} product={p} categories={categories} onChanged={loadProducts} />
           ))}
         </div>
       )}

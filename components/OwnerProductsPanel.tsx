@@ -6,13 +6,20 @@ import { uploadOwnerProductImage } from '@/lib/productUpload';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
 
 type OwnerType = 'supplier' | 'cafe' | 'roaster';
-type ProductCategory = 'cups' | 'clean' | 'tools' | 'subscription';
+
+type ProductCategoryRow = {
+  key: string;
+  name_ar: string;
+  name_en: string;
+  icon: string;
+  sort_order: number;
+};
 
 type ProductRow = {
   id: string;
   name: string;
   price: number;
-  category: ProductCategory | null;
+  category: string | null;
   description: string | null;
   image_url: string | null;
   external_url: string | null;
@@ -26,16 +33,6 @@ const STATUS_LABEL: Record<ProductRow['status'], string> = {
   rejected: 'مرفوض',
 };
 
-/** نفس تصنيفات قسم المتجر العام بالتطبيق — عشان منتجات الشركاء تنفلتر معه بنفس
- * الخانات (أكواب/أدوات...) بصفحة الشركة نفسها. */
-const CATEGORY_LABEL: Record<ProductCategory, string> = {
-  cups: 'أكواب',
-  clean: 'تنظيف',
-  tools: 'أدوات',
-  subscription: 'اشتراكات',
-};
-const CATEGORIES = Object.keys(CATEGORY_LABEL) as ProductCategory[];
-
 /** كتالوج منتجات ذاتي الخدمة — يُستخدم داخل بوابة المورّد/الكوفي شوب. كل منتج
  * جديد يبدأ pending إجبارياً (يفرضه trigger بقاعدة البيانات نفسها، مو الواجهة)
  * ويحتاج موافقة الأدمن قبل ما يظهر عام. راجع migration 0036. */
@@ -48,6 +45,7 @@ const OWNER_COLUMN: Record<OwnerType, 'supplier_id' | 'cafe_id' | 'roaster_id'> 
 export function OwnerProductsPanel({ ownerType, ownerId }: { ownerType: OwnerType; ownerId: string }) {
   const ownerColumn = OWNER_COLUMN[ownerType];
   const [products, setProducts] = useState<ProductRow[] | null>(null);
+  const [categories, setCategories] = useState<ProductCategoryRow[]>([]);
 
   const load = async () => {
     const { data } = await supabase
@@ -59,8 +57,18 @@ export function OwnerProductsPanel({ ownerType, ownerId }: { ownerType: OwnerTyp
     setProducts(data ?? []);
   };
 
+  const loadCategories = async () => {
+    const { data } = await supabase
+      .from('product_categories')
+      .select('key, name_ar, name_en, icon, sort_order')
+      .order('sort_order')
+      .returns<ProductCategoryRow[]>();
+    setCategories(data ?? []);
+  };
+
   useEffect(() => {
     load();
+    loadCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerId]);
 
@@ -71,14 +79,16 @@ export function OwnerProductsPanel({ ownerType, ownerId }: { ownerType: OwnerTyp
         تظهر بصفحتك وبقسم المتجر العام بالتطبيق بعد موافقة الأدمن. رابط المنتج لازم يودّي
         العميل مباشرة لنفس المنتج بموقعك أو صفحتك — مو رابط الموقع العام.
       </p>
-      <NewProductForm ownerColumn={ownerColumn} ownerId={ownerId} onCreated={load} />
+      <NewProductForm ownerColumn={ownerColumn} ownerId={ownerId} categories={categories} onCreated={load} />
       <div className="mt-4 space-y-3">
         {!products ? (
           <p className="text-sm text-mocha">تحميل...</p>
         ) : products.length === 0 ? (
           <p className="text-sm text-mocha">ما أضفت أي منتج بعد.</p>
         ) : (
-          products.map((p) => <ProductRowItem key={p.id} product={p} ownerId={ownerId} onChanged={load} />)
+          products.map((p) => (
+            <ProductRowItem key={p.id} product={p} ownerId={ownerId} categories={categories} onChanged={load} />
+          ))
         )}
       </div>
     </div>
@@ -88,14 +98,16 @@ export function OwnerProductsPanel({ ownerType, ownerId }: { ownerType: OwnerTyp
 function NewProductForm({
   ownerColumn,
   ownerId,
+  categories,
   onCreated,
 }: {
   ownerColumn: 'supplier_id' | 'cafe_id' | 'roaster_id';
   ownerId: string;
+  categories: ProductCategoryRow[];
   onCreated: () => void;
 }) {
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<ProductCategory>('cups');
+  const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [externalUrl, setExternalUrl] = useState('');
@@ -104,6 +116,10 @@ function NewProductForm({
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!category && categories[0]) setCategory(categories[0].key);
+  }, [categories, category]);
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
@@ -122,7 +138,7 @@ function NewProductForm({
     const { error } = await supabase.from('products').insert({
       [ownerColumn]: ownerId,
       name: name.trim(),
-      category,
+      category: category || null,
       price: Number(price),
       description: description.trim() || null,
       external_url: externalUrl.trim(),
@@ -135,7 +151,7 @@ function NewProductForm({
       return;
     }
     setName('');
-    setCategory('cups');
+    setCategory(categories[0]?.key ?? '');
     setPrice('');
     setDescription('');
     setExternalUrl('');
@@ -157,12 +173,12 @@ function NewProductForm({
         />
         <select
           value={category}
-          onChange={(e) => setCategory(e.target.value as ProductCategory)}
+          onChange={(e) => setCategory(e.target.value)}
           className="rounded-lg border border-latte bg-white px-3 py-2 text-sm outline-none focus:border-gold"
         >
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {CATEGORY_LABEL[c]}
+          {categories.map((c) => (
+            <option key={c.key} value={c.key}>
+              {c.icon} {c.name_ar}
             </option>
           ))}
         </select>
@@ -218,10 +234,12 @@ function NewProductForm({
 function ProductRowItem({
   product,
   ownerId,
+  categories,
   onChanged,
 }: {
   product: ProductRow;
   ownerId: string;
+  categories: ProductCategoryRow[];
   onChanged: () => void;
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -237,7 +255,7 @@ function ProductRowItem({
     await supabase.from('products').update(payload).eq('id', product.id);
   };
 
-  const saveCategory = async (category: ProductCategory) => {
+  const saveCategory = async (category: string) => {
     await supabase.from('products').update({ category }).eq('id', product.id);
     onChanged();
   };
@@ -290,13 +308,13 @@ function ProductRowItem({
           </div>
         </div>
         <select
-          value={product.category ?? 'cups'}
-          onChange={(e) => saveCategory(e.target.value as ProductCategory)}
+          value={product.category ?? categories[0]?.key ?? ''}
+          onChange={(e) => saveCategory(e.target.value)}
           className="w-full rounded-lg border border-latte bg-paper px-2 py-1 text-xs outline-none focus:border-gold"
         >
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {CATEGORY_LABEL[c]}
+          {categories.map((c) => (
+            <option key={c.key} value={c.key}>
+              {c.icon} {c.name_ar}
             </option>
           ))}
         </select>
