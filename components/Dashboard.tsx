@@ -29,7 +29,7 @@ import {
   ShieldIcon,
 } from './icons/NavIcons';
 
-type TabKey =
+export type TabKey =
   | 'overview'
   | 'tracking'
   | 'top'
@@ -147,7 +147,7 @@ export function Dashboard() {
         </header>
 
         <main className="px-6 py-8">
-          {active === 'overview' && <OverviewTab />}
+          {active === 'overview' && <OverviewTab onNavigate={setActive} />}
           {active === 'tracking' && <TrackingTab />}
           {active === 'top' && <TopBeansTab />}
           {active === 'recipes' && <RecipesTab />}
