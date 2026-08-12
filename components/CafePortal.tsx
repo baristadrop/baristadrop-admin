@@ -125,6 +125,7 @@ export function CafePortal() {
 
         {cafe && (
           <>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-stone">الملف الشخصي</p>
             <div className="mb-6 flex items-center gap-4 rounded-2xl border border-latte bg-white p-5 shadow-sm">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-latte bg-sand">
                 {cafe.logo_url ? (
@@ -170,7 +171,8 @@ export function CafePortal() {
               </button>
             </form>
 
-            <div className="mt-6 rounded-2xl border border-latte bg-white p-5 shadow-sm">
+            <p className="mb-2 mt-6 text-xs font-medium uppercase tracking-wide text-stone">المنيو والمنتجات</p>
+            <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
               <p className="mb-1 font-[var(--font-el-messiri)] text-base text-ink">منيو الكوفي شوب</p>
               <p className="mb-3 text-xs text-mocha">
                 اختر المحاصيل اللي تبي تعرضها بمنيوك بالتطبيق (من محاصيل محمصتك المورّدة).

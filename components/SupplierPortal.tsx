@@ -87,6 +87,7 @@ export function SupplierPortal() {
 
         {supplier && (
           <>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-stone">الملف الشخصي</p>
             <div className="mb-6 flex items-center gap-4 rounded-2xl border border-latte bg-white p-5 shadow-sm">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-latte bg-sand">
                 {supplier.logo_url ? (
@@ -130,6 +131,7 @@ export function SupplierPortal() {
               </button>
             </form>
 
+            <p className="mb-2 mt-6 text-xs font-medium uppercase tracking-wide text-stone">المنتجات</p>
             <OwnerProductsPanel ownerType="supplier" ownerId={supplier.id} />
           </>
         )}
