@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
+import { ICON_OPTIONS, iconGlyph } from '@/lib/categoryIcons';
 
 type ProductCategoryRow = {
   key: string;
@@ -11,6 +12,7 @@ type ProductCategoryRow = {
   icon: string;
   sort_order: number;
 };
+
 
 type ProductRow = {
   id: string;
@@ -72,7 +74,7 @@ function CategoryManager({
   const [newKey, setNewKey] = useState('');
   const [newNameAr, setNewNameAr] = useState('');
   const [newNameEn, setNewNameEn] = useState('');
-  const [newIcon, setNewIcon] = useState('📦');
+  const [newIcon, setNewIcon] = useState('box');
   const [submitting, setSubmitting] = useState(false);
 
   const addCategory = async () => {
@@ -83,7 +85,7 @@ function CategoryManager({
       key,
       name_ar: newNameAr.trim(),
       name_en: newNameEn.trim() || newNameAr.trim(),
-      icon: newIcon.trim() || '📦',
+      icon: newIcon || 'box',
       sort_order: categories.length + 1,
     });
     setSubmitting(false);
@@ -94,7 +96,7 @@ function CategoryManager({
     setNewKey('');
     setNewNameAr('');
     setNewNameEn('');
-    setNewIcon('📦');
+    setNewIcon('box');
     onChanged();
   };
 
@@ -122,7 +124,7 @@ function CategoryManager({
                 key={c.key}
                 className="flex items-center gap-2 rounded-full border border-latte bg-paper py-1.5 pl-2 pr-3 text-sm"
               >
-                <span>{c.icon}</span>
+                <span>{iconGlyph(c.icon)}</span>
                 <span className="text-ink">{c.name_ar}</span>
                 <button
                   onClick={() => removeCategory(c.key)}
@@ -136,13 +138,17 @@ function CategoryManager({
           </div>
 
           <div className="grid grid-cols-2 gap-2 border-t border-latte pt-4 sm:grid-cols-5">
-            <input
+            <select
               value={newIcon}
               onChange={(e) => setNewIcon(e.target.value)}
-              placeholder="🪴"
-              maxLength={4}
               className="rounded-lg border border-latte bg-paper px-2 py-1.5 text-center text-sm outline-none focus:border-gold"
-            />
+            >
+              {ICON_OPTIONS.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.glyph} {o.label}
+                </option>
+              ))}
+            </select>
             <input
               value={newNameAr}
               onChange={(e) => setNewNameAr(e.target.value)}
@@ -258,7 +264,7 @@ function NewProductForm({
           >
             {categories.map((c) => (
               <option key={c.key} value={c.key}>
-                {c.icon} {c.name_ar}
+                {iconGlyph(c.icon)} {c.name_ar}
               </option>
             ))}
           </select>
@@ -417,7 +423,7 @@ function ProductCard({
           >
             {categories.map((c) => (
               <option key={c.key} value={c.key}>
-                {c.icon} {c.name_ar}
+                {iconGlyph(c.icon)} {c.name_ar}
               </option>
             ))}
           </select>
