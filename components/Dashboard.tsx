@@ -14,6 +14,7 @@ import { TopBeansTab } from './tabs/TopBeansTab';
 import { ProductsTab } from './tabs/ProductsTab';
 import { OrdersTab } from './tabs/OrdersTab';
 import { SubscribersTab } from './tabs/SubscribersTab';
+import { NotificationsTab } from './tabs/NotificationsTab';
 import {
   OverviewIcon,
   PulseIcon,
@@ -27,6 +28,7 @@ import {
   ReceiptIcon,
   UsersIcon,
   ShieldIcon,
+  BellIcon,
 } from './icons/NavIcons';
 
 export type TabKey =
@@ -41,6 +43,7 @@ export type TabKey =
   | 'store'
   | 'orders'
   | 'subscribers'
+  | 'notifications'
   | 'team';
 
 type NavTab = { key: TabKey; label: string; Icon: (props: { className?: string }) => React.JSX.Element };
@@ -77,6 +80,10 @@ const NAV_GROUPS: NavGroup[] = [
       { key: 'orders', label: 'الطلبات', Icon: ReceiptIcon },
       { key: 'subscribers', label: 'المشتركين', Icon: UsersIcon },
     ],
+  },
+  {
+    label: 'التسويق',
+    tabs: [{ key: 'notifications', label: 'الإشعارات', Icon: BellIcon }],
   },
   {
     label: 'الفريق',
@@ -158,6 +165,7 @@ export function Dashboard() {
           {active === 'store' && <ProductsTab />}
           {active === 'orders' && <OrdersTab />}
           {active === 'subscribers' && <SubscribersTab />}
+          {active === 'notifications' && <NotificationsTab />}
           {active === 'team' && <TeamTab />}
         </main>
       </div>
