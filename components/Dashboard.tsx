@@ -6,9 +6,8 @@ import { OverviewTab } from './tabs/OverviewTab';
 import { TrackingTab } from './tabs/TrackingTab';
 import { RecipesTab } from './tabs/RecipesTab';
 import { BeansTab } from './tabs/BeansTab';
-import { RoastersTab } from './tabs/RoastersTab';
+import { BusinessesTab } from './tabs/BusinessesTab';
 import { SuppliersTab } from './tabs/SuppliersTab';
-import { CafesTab } from './tabs/CafesTab';
 import { TeamTab } from './tabs/TeamTab';
 import { TopBeansTab } from './tabs/TopBeansTab';
 import { ProductsTab } from './tabs/ProductsTab';
@@ -21,7 +20,6 @@ import {
   TrophyIcon,
   CupIcon,
   BeanIcon,
-  FlameIcon,
   StorefrontIcon,
   TruckIcon,
   BagIcon,
@@ -37,8 +35,7 @@ export type TabKey =
   | 'top'
   | 'recipes'
   | 'beans'
-  | 'roasters'
-  | 'cafes'
+  | 'businesses'
   | 'suppliers'
   | 'store'
   | 'orders'
@@ -68,8 +65,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'الشركاء',
     tabs: [
-      { key: 'roasters', label: 'المحامص', Icon: FlameIcon },
-      { key: 'cafes', label: 'الكوفي شوب', Icon: StorefrontIcon },
+      { key: 'businesses', label: 'الشركات', Icon: StorefrontIcon },
       { key: 'suppliers', label: 'الموردين', Icon: TruckIcon },
     ],
   },
@@ -159,8 +155,7 @@ export function Dashboard() {
           {active === 'top' && <TopBeansTab />}
           {active === 'recipes' && <RecipesTab />}
           {active === 'beans' && <BeansTab />}
-          {active === 'roasters' && <RoastersTab />}
-          {active === 'cafes' && <CafesTab />}
+          {active === 'businesses' && <BusinessesTab />}
           {active === 'suppliers' && <SuppliersTab />}
           {active === 'store' && <ProductsTab />}
           {active === 'orders' && <OrdersTab />}

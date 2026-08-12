@@ -6,7 +6,7 @@ import { uploadOwnerProductImage } from '@/lib/productUpload';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
 import { iconGlyph } from '@/lib/categoryIcons';
 
-type OwnerType = 'supplier' | 'cafe' | 'roaster';
+type OwnerType = 'supplier' | 'roaster';
 
 type ProductCategoryRow = {
   key: string;
@@ -37,15 +37,13 @@ const STATUS_LABEL: Record<ProductRow['status'], string> = {
 /** كتالوج منتجات ذاتي الخدمة — يُستخدم داخل بوابة المورّد/الكوفي شوب. كل منتج
  * جديد يبدأ pending إجبارياً (يفرضه trigger بقاعدة البيانات نفسها، مو الواجهة)
  * ويحتاج موافقة الأدمن قبل ما يظهر عام. راجع migration 0036. */
-const OWNER_COLUMN: Record<OwnerType, 'supplier_id' | 'cafe_id' | 'roaster_id'> = {
+const OWNER_COLUMN: Record<OwnerType, 'supplier_id' | 'roaster_id'> = {
   supplier: 'supplier_id',
-  cafe: 'cafe_id',
   roaster: 'roaster_id',
 };
 
-const OWNER_TABLE: Record<OwnerType, 'suppliers' | 'cafes' | 'roasters'> = {
+const OWNER_TABLE: Record<OwnerType, 'suppliers' | 'roasters'> = {
   supplier: 'suppliers',
-  cafe: 'cafes',
   roaster: 'roasters',
 };
 
@@ -129,7 +127,7 @@ function NewProductForm({
   atLimit,
   onCreated,
 }: {
-  ownerColumn: 'supplier_id' | 'cafe_id' | 'roaster_id';
+  ownerColumn: 'supplier_id' | 'roaster_id';
   ownerId: string;
   categories: ProductCategoryRow[];
   atLimit: boolean;

@@ -4,9 +4,8 @@ import { useEffect } from 'react';
 import { useAdminAuth } from '@/lib/useAdminAuth';
 import { LoginForm } from '@/components/LoginForm';
 import { Dashboard } from '@/components/Dashboard';
-import { RoasterPortal } from '@/components/RoasterPortal';
+import { BusinessPortal } from '@/components/BusinessPortal';
 import { SupplierPortal } from '@/components/SupplierPortal';
-import { CafePortal } from '@/components/CafePortal';
 
 const ADMIN_HOST = 'admin.baristadrop.com';
 const PARTNER_HOST = 'partner.baristadrop.com';
@@ -37,9 +36,8 @@ export default function Home() {
   }
 
   if (profile?.role === 'admin') return <Dashboard />;
-  if (profile?.role === 'roaster') return <RoasterPortal />;
+  if (profile?.role === 'roaster' || profile?.role === 'cafe') return <BusinessPortal />;
   if (profile?.role === 'supplier') return <SupplierPortal />;
-  if (profile?.role === 'cafe') return <CafePortal />;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">

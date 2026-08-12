@@ -1,10 +1,11 @@
 import { supabase } from './supabase';
 
-/** يرفع شعار عمل (محمصة/مورد/كوفي شوب) لباكت business-logos ويحدّث logo_url
+/** يرفع شعار عمل (محمصة/كوفي شوب/مورد) لباكت business-logos ويحدّث logo_url
  * على نفس صف الجدول. المسار {rowId}/logo.ext يطابق سياسات RLS اللي تتأكد
- * إن صاحب الحساب هو owner_id لهذا الصف بأي من الجداول الثلاثة. */
+ * إن صاحب الحساب هو owner_id لهذا الصف. الكوفي شوب يستخدم جدول roasters
+ * الحين بعد الدمج (business_type='cafe')، ما فيه جدول cafes منفصل. */
 export async function uploadBusinessLogo(
-  table: 'roasters' | 'suppliers' | 'cafes',
+  table: 'roasters' | 'suppliers',
   rowId: string,
   file: File
 ): Promise<string | null> {

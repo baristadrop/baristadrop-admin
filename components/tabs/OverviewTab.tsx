@@ -7,13 +7,11 @@ import type { TabKey } from '../Dashboard';
 type Counts = {
   pendingRecipes: number;
   pendingBeans: number;
-  pendingRoasters: number;
+  pendingBusinesses: number;
   pendingSuppliers: number;
-  pendingCafes: number;
   pendingProducts: number;
-  totalRoasters: number;
+  totalBusinesses: number;
   totalSuppliers: number;
-  totalCafes: number;
   totalProfiles: number;
   activeSubscribers: number;
   totalOrders: number;
@@ -33,7 +31,7 @@ type PostHogStats = {
 
 type ActivityItem = {
   id: string;
-  kind: 'recipe' | 'bean' | 'roaster' | 'supplier' | 'cafe' | 'product' | 'order' | 'subscriber';
+  kind: 'recipe' | 'bean' | 'business' | 'supplier' | 'product' | 'order' | 'subscriber';
   title: string;
   subtitle: string;
   createdAt: string;
@@ -51,9 +49,8 @@ type TopBean = {
 const KIND_LABEL: Record<ActivityItem['kind'], string> = {
   recipe: 'وصفة جديدة',
   bean: 'محصول جديد',
-  roaster: 'محمصة جديدة',
+  business: 'شركة جديدة',
   supplier: 'مورّد جديد',
-  cafe: 'كوفي شوب جديد',
   product: 'منتج جديد',
   order: 'طلب جديد',
   subscriber: 'اشتراك جديد',
@@ -114,13 +111,11 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
       const [
         recipes,
         beans,
-        roastersPending,
+        businessesPending,
         suppliersPending,
-        cafesPending,
         productsPending,
-        roasters,
+        businesses,
         suppliers,
-        cafes,
         profiles,
         subs,
         orders,
@@ -132,11 +127,9 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
         supabase.from('beans').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('roasters').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('suppliers').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('cafes').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('products').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('roasters').select('id', { count: 'exact', head: true }),
         supabase.from('suppliers').select('id', { count: 'exact', head: true }),
-        supabase.from('cafes').select('id', { count: 'exact', head: true }),
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('orders').select('id', { count: 'exact', head: true }),
@@ -148,13 +141,11 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
       setCounts({
         pendingRecipes: recipes.count ?? 0,
         pendingBeans: beans.count ?? 0,
-        pendingRoasters: roastersPending.count ?? 0,
+        pendingBusinesses: businessesPending.count ?? 0,
         pendingSuppliers: suppliersPending.count ?? 0,
-        pendingCafes: cafesPending.count ?? 0,
         pendingProducts: productsPending.count ?? 0,
-        totalRoasters: roasters.count ?? 0,
+        totalBusinesses: businesses.count ?? 0,
         totalSuppliers: suppliers.count ?? 0,
-        totalCafes: cafes.count ?? 0,
         totalProfiles: profiles.count ?? 0,
         activeSubscribers: subs.count ?? 0,
         totalOrders: orders.count ?? 0,
@@ -174,13 +165,12 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
 
       // آخر التحديثات — مصادر متعددة تندمج بقائمة واحدة مرتبة بالوقت، عشان
       // يشوف الأدمن كل جديد بنظرة وحدة بدون ما يفتح كل تبويب لحاله.
-      const [latestRecipes, latestBeans, latestRoasters, latestSuppliers, latestCafes, latestProducts, latestOrders, latestSubs] =
+      const [latestRecipes, latestBeans, latestBusinesses, latestSuppliers, latestProducts, latestOrders, latestSubs] =
         await Promise.all([
           supabase.from('recipes').select('id, xbloom_link, created_at').order('created_at', { ascending: false }).limit(5),
           supabase.from('beans').select('id, name, created_at').order('created_at', { ascending: false }).limit(5),
-          supabase.from('roasters').select('id, name, created_at').order('created_at', { ascending: false }).limit(5),
+          supabase.from('roasters').select('id, name, business_type, created_at').order('created_at', { ascending: false }).limit(5),
           supabase.from('suppliers').select('id, name, created_at').order('created_at', { ascending: false }).limit(5),
-          supabase.from('cafes').select('id, name, created_at').order('created_at', { ascending: false }).limit(5),
           supabase.from('products').select('id, name, created_at').order('created_at', { ascending: false }).limit(5),
           supabase
             .from('orders')
@@ -211,13 +201,13 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
           createdAt: b.created_at,
           tab: 'beans' as const,
         })),
-        ...(latestRoasters.data ?? []).map((r) => ({
-          id: `roaster-${r.id}`,
-          kind: 'roaster' as const,
+        ...(latestBusinesses.data ?? []).map((r) => ({
+          id: `business-${r.id}`,
+          kind: 'business' as const,
           title: r.name,
-          subtitle: 'محمصة جديدة',
+          subtitle: r.business_type === 'cafe' ? 'كوفي شوب جديد' : 'محمصة جديدة',
           createdAt: r.created_at,
-          tab: 'roasters' as const,
+          tab: 'businesses' as const,
         })),
         ...(latestSuppliers.data ?? []).map((s) => ({
           id: `supplier-${s.id}`,
@@ -226,14 +216,6 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
           subtitle: 'مورّد جديد',
           createdAt: s.created_at,
           tab: 'suppliers' as const,
-        })),
-        ...(latestCafes.data ?? []).map((c) => ({
-          id: `cafe-${c.id}`,
-          kind: 'cafe' as const,
-          title: c.name,
-          subtitle: 'كوفي شوب جديد',
-          createdAt: c.created_at,
-          tab: 'cafes' as const,
         })),
         ...(latestProducts.data ?? []).map((p) => ({
           id: `product-${p.id}`,
@@ -283,9 +265,8 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
   const totalPending =
     counts.pendingRecipes +
     counts.pendingBeans +
-    counts.pendingRoasters +
+    counts.pendingBusinesses +
     counts.pendingSuppliers +
-    counts.pendingCafes +
     counts.pendingProducts;
 
   return (
@@ -299,23 +280,21 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
 
       <div>
         <SectionTitle>قائمة المراجعة</SectionTitle>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard label="وصفات معلّقة" value={counts.pendingRecipes} urgent onClick={() => onNavigate('recipes')} />
           <StatCard label="محاصيل معلّقة" value={counts.pendingBeans} urgent onClick={() => onNavigate('beans')} />
-          <StatCard label="محامص معلّقة" value={counts.pendingRoasters} urgent onClick={() => onNavigate('roasters')} />
+          <StatCard label="شركات معلّقة" value={counts.pendingBusinesses} urgent onClick={() => onNavigate('businesses')} />
           <StatCard label="موردين معلّقين" value={counts.pendingSuppliers} urgent onClick={() => onNavigate('suppliers')} />
-          <StatCard label="قهاوي معلّقة" value={counts.pendingCafes} urgent onClick={() => onNavigate('cafes')} />
           <StatCard label="منتجات معلّقة" value={counts.pendingProducts} urgent onClick={() => onNavigate('store')} />
         </div>
       </div>
 
       <div>
         <SectionTitle>لمحة الأعمال</SectionTitle>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard label="إجمالي المستخدمين" value={counts.totalProfiles} />
-          <StatCard label="إجمالي المحامص" value={counts.totalRoasters} onClick={() => onNavigate('roasters')} />
+          <StatCard label="إجمالي الشركات" value={counts.totalBusinesses} onClick={() => onNavigate('businesses')} />
           <StatCard label="إجمالي الموردين" value={counts.totalSuppliers} onClick={() => onNavigate('suppliers')} />
-          <StatCard label="إجمالي القهاوي" value={counts.totalCafes} onClick={() => onNavigate('cafes')} />
           <StatCard label="مشتركين نشطين" value={counts.activeSubscribers} onClick={() => onNavigate('subscribers')} />
           <StatCard label="إجمالي الطلبات" value={counts.totalOrders} onClick={() => onNavigate('orders')} />
         </div>

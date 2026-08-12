@@ -5,12 +5,17 @@ import { supabase } from '@/lib/supabase';
 import { Toggle } from '@/components/ui/Toggle';
 import { Field, SectionTitle } from '@/components/ui/Field';
 
-type RoasterRow = {
+type BusinessType = 'roaster' | 'cafe';
+
+type BusinessRow = {
   id: string;
   name: string;
   country: string;
   logo_url: string | null;
   trade_license_number: string | null;
+  business_type: BusinessType;
+  location: string | null;
+  supplying_roaster_id: string | null;
   is_verified: boolean;
   is_sponsor: boolean;
   is_advertiser: boolean;
@@ -27,38 +32,47 @@ type RoasterRow = {
 
 type UserOption = { id: string; email: string | null };
 
-const STATUS_META: Record<RoasterRow['status'], { label: string; className: string }> = {
+const STATUS_META: Record<BusinessRow['status'], { label: string; className: string }> = {
   pending: { label: 'بانتظار المراجعة', className: 'bg-amber-100 text-amber-700' },
   approved: { label: 'مقبولة', className: 'bg-green-100 text-green-700' },
   rejected: { label: 'مرفوضة', className: 'bg-red-100 text-red-700' },
 };
 
-const STATUS_FILTERS: { value: 'all' | RoasterRow['status']; label: string }[] = [
+const STATUS_FILTERS: { value: 'all' | BusinessRow['status']; label: string }[] = [
   { value: 'all', label: 'الكل' },
   { value: 'pending', label: 'بانتظار المراجعة' },
   { value: 'approved', label: 'مقبولة' },
   { value: 'rejected', label: 'مرفوضة' },
 ];
 
-export function RoastersTab() {
-  const [rows, setRows] = useState<RoasterRow[] | null>(null);
+const TYPE_FILTERS: { value: 'all' | BusinessType; label: string }[] = [
+  { value: 'all', label: 'الكل' },
+  { value: 'roaster', label: 'محامص' },
+  { value: 'cafe', label: 'كوفي شوبات' },
+];
+
+const TYPE_LABEL: Record<BusinessType, string> = { roaster: 'محمصة', cafe: 'كوفي شوب' };
+
+export function BusinessesTab() {
+  const [rows, setRows] = useState<BusinessRow[] | null>(null);
   const [clickCounts, setClickCounts] = useState<Record<string, number>>({});
   const [users, setUsers] = useState<UserOption[]>([]);
   const [ownerInput, setOwnerInput] = useState<Record<string, string>>({});
   const [ownerMsg, setOwnerMsg] = useState<Record<string, string>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | RoasterRow['status']>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | BusinessRow['status']>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | BusinessType>('all');
 
   const load = async () => {
     const [{ data }, { data: clicks }, sessionRes] = await Promise.all([
       supabase
         .from('roasters')
         .select(
-          'id, name, country, logo_url, trade_license_number, is_verified, is_sponsor, is_advertiser, can_edit_links, affiliate_base_url, commission_percent, promo_code, discount_label, status, owner_id, bean_limit, product_limit'
+          'id, name, country, logo_url, trade_license_number, business_type, location, supplying_roaster_id, is_verified, is_sponsor, is_advertiser, can_edit_links, affiliate_base_url, commission_percent, promo_code, discount_label, status, owner_id, bean_limit, product_limit'
         )
         .order('name')
-        .returns<RoasterRow[]>(),
+        .returns<BusinessRow[]>(),
       supabase.from('affiliate_clicks').select('roaster_id').not('roaster_id', 'is', null),
       supabase.auth.getSession(),
     ]);
@@ -82,9 +96,14 @@ export function RoastersTab() {
     load();
   }, []);
 
-  const setStatus = async (id: string, status: RoasterRow['status']) => {
+  const setStatus = async (id: string, status: BusinessRow['status']) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, status } : r)) ?? null);
     await supabase.from('roasters').update({ status }).eq('id', id);
+  };
+
+  const setBusinessType = async (id: string, business_type: BusinessType) => {
+    setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, business_type } : r)) ?? null);
+    await supabase.from('roasters').update({ business_type }).eq('id', id);
   };
 
   const toggle = async (
@@ -98,7 +117,7 @@ export function RoastersTab() {
 
   const saveField = async (
     id: string,
-    field: 'affiliate_base_url' | 'commission_percent' | 'promo_code' | 'discount_label',
+    field: 'location' | 'affiliate_base_url' | 'commission_percent' | 'promo_code' | 'discount_label',
     value: string
   ) => {
     const payload =
@@ -109,6 +128,12 @@ export function RoastersTab() {
     await supabase.from('roasters').update(payload).eq('id', id);
   };
 
+  const setSupplyingRoaster = async (id: string, roasterId: string) => {
+    const value = roasterId || null;
+    setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, supplying_roaster_id: value } : r)) ?? null);
+    await supabase.from('roasters').update({ supplying_roaster_id: value }).eq('id', id);
+  };
+
   const saveLimit = async (id: string, field: 'bean_limit' | 'product_limit', value: string) => {
     const n = Math.max(0, Math.round(Number(value)));
     if (!Number.isFinite(n)) return;
@@ -116,31 +141,32 @@ export function RoastersTab() {
     await supabase.from('roasters').update({ [field]: n }).eq('id', id);
   };
 
-  const linkOwner = async (roasterId: string) => {
-    const email = (ownerInput[roasterId] ?? '').trim().toLowerCase();
+  const linkOwner = async (businessId: string) => {
+    const email = (ownerInput[businessId] ?? '').trim().toLowerCase();
     const user = users.find((u) => u.email?.toLowerCase() === email);
     if (!user) {
-      setOwnerMsg((prev) => ({ ...prev, [roasterId]: 'ما لقيت حساب بهذا الإيميل' }));
+      setOwnerMsg((prev) => ({ ...prev, [businessId]: 'ما لقيت حساب بهذا الإيميل' }));
       return;
     }
-    await supabase.from('roasters').update({ owner_id: user.id }).eq('id', roasterId);
-    setRows((prev) => prev?.map((r) => (r.id === roasterId ? { ...r, owner_id: user.id } : r)) ?? null);
-    setOwnerMsg((prev) => ({ ...prev, [roasterId]: 'تم الربط ✓' }));
+    await supabase.from('roasters').update({ owner_id: user.id }).eq('id', businessId);
+    setRows((prev) => prev?.map((r) => (r.id === businessId ? { ...r, owner_id: user.id } : r)) ?? null);
+    setOwnerMsg((prev) => ({ ...prev, [businessId]: 'تم الربط ✓' }));
   };
 
-  const unlinkOwner = async (roasterId: string) => {
-    await supabase.from('roasters').update({ owner_id: null }).eq('id', roasterId);
-    setRows((prev) => prev?.map((r) => (r.id === roasterId ? { ...r, owner_id: null } : r)) ?? null);
+  const unlinkOwner = async (businessId: string) => {
+    await supabase.from('roasters').update({ owner_id: null }).eq('id', businessId);
+    setRows((prev) => prev?.map((r) => (r.id === businessId ? { ...r, owner_id: null } : r)) ?? null);
   };
 
   const filtered = useMemo(() => {
     if (!rows) return [];
     return rows.filter((r) => {
       if (statusFilter !== 'all' && r.status !== statusFilter) return false;
+      if (typeFilter !== 'all' && r.business_type !== typeFilter) return false;
       if (search.trim() && !r.name.toLowerCase().includes(search.trim().toLowerCase())) return false;
       return true;
     });
-  }, [rows, statusFilter, search]);
+  }, [rows, statusFilter, typeFilter, search]);
 
   const pendingCount = rows?.filter((r) => r.status === 'pending').length ?? 0;
 
@@ -152,9 +178,21 @@ export function RoastersTab() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="ابحث باسم المحمصة..."
+          placeholder="ابحث باسم الشركة..."
           className="w-56 rounded-lg border border-latte bg-white px-3 py-1.5 text-sm outline-none focus:border-gold"
         />
+        {TYPE_FILTERS.map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setTypeFilter(f.value)}
+            className={`rounded-full border px-3 py-1.5 text-xs ${
+              typeFilter === f.value ? 'border-ink bg-ink text-white' : 'border-latte text-coffee'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+        <span className="mx-1 h-4 w-px bg-latte" />
         {STATUS_FILTERS.map((f) => (
           <button
             key={f.value}
@@ -195,6 +233,9 @@ export function RoastersTab() {
                   <p className="text-xs text-mocha">{r.country}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
+                  <span className="rounded-full bg-latte px-2 py-0.5 text-[10px] font-medium text-coffee">
+                    {TYPE_LABEL[r.business_type]}
+                  </span>
                   {r.is_advertiser && <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] text-white">معلن</span>}
                   {r.is_sponsor && <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] text-white">Sponsor</span>}
                   {r.is_verified && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">موثّقة</span>}
@@ -206,36 +247,58 @@ export function RoastersTab() {
               {expanded && (
                 <div className="grid gap-5 border-t border-latte bg-paper/50 p-4 sm:grid-cols-2">
                   <div>
-                    <SectionTitle>الحالة</SectionTitle>
-                    {r.status === 'pending' ? (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setStatus(r.id, 'approved')}
-                          className="rounded-full bg-gold px-4 py-1.5 text-xs font-bold text-white"
-                        >
-                          قبول المحمصة
-                        </button>
-                        <button
-                          onClick={() => setStatus(r.id, 'rejected')}
-                          className="rounded-full border border-latte px-4 py-1.5 text-xs text-coffee"
-                        >
-                          رفض
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className={`rounded-full px-3 py-1 text-xs font-medium ${meta.className}`}>{meta.label}</span>
-                        <button
-                          onClick={() => setStatus(r.id, r.status === 'approved' ? 'rejected' : 'approved')}
-                          className="text-xs text-mocha underline"
-                        >
-                          تغيير
-                        </button>
-                      </div>
-                    )}
+                    <SectionTitle>التصنيف والحالة</SectionTitle>
+                    <Field label="نوع الشركة" helper="مجرد وسم للعرض -- أي شركة تقدر تملك محاصيل ومنتجات بغض النظر عن النوع">
+                      <select
+                        value={r.business_type}
+                        onChange={(e) => setBusinessType(r.id, e.target.value as BusinessType)}
+                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                      >
+                        <option value="roaster">محمصة</option>
+                        <option value="cafe">كوفي شوب</option>
+                      </select>
+                    </Field>
+                    <div className="mt-3">
+                      {r.status === 'pending' ? (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setStatus(r.id, 'approved')}
+                            className="rounded-full bg-gold px-4 py-1.5 text-xs font-bold text-white"
+                          >
+                            قبول الشركة
+                          </button>
+                          <button
+                            onClick={() => setStatus(r.id, 'rejected')}
+                            className="rounded-full border border-latte px-4 py-1.5 text-xs text-coffee"
+                          >
+                            رفض
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className={`rounded-full px-3 py-1 text-xs font-medium ${meta.className}`}>{meta.label}</span>
+                          <button
+                            onClick={() => setStatus(r.id, r.status === 'approved' ? 'rejected' : 'approved')}
+                            className="text-xs text-mocha underline"
+                          >
+                            تغيير
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <p className="mt-3 text-xs text-mocha">
                       رخصة تجارية: <span dir="ltr">{r.trade_license_number ?? '—'}</span>
                     </p>
+                    <div className="mt-3">
+                      <Field label="العنوان/الموقع" helper="اختياري -- يظهر بصفحة الشركة إذا موجود">
+                        <input
+                          defaultValue={r.location ?? ''}
+                          onBlur={(e) => saveField(r.id, 'location', e.target.value)}
+                          placeholder="مثال: دبي، الجميرا"
+                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        />
+                      </Field>
+                    </div>
                   </div>
 
                   <div>
@@ -243,14 +306,14 @@ export function RoastersTab() {
                     <Toggle
                       checked={r.is_verified}
                       onChange={(v) => toggle(r.id, 'is_verified', v)}
-                      label="محمصة موثّقة"
+                      label="شركة موثّقة"
                       helper="يظهر شعار التوثيق الأزرق بجانب اسمها بالتطبيق"
                     />
                     <Toggle
                       checked={r.is_sponsor}
                       onChange={(v) => toggle(r.id, 'is_sponsor', v)}
                       label="Sponsor"
-                      helper="تطلع فوق باقي المحامص العادية بالقوائم"
+                      helper="تطلع فوق باقي الشركات العادية بالقوائم"
                     />
                     <Toggle
                       checked={r.is_advertiser}
@@ -260,14 +323,14 @@ export function RoastersTab() {
                     />
                   </div>
 
-                  <div>
+                  <div className="sm:col-span-2">
                     <SectionTitle>الأفيليت والعمولة</SectionTitle>
-                    <div className="space-y-2">
+                    <div className="grid gap-2 sm:grid-cols-2">
                       <Toggle
                         checked={r.can_edit_links}
                         onChange={(v) => toggle(r.id, 'can_edit_links', v)}
-                        label="فعّل زر الشراء"
-                        helper="بدونه ما يظهر أي رابط شراء لمحاصيلها بالتطبيق"
+                        label="فعّل زر الشراء/الزيارة"
+                        helper="بدونه ما يظهر أي رابط بالتطبيق"
                       />
                       <Field label="رابط الأفيليت">
                         <input
@@ -278,24 +341,22 @@ export function RoastersTab() {
                           className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Field label="نسبتك (%)">
-                          <input
-                            defaultValue={r.commission_percent ?? ''}
-                            onBlur={(e) => saveField(r.id, 'commission_percent', e.target.value)}
-                            placeholder="—"
-                            type="number"
-                            step="0.5"
-                            dir="ltr"
-                            className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
-                          />
-                        </Field>
-                        <Field label="ضغطات الشراء">
-                          <p className="rounded-lg border border-latte bg-white px-2 py-1.5 text-center text-xs font-bold text-coffee">
-                            {clickCounts[r.id] ?? 0}
-                          </p>
-                        </Field>
-                      </div>
+                      <Field label="نسبتك (%)">
+                        <input
+                          defaultValue={r.commission_percent ?? ''}
+                          onBlur={(e) => saveField(r.id, 'commission_percent', e.target.value)}
+                          placeholder="—"
+                          type="number"
+                          step="0.5"
+                          dir="ltr"
+                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        />
+                      </Field>
+                      <Field label="ضغطات الشراء/الزيارة">
+                        <p className="rounded-lg border border-latte bg-white px-2 py-1.5 text-center text-xs font-bold text-coffee">
+                          {clickCounts[r.id] ?? 0}
+                        </p>
+                      </Field>
                       <Field label="كود الخصم للعميل">
                         <input
                           defaultValue={r.promo_code ?? ''}
@@ -305,7 +366,7 @@ export function RoastersTab() {
                           className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
-                      <Field label="نص الخصم" helper="يظهر بجانب زر الشراء بالتطبيق، مثال: «خصم 15%»">
+                      <Field label="نص الخصم" helper="يظهر بجانب الزر بالتطبيق، مثال: «خصم 15%»">
                         <input
                           defaultValue={r.discount_label ?? ''}
                           onBlur={(e) => saveField(r.id, 'discount_label', e.target.value)}
@@ -343,6 +404,26 @@ export function RoastersTab() {
                   </div>
 
                   <div>
+                    <SectionTitle>منيو من شركة موردة</SectionTitle>
+                    <Field label="تورّدها محمصة" helper="اختياري -- يحدد أي محاصيل تقدر تختارها بمنيوها كوصفات جاهزة، بجانب محاصيلها المباشرة">
+                      <select
+                        value={r.supplying_roaster_id ?? ''}
+                        onChange={(e) => setSupplyingRoaster(r.id, e.target.value)}
+                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                      >
+                        <option value="">— بدون —</option>
+                        {rows
+                          .filter((opt) => opt.id !== r.id)
+                          .map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.name}
+                            </option>
+                          ))}
+                      </select>
+                    </Field>
+                  </div>
+
+                  <div>
                     <SectionTitle>حساب البوابة</SectionTitle>
                     {r.owner_id ? (
                       <div className="flex items-center gap-2">
@@ -358,7 +439,7 @@ export function RoastersTab() {
                         <input
                           value={ownerInput[r.id] ?? ''}
                           onChange={(e) => setOwnerInput((prev) => ({ ...prev, [r.id]: e.target.value }))}
-                          placeholder="إيميل حساب المحمصة"
+                          placeholder="إيميل حساب الشركة"
                           dir="ltr"
                           className="flex-1 rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
