@@ -14,6 +14,7 @@ type Roaster = {
   country: string;
   is_verified: boolean;
   logo_url: string | null;
+  bean_limit: number;
 };
 
 type Bean = {
@@ -45,7 +46,7 @@ export function RoasterPortal() {
     if (!session?.user) return;
     const { data: r } = await supabase
       .from('roasters')
-      .select('id, name, country, is_verified, logo_url')
+      .select('id, name, country, is_verified, logo_url, bean_limit')
       .eq('owner_id', session.user.id)
       .maybeSingle();
     setRoaster(r ?? null);
@@ -85,7 +86,11 @@ export function RoasterPortal() {
       status: 'pending',
     });
     if (error) {
-      setMessage('صار خطأ، جرّب مرة ثانية');
+      setMessage(
+        error.message.includes('BEAN_LIMIT_REACHED')
+          ? `وصلت للحد المسموح (${roaster.bean_limit} محاصيل). تواصل مع فريق باريستا دروب لزيادة الحد.`
+          : 'صار خطأ، جرّب مرة ثانية'
+      );
     } else {
       setName('');
       setOrigin('');
@@ -130,6 +135,7 @@ export function RoasterPortal() {
 
         {roaster && (
           <>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-stone">الملف الشخصي</p>
             <div className="mb-6 flex items-center gap-4 rounded-2xl border border-latte bg-white p-5 shadow-sm">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-latte bg-sand">
                 {roaster.logo_url ? (
@@ -151,9 +157,24 @@ export function RoasterPortal() {
               </div>
             </div>
 
+            <p className="mb-2 mt-2 text-xs font-medium uppercase tracking-wide text-stone">المحاصيل</p>
             <form onSubmit={handleAddBean} className="mb-6 rounded-2xl border border-latte bg-white p-5 shadow-sm">
-              <p className="mb-3 font-[var(--font-el-messiri)] text-base text-ink">أضف محصول جديد</p>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-[var(--font-el-messiri)] text-base text-ink">أضف محصول جديد</p>
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    beans.length >= roaster.bean_limit ? 'bg-red-100 text-red-700' : 'bg-sand text-mocha'
+                  }`}
+                >
+                  {beans.length} / {roaster.bean_limit}
+                </span>
+              </div>
               {message && <p className="mb-3 rounded-lg bg-sand px-3 py-2 text-sm text-coffee">{message}</p>}
+              {beans.length >= roaster.bean_limit && (
+                <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  وصلت للحد المسموح بحسابك الحالي. تواصل مع فريق باريستا دروب لزيادة الحد.
+                </p>
+              )}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input
                   value={name}
@@ -190,7 +211,7 @@ export function RoasterPortal() {
               </div>
               <button
                 type="submit"
-                disabled={submitting || !name.trim()}
+                disabled={submitting || !name.trim() || beans.length >= roaster.bean_limit}
                 className="mt-3 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-cream disabled:opacity-50"
               >
                 {submitting ? '...' : 'إرسال للمراجعة'}
@@ -233,6 +254,7 @@ export function RoasterPortal() {
               ))}
             </div>
 
+            <p className="mb-2 mt-6 text-xs font-medium uppercase tracking-wide text-stone">المنتجات</p>
             <OwnerProductsPanel ownerType="roaster" ownerId={roaster.id} />
           </>
         )}

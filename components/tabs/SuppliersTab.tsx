@@ -19,6 +19,7 @@ type SupplierRow = {
   discount_label: string | null;
   status: 'pending' | 'approved' | 'rejected';
   owner_id: string | null;
+  product_limit: number;
 };
 
 type UserOption = { id: string; email: string | null };
@@ -50,7 +51,7 @@ export function SuppliersTab() {
       supabase
         .from('suppliers')
         .select(
-          'id, name, country, logo_url, trade_license_number, website, is_verified, is_sponsor, is_advertiser, promo_code, discount_label, status, owner_id'
+          'id, name, country, logo_url, trade_license_number, website, is_verified, is_sponsor, is_advertiser, promo_code, discount_label, status, owner_id, product_limit'
         )
         .order('name')
         .returns<SupplierRow[]>(),
@@ -89,6 +90,13 @@ export function SuppliersTab() {
     const payload = { [field]: value.trim() || null };
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, ...payload } : r)) ?? null);
     await supabase.from('suppliers').update(payload).eq('id', id);
+  };
+
+  const saveLimit = async (id: string, value: string) => {
+    const n = Math.max(0, Math.round(Number(value)));
+    if (!Number.isFinite(n)) return;
+    setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, product_limit: n } : r)) ?? null);
+    await supabase.from('suppliers').update({ product_limit: n }).eq('id', id);
   };
 
   const linkOwner = async (supplierId: string) => {
@@ -265,6 +273,20 @@ export function SuppliersTab() {
                         />
                       </Field>
                     </div>
+                  </div>
+
+                  <div>
+                    <SectionTitle>الحد المسموح</SectionTitle>
+                    <Field label="عدد المنتجات" helper="الحد الافتراضي 5 للحساب المجاني">
+                      <input
+                        defaultValue={s.product_limit}
+                        onBlur={(e) => saveLimit(s.id, e.target.value)}
+                        type="number"
+                        min={0}
+                        dir="ltr"
+                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                      />
+                    </Field>
                   </div>
 
                   <div>

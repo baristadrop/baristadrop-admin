@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { uploadOwnerProductImage } from '@/lib/productUpload';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
+import { iconGlyph } from '@/lib/categoryIcons';
 
 type OwnerType = 'supplier' | 'cafe' | 'roaster';
 
@@ -42,10 +43,18 @@ const OWNER_COLUMN: Record<OwnerType, 'supplier_id' | 'cafe_id' | 'roaster_id'> 
   roaster: 'roaster_id',
 };
 
+const OWNER_TABLE: Record<OwnerType, 'suppliers' | 'cafes' | 'roasters'> = {
+  supplier: 'suppliers',
+  cafe: 'cafes',
+  roaster: 'roasters',
+};
+
 export function OwnerProductsPanel({ ownerType, ownerId }: { ownerType: OwnerType; ownerId: string }) {
   const ownerColumn = OWNER_COLUMN[ownerType];
+  const ownerTable = OWNER_TABLE[ownerType];
   const [products, setProducts] = useState<ProductRow[] | null>(null);
   const [categories, setCategories] = useState<ProductCategoryRow[]>([]);
+  const [productLimit, setProductLimit] = useState(5);
 
   const load = async () => {
     const { data } = await supabase
@@ -66,20 +75,38 @@ export function OwnerProductsPanel({ ownerType, ownerId }: { ownerType: OwnerTyp
     setCategories(data ?? []);
   };
 
+  const loadLimit = async () => {
+    const { data } = await supabase.from(ownerTable).select('product_limit').eq('id', ownerId).maybeSingle();
+    if (data) setProductLimit((data as { product_limit: number }).product_limit);
+  };
+
   useEffect(() => {
     load();
     loadCategories();
+    loadLimit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerId]);
 
+  const atLimit = products != null && products.length >= productLimit;
+
   return (
     <div className="mt-6 rounded-2xl border border-latte bg-white p-5 shadow-sm">
-      <p className="mb-1 font-[var(--font-el-messiri)] text-base text-ink">منتجاتنا</p>
+      <div className="mb-1 flex items-center justify-between">
+        <p className="font-[var(--font-el-messiri)] text-base text-ink">منتجاتنا</p>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${atLimit ? 'bg-red-100 text-red-700' : 'bg-sand text-mocha'}`}>
+          {products?.length ?? 0} / {productLimit}
+        </span>
+      </div>
       <p className="mb-3 text-xs text-mocha">
         تظهر بصفحتك وبقسم المتجر العام بالتطبيق بعد موافقة الأدمن. رابط المنتج لازم يودّي
         العميل مباشرة لنفس المنتج بموقعك أو صفحتك — مو رابط الموقع العام.
       </p>
-      <NewProductForm ownerColumn={ownerColumn} ownerId={ownerId} categories={categories} onCreated={load} />
+      {atLimit && (
+        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          وصلت للحد المسموح بحسابك الحالي. تواصل مع فريق باريستا دروب لزيادة الحد.
+        </p>
+      )}
+      <NewProductForm ownerColumn={ownerColumn} ownerId={ownerId} categories={categories} atLimit={atLimit} onCreated={load} />
       <div className="mt-4 space-y-3">
         {!products ? (
           <p className="text-sm text-mocha">تحميل...</p>
@@ -99,11 +126,13 @@ function NewProductForm({
   ownerColumn,
   ownerId,
   categories,
+  atLimit,
   onCreated,
 }: {
   ownerColumn: 'supplier_id' | 'cafe_id' | 'roaster_id';
   ownerId: string;
   categories: ProductCategoryRow[];
+  atLimit: boolean;
   onCreated: () => void;
 }) {
   const [name, setName] = useState('');
@@ -129,7 +158,8 @@ function NewProductForm({
     setUploading(false);
   };
 
-  const canSubmit = name.trim().length > 0 && price.trim().length > 0 && externalUrl.trim().length > 0 && !uploading;
+  const canSubmit =
+    name.trim().length > 0 && price.trim().length > 0 && externalUrl.trim().length > 0 && !uploading && !atLimit;
 
   const submit = async () => {
     if (!canSubmit || submitting) return;
@@ -147,7 +177,11 @@ function NewProductForm({
     });
     setSubmitting(false);
     if (error) {
-      setMessage('صار خطأ، جرّب مرة ثانية');
+      setMessage(
+        error.message.includes('PRODUCT_LIMIT_REACHED')
+          ? 'وصلت للحد المسموح من المنتجات بحسابك الحالي.'
+          : 'صار خطأ، جرّب مرة ثانية'
+      );
       return;
     }
     setName('');
@@ -178,7 +212,7 @@ function NewProductForm({
         >
           {categories.map((c) => (
             <option key={c.key} value={c.key}>
-              {c.icon} {c.name_ar}
+              {iconGlyph(c.icon)} {c.name_ar}
             </option>
           ))}
         </select>
@@ -314,7 +348,7 @@ function ProductRowItem({
         >
           {categories.map((c) => (
             <option key={c.key} value={c.key}>
-              {c.icon} {c.name_ar}
+              {iconGlyph(c.icon)} {c.name_ar}
             </option>
           ))}
         </select>

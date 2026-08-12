@@ -21,6 +21,8 @@ type RoasterRow = {
   discount_label: string | null;
   status: 'pending' | 'approved' | 'rejected';
   owner_id: string | null;
+  bean_limit: number;
+  product_limit: number;
 };
 
 type UserOption = { id: string; email: string | null };
@@ -53,7 +55,7 @@ export function RoastersTab() {
       supabase
         .from('roasters')
         .select(
-          'id, name, country, logo_url, trade_license_number, is_verified, is_sponsor, is_advertiser, can_edit_links, affiliate_base_url, commission_percent, promo_code, discount_label, status, owner_id'
+          'id, name, country, logo_url, trade_license_number, is_verified, is_sponsor, is_advertiser, can_edit_links, affiliate_base_url, commission_percent, promo_code, discount_label, status, owner_id, bean_limit, product_limit'
         )
         .order('name')
         .returns<RoasterRow[]>(),
@@ -105,6 +107,13 @@ export function RoastersTab() {
         : { [field]: value.trim() || null };
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, ...payload } : r)) ?? null);
     await supabase.from('roasters').update(payload).eq('id', id);
+  };
+
+  const saveLimit = async (id: string, field: 'bean_limit' | 'product_limit', value: string) => {
+    const n = Math.max(0, Math.round(Number(value)));
+    if (!Number.isFinite(n)) return;
+    setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, [field]: n } : r)) ?? null);
+    await supabase.from('roasters').update({ [field]: n }).eq('id', id);
   };
 
   const linkOwner = async (roasterId: string) => {
@@ -301,6 +310,32 @@ export function RoastersTab() {
                           defaultValue={r.discount_label ?? ''}
                           onBlur={(e) => saveField(r.id, 'discount_label', e.target.value)}
                           placeholder="خصم 15%"
+                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        />
+                      </Field>
+                    </div>
+                  </div>
+
+                  <div>
+                    <SectionTitle>الحدود المسموحة</SectionTitle>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Field label="عدد المحاصيل" helper="الحد الافتراضي 5 للحساب المجاني">
+                        <input
+                          defaultValue={r.bean_limit}
+                          onBlur={(e) => saveLimit(r.id, 'bean_limit', e.target.value)}
+                          type="number"
+                          min={0}
+                          dir="ltr"
+                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        />
+                      </Field>
+                      <Field label="عدد المنتجات" helper="الحد الافتراضي 5 للحساب المجاني">
+                        <input
+                          defaultValue={r.product_limit}
+                          onBlur={(e) => saveLimit(r.id, 'product_limit', e.target.value)}
+                          type="number"
+                          min={0}
+                          dir="ltr"
                           className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>

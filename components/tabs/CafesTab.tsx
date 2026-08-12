@@ -22,6 +22,7 @@ type CafeRow = {
   discount_label: string | null;
   status: 'pending' | 'approved' | 'rejected';
   owner_id: string | null;
+  product_limit: number;
 };
 
 type UserOption = { id: string; email: string | null };
@@ -55,7 +56,7 @@ export function CafesTab() {
       supabase
         .from('cafes')
         .select(
-          'id, name, country, logo_url, trade_license_number, location, supplying_roaster_id, is_verified, is_sponsor, is_advertiser, can_edit_links, affiliate_base_url, promo_code, discount_label, status, owner_id'
+          'id, name, country, logo_url, trade_license_number, location, supplying_roaster_id, is_verified, is_sponsor, is_advertiser, can_edit_links, affiliate_base_url, promo_code, discount_label, status, owner_id, product_limit'
         )
         .order('name')
         .returns<CafeRow[]>(),
@@ -105,6 +106,13 @@ export function CafesTab() {
     const value = roasterId || null;
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, supplying_roaster_id: value } : r)) ?? null);
     await supabase.from('cafes').update({ supplying_roaster_id: value }).eq('id', id);
+  };
+
+  const saveLimit = async (id: string, value: string) => {
+    const n = Math.max(0, Math.round(Number(value)));
+    if (!Number.isFinite(n)) return;
+    setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, product_limit: n } : r)) ?? null);
+    await supabase.from('cafes').update({ product_limit: n }).eq('id', id);
   };
 
   const linkOwner = async (cafeId: string) => {
@@ -313,6 +321,20 @@ export function CafesTab() {
                         />
                       </Field>
                     </div>
+                  </div>
+
+                  <div>
+                    <SectionTitle>الحد المسموح</SectionTitle>
+                    <Field label="عدد المنتجات" helper="الحد الافتراضي 5 للحساب المجاني">
+                      <input
+                        defaultValue={c.product_limit}
+                        onBlur={(e) => saveLimit(c.id, e.target.value)}
+                        type="number"
+                        min={0}
+                        dir="ltr"
+                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                      />
+                    </Field>
                   </div>
 
                   <div>
