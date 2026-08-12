@@ -48,7 +48,7 @@ export function RecipesTab() {
     const { data } = await supabase
       .from('recipes')
       .select(
-        'id, method, xbloom_link, grinder, grind, temp, ratio, water, dose, tool, pours, notes, image_url, created_at, beans(name, origin, process, image_url, roasters(name, is_verified, affiliate_base_url, commission_percent)), submitter:profiles(full_name)'
+        'id, method, xbloom_link, grinder, grind, temp, ratio, water, dose, tool, pours, notes, image_url, created_at, beans(name, origin, process, image_url, roasters!beans_roaster_id_fkey(name, is_verified, affiliate_base_url, commission_percent)), submitter:profiles!recipes_user_id_fkey(full_name)'
       )
       .eq('status', 'pending')
       .order('created_at', { ascending: false })

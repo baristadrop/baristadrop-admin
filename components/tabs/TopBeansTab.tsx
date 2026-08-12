@@ -19,7 +19,7 @@ export function TopBeansTab() {
     const load = async () => {
       const { data } = await supabase
         .from('beans')
-        .select('id, name, origin, avg_rating, reviews_count, roasters(name)')
+        .select('id, name, origin, avg_rating, reviews_count, roasters!beans_roaster_id_fkey(name)')
         .eq('status', 'approved')
         .gt('reviews_count', 0)
         .order('avg_rating', { ascending: false })

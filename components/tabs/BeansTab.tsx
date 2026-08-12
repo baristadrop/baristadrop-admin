@@ -39,7 +39,7 @@ export function BeansTab() {
     const { data } = await supabase
       .from('beans')
       .select(
-        'id, name, origin, process, flavor_notes, roast_level, price, image_url, source_url, created_at, roasters(name, is_verified, affiliate_base_url, commission_percent), suggester:profiles(full_name)'
+        'id, name, origin, process, flavor_notes, roast_level, price, image_url, source_url, created_at, roasters!beans_roaster_id_fkey(name, is_verified, affiliate_base_url, commission_percent), suggester:profiles(full_name)'
       )
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
