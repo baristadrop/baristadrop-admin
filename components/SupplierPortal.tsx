@@ -6,6 +6,7 @@ import { useAdminAuth } from '@/lib/useAdminAuth';
 import { uploadBusinessLogo } from '@/lib/logoUpload';
 import { PortalShell } from '@/components/PortalShell';
 import { OwnerProductsPanel } from '@/components/OwnerProductsPanel';
+import { SUPPLIER_CATEGORIES } from '@/components/tabs/SuppliersTab';
 
 type Supplier = {
   id: string;
@@ -61,6 +62,15 @@ export function SupplierPortal() {
     setSaving(false);
   };
 
+  const toggleCategory = async (category: string) => {
+    if (!supplier) return;
+    const next = supplier.categories.includes(category)
+      ? supplier.categories.filter((c) => c !== category)
+      : [...supplier.categories, category];
+    setSupplier({ ...supplier, categories: next });
+    await supabase.from('suppliers').update({ categories: next }).eq('id', supplier.id);
+  };
+
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !supplier) return;
@@ -99,9 +109,7 @@ export function SupplierPortal() {
               </div>
               <div className="flex-1">
                 <p className="font-[var(--font-el-messiri)] text-xl text-ink">{supplier.name}</p>
-                <p className="text-sm text-mocha">
-                  {supplier.country} · {supplier.categories.join('، ')}
-                </p>
+                <p className="text-sm text-mocha">{supplier.country}</p>
                 <p className="mt-1 text-xs text-stone">
                   {supplier.is_verified ? 'مورّد موثّق ✓' : 'بانتظار التوثيق'} · {STATUS_LABEL[supplier.status]}
                 </p>
@@ -109,6 +117,28 @@ export function SupplierPortal() {
                   {uploadingLogo ? 'جاري الرفع...' : 'تغيير الشعار'}
                   <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} disabled={uploadingLogo} />
                 </label>
+              </div>
+            </div>
+
+            <div className="mb-6 rounded-2xl border border-latte bg-white p-5 shadow-sm">
+              <p className="mb-1 font-[var(--font-el-messiri)] text-base text-ink">فئات منتجاتك</p>
+              <p className="mb-3 text-xs text-mocha">اختر كل الفئات اللي تنطبق عليك -- تحدد صورة الخلفية اللي تظهر خلف بطاقتك بالتطبيق</p>
+              <div className="flex flex-wrap gap-2">
+                {SUPPLIER_CATEGORIES.map((c) => {
+                  const active = supplier.categories.includes(c);
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => toggleCategory(c)}
+                      className={`rounded-full border px-3 py-1.5 text-xs ${
+                        active ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

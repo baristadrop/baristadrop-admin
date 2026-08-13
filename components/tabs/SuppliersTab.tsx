@@ -20,9 +20,23 @@ type SupplierRow = {
   status: 'pending' | 'approved' | 'rejected';
   owner_id: string | null;
   product_limit: number;
+  categories: string[];
 };
 
 type UserOption = { id: string; email: string | null };
+
+/** فئات ثابتة (مو نص حر) عشان تطابق دايماً صور الخلفية حسب الفئة بالتطبيق
+ * (supplierCategoryPhotos.ts) -- نفس الأسماء بالضبط. */
+export const SUPPLIER_CATEGORIES = [
+  'مكائن اسبريسو',
+  'مكائن منزلية',
+  'مكائن بيع ذاتي',
+  'مطاحن',
+  'أدوات V60',
+  'أدوات القهوة',
+  'حبوب قهوة',
+  'كبسولات',
+] as const;
 
 const STATUS_META: Record<SupplierRow['status'], { label: string; className: string }> = {
   pending: { label: 'بانتظار المراجعة', className: 'bg-amber-100 text-amber-700' },
@@ -51,7 +65,7 @@ export function SuppliersTab() {
       supabase
         .from('suppliers')
         .select(
-          'id, name, country, logo_url, trade_license_number, website, is_verified, is_sponsor, is_advertiser, promo_code, discount_label, status, owner_id, product_limit'
+          'id, name, country, logo_url, trade_license_number, website, is_verified, is_sponsor, is_advertiser, promo_code, discount_label, status, owner_id, product_limit, categories'
         )
         .order('name')
         .returns<SupplierRow[]>(),
@@ -90,6 +104,13 @@ export function SuppliersTab() {
     const payload = { [field]: value.trim() || null };
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, ...payload } : r)) ?? null);
     await supabase.from('suppliers').update(payload).eq('id', id);
+  };
+
+  const toggleCategory = async (id: string, category: string) => {
+    const current = rows?.find((r) => r.id === id)?.categories ?? [];
+    const next = current.includes(category) ? current.filter((c) => c !== category) : [...current, category];
+    setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, categories: next } : r)) ?? null);
+    await supabase.from('suppliers').update({ categories: next }).eq('id', id);
   };
 
   const saveLimit = async (id: string, value: string) => {
@@ -219,6 +240,27 @@ export function SuppliersTab() {
                     <p className="mt-3 text-xs text-mocha">
                       رخصة تجارية: <span dir="ltr">{s.trade_license_number ?? '—'}</span>
                     </p>
+                  </div>
+
+                  <div>
+                    <SectionTitle>الفئات</SectionTitle>
+                    <p className="mb-2 text-[11px] text-mocha">تحدد صورة الخلفية اللي تظهر خلف بطاقته بالتطبيق</p>
+                    <div className="flex flex-wrap gap-2">
+                      {SUPPLIER_CATEGORIES.map((c) => {
+                        const active = s.categories?.includes(c);
+                        return (
+                          <button
+                            key={c}
+                            onClick={() => toggleCategory(s.id, c)}
+                            className={`rounded-full border px-3 py-1.5 text-xs ${
+                              active ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
+                            }`}
+                          >
+                            {c}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div>
