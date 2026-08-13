@@ -29,6 +29,6 @@
 }
 
 body {
-  background: var(--color-paper);
-  color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-cream);
 }

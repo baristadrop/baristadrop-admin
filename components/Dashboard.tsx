@@ -95,11 +95,11 @@ export function Dashboard() {
   const activeLabel = ALL_TABS.find((t) => t.key === active)?.label ?? '';
 
   return (
-    <div className="min-h-screen bg-paper lg:flex">
-      <aside className="border-b border-latte/70 bg-cream lg:h-screen lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-l">
+    <div className="min-h-screen bg-ink lg:flex">
+      <aside className="border-b border-mocha/30 bg-coffee lg:h-screen lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-l">
         <div className="px-5 py-5">
-          <h1 className="font-[var(--font-cormorant)] text-xl font-bold tracking-wide text-ink">BARISTA DROP</h1>
-          <p className="text-xs text-mocha">لوحة التحكم</p>
+          <h1 className="font-[var(--font-cormorant)] text-xl font-bold tracking-wide text-gold">BARISTA DROP</h1>
+          <p className="text-xs text-stone">لوحة التحكم</p>
         </div>
 
         <nav className="flex flex-col gap-5 px-3 pb-6">
@@ -116,11 +116,11 @@ export function Dashboard() {
                       onClick={() => setActive(tab.key)}
                       className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
                         isActive
-                          ? 'bg-ink text-cream shadow-sm'
-                          : 'text-coffee hover:bg-sand/50'
+                          ? 'bg-gold text-ink shadow-sm'
+                          : 'text-sand hover:bg-white/5'
                       }`}
                     >
-                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-gold' : 'text-mocha'}`} />
+                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-ink' : 'text-stone'}`} />
                       <span className="text-right">{tab.label}</span>
                     </button>
                   );
@@ -132,16 +132,16 @@ export function Dashboard() {
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-10 border-b border-latte/70 bg-cream/95 shadow-[0_1px_0_0_rgba(0,0,0,0.02)] backdrop-blur">
+        <header className="sticky top-0 z-10 border-b border-mocha/30 bg-coffee/95 shadow-[0_1px_0_0_rgba(0,0,0,0.2)] backdrop-blur">
           <div className="flex items-center justify-between px-6 py-4">
-            <h2 className="font-[var(--font-el-messiri)] text-lg text-ink">{activeLabel}</h2>
-            <div className="flex items-center gap-3 text-sm text-mocha">
-              <span className="rounded-full bg-sand/70 px-3 py-1.5 font-medium text-coffee">
+            <h2 className="font-[var(--font-el-messiri)] text-lg text-cream">{activeLabel}</h2>
+            <div className="flex items-center gap-3 text-sm text-stone">
+              <span className="rounded-full bg-white/10 px-3 py-1.5 font-medium text-sand">
                 {profile?.full_name || session?.user.email}
               </span>
               <button
                 onClick={() => signOut()}
-                className="rounded-full border border-latte px-3 py-1.5 font-medium text-coffee transition hover:border-coffee hover:bg-sand"
+                className="rounded-full border border-mocha/40 px-3 py-1.5 font-medium text-sand transition hover:border-gold hover:bg-white/5"
               >
                 تسجيل خروج
               </button>
