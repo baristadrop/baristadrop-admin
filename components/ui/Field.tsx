@@ -3,7 +3,7 @@
 import { ReactNode } from 'react';
 
 /** حقل بعنوان + شرح مبسّط تحته + المُدخل نفسه — بدل عمود جدول بلا سياق. */
-export function Field({ label, helper, children }: { label: string; helper?: string; children: ReactNode }) {
+export function Field({ label, helper, children }: { label: ReactNode; helper?: string; children: ReactNode }) {
   return (
     <div>
       <label className="mb-1 block text-xs font-medium text-mocha">{label}</label>

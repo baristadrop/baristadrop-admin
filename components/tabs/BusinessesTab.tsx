@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Toggle } from '@/components/ui/Toggle';
 import { Field, SectionTitle } from '@/components/ui/Field';
+import { InfoTip } from '@/components/ui/InfoTip';
 
 type BusinessType = 'roaster' | 'cafe';
 
@@ -28,9 +29,26 @@ type BusinessRow = {
   owner_id: string | null;
   bean_limit: number;
   product_limit: number;
+  postback_secret: string;
 };
 
 type UserOption = { id: string; email: string | null };
+
+type BusinessStats = { clicks: number; confirmedPurchases: number; grossRevenue: number; commissionOwed: number };
+const EMPTY_STATS: BusinessStats = { clicks: 0, confirmedPurchases: 0, grossRevenue: 0, commissionOwed: 0 };
+
+const PERIOD_FILTERS: { value: 'all' | 'month'; label: string }[] = [
+  { value: 'all', label: 'كل الوقت' },
+  { value: 'month', label: 'هذا الشهر' },
+];
+
+function periodSince(period: 'all' | 'month'): string | undefined {
+  if (period !== 'month') return undefined;
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+}
+
+const WEBHOOK_BASE_URL = 'https://admin.baristadrop.com/api/webhooks/affiliate-purchase';
 
 const STATUS_META: Record<BusinessRow['status'], { label: string; className: string }> = {
   pending: { label: 'بانتظار المراجعة', className: 'bg-amber-100 text-amber-700' },
@@ -55,7 +73,8 @@ const TYPE_LABEL: Record<BusinessType, string> = { roaster: 'محمصة', cafe: 
 
 export function BusinessesTab() {
   const [rows, setRows] = useState<BusinessRow[] | null>(null);
-  const [clickCounts, setClickCounts] = useState<Record<string, number>>({});
+  const [stats, setStats] = useState<Record<string, BusinessStats>>({});
+  const [period, setPeriod] = useState<'all' | 'month'>('all');
   const [users, setUsers] = useState<UserOption[]>([]);
   const [ownerInput, setOwnerInput] = useState<Record<string, string>>({});
   const [ownerMsg, setOwnerMsg] = useState<Record<string, string>>({});
@@ -63,26 +82,35 @@ export function BusinessesTab() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | BusinessRow['status']>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | BusinessType>('all');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const load = async () => {
-    const [{ data }, { data: clicks }, sessionRes] = await Promise.all([
+    const [{ data }, { data: statsRows }, sessionRes] = await Promise.all([
       supabase
         .from('roasters')
         .select(
-          'id, name, country, logo_url, trade_license_number, business_type, location, supplying_roaster_id, is_verified, is_sponsor, is_advertiser, can_edit_links, affiliate_base_url, commission_percent, promo_code, discount_label, status, owner_id, bean_limit, product_limit'
+          'id, name, country, logo_url, trade_license_number, business_type, location, supplying_roaster_id, is_verified, is_sponsor, is_advertiser, can_edit_links, affiliate_base_url, commission_percent, promo_code, discount_label, status, owner_id, bean_limit, product_limit, postback_secret'
         )
         .order('name')
         .returns<BusinessRow[]>(),
-      supabase.from('affiliate_clicks').select('roaster_id').not('roaster_id', 'is', null),
+      supabase.rpc('get_affiliate_business_stats', { p_since: periodSince(period) ?? null }),
       supabase.auth.getSession(),
     ]);
     setRows(data ?? []);
-    const counts: Record<string, number> = {};
-    for (const c of clicks ?? []) {
-      const id = c.roaster_id as string;
-      counts[id] = (counts[id] ?? 0) + 1;
+    const nextStats: Record<string, BusinessStats> = {};
+    for (const s of (statsRows as {
+      business_type: string; business_id: string; clicks: number;
+      confirmed_purchases: number; gross_revenue: number; commission_owed: number;
+    }[]) ?? []) {
+      if (s.business_type !== 'roaster') continue;
+      nextStats[s.business_id] = {
+        clicks: s.clicks,
+        confirmedPurchases: s.confirmed_purchases,
+        grossRevenue: s.gross_revenue,
+        commissionOwed: s.commission_owed,
+      };
     }
-    setClickCounts(counts);
+    setStats(nextStats);
 
     const token = sessionRes.data.session?.access_token;
     const res = await fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } });
@@ -94,7 +122,21 @@ export function BusinessesTab() {
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period]);
+
+  const rotatePostbackSecret = async (id: string) => {
+    const newSecret = crypto.randomUUID();
+    setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, postback_secret: newSecret } : r)) ?? null);
+    await supabase.from('roasters').update({ postback_secret: newSecret }).eq('id', id);
+  };
+
+  const copyWebhookUrl = (id: string, secret: string) => {
+    navigator.clipboard.writeText(`${WEBHOOK_BASE_URL}?token=${secret}`).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId((v) => (v === id ? null : v)), 1500);
+    });
+  };
 
   const setStatus = async (id: string, status: BusinessRow['status']) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, status } : r)) ?? null);
@@ -209,6 +251,18 @@ export function BusinessesTab() {
             {pendingCount} بانتظار المراجعة
           </span>
         )}
+        <span className="mx-1 h-4 w-px bg-latte" />
+        {PERIOD_FILTERS.map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setPeriod(f.value)}
+            className={`rounded-full border px-3 py-1.5 text-xs ${
+              period === f.value ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       <div className="space-y-2">
@@ -352,11 +406,72 @@ export function BusinessesTab() {
                           className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
-                      <Field label="ضغطات الشراء/الزيارة">
-                        <p className="rounded-lg border border-latte bg-white px-2 py-1.5 text-center text-xs font-bold text-coffee">
-                          {clickCounts[r.id] ?? 0}
-                        </p>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {(() => {
+                        const s = stats[r.id] ?? EMPTY_STATS;
+                        const conversionRate = s.clicks > 0 ? ((s.confirmedPurchases / s.clicks) * 100).toFixed(0) : '—';
+                        return (
+                          <>
+                            <div className="rounded-lg border border-latte bg-white p-2 text-center">
+                              <p className="text-[10px] text-mocha">نقرات</p>
+                              <p className="text-sm font-bold text-coffee">{s.clicks}</p>
+                            </div>
+                            <div className="rounded-lg border border-latte bg-white p-2 text-center">
+                              <p className="text-[10px] text-mocha">مشتريات مؤكدة</p>
+                              <p className="text-sm font-bold text-coffee">{s.confirmedPurchases}</p>
+                            </div>
+                            <div className="rounded-lg border border-latte bg-white p-2 text-center">
+                              <p className="text-[10px] text-mocha">
+                                معدل التحويل
+                                <InfoTip text="نسبة النقرات اللي تحولت لشراء مؤكد فعلاً (مشتريات مؤكدة ÷ نقرات)." />
+                              </p>
+                              <p className="text-sm font-bold text-coffee">{conversionRate === '—' ? conversionRate : `${conversionRate}%`}</p>
+                            </div>
+                            <div className="rounded-lg border border-gold/50 bg-gold/10 p-2 text-center">
+                              <p className="text-[10px] text-mocha">العمولة المستحقة</p>
+                              <p className="text-sm font-bold text-gold">{s.commissionOwed.toFixed(2)} د.إ</p>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+
+                    <div className="mt-3">
+                      <Field
+                        label={
+                          <>
+                            رابط تأكيد الشراء
+                            <InfoTip text="هذا الرابط تعطيه للشركة عشان ترسل لك تأكيد كل عملية شراء تلقائياً -- بدونه ما تقدر تحسب عمولتك بدقة." />
+                          </>
+                        }
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            readOnly
+                            value={`${WEBHOOK_BASE_URL}?token=${r.postback_secret}`}
+                            dir="ltr"
+                            onFocus={(e) => e.target.select()}
+                            className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-[11px] text-coffee outline-none"
+                          />
+                          <button
+                            onClick={() => copyWebhookUrl(r.id, r.postback_secret)}
+                            className="shrink-0 rounded-lg border border-latte px-2 py-1.5 text-[11px] text-coffee hover:border-gold"
+                          >
+                            {copiedId === r.id ? 'تم النسخ ✓' : 'نسخ'}
+                          </button>
+                          <button
+                            onClick={() => rotatePostbackSecret(r.id)}
+                            className="shrink-0 rounded-lg border border-latte px-2 py-1.5 text-[11px] text-stone hover:border-red-400 hover:text-red-600"
+                          >
+                            تجديد
+                          </button>
+                        </div>
                       </Field>
+                    </div>
+
+                    <div className="mt-3 grid gap-2">
                       <Field label="كود الخصم للعميل">
                         <input
                           defaultValue={r.promo_code ?? ''}
