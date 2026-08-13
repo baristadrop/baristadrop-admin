@@ -49,6 +49,16 @@ async function recordPurchase(params: {
   const business = await resolveBusiness(supabase, params.token);
   if (!business) return { ok: false, status: 401, error: 'unauthorized' };
 
+  // سقف 30 طلب/دقيقة لكل شركة -- يحمي حتى لو تسرب رمز شركة وحد قصف الرابط.
+  const { data: withinLimit, error: rateLimitError } = await supabase.rpc('check_webhook_rate_limit', {
+    p_token: params.token,
+  });
+  if (rateLimitError) {
+    console.error('[affiliate-purchase-webhook] rate limit check failed:', rateLimitError.message);
+  } else if (withinLimit === false) {
+    return { ok: false, status: 429, error: 'too_many_requests' };
+  }
+
   const commissionPercent = business.commissionPercent ?? 0;
   const commissionAmount = Math.round(params.orderAmount * (commissionPercent / 100) * 100) / 100;
 
