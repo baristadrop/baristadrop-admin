@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { isValidUuid, isValidOrderAmount, calculateCommission } from '@/lib/affiliateCommission';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // GIF شفاف 1x1 -- يُرجَّع دايماً للطلبات اللي تجي عن طريق pixel بصفحة "تم
 // الطلب" عند الشريك، حتى لو التحقق فشل (الخطأ يُسجَّل بالسيرفر بس، ما لازم
 // يظهر بصفحة عامة للعميل النهائي).
@@ -20,7 +20,7 @@ async function resolveBusiness(
   supabase: any,
   token: string | null
 ): Promise<Business | null> {
-  if (!token || !UUID_RE.test(token)) return null;
+  if (!isValidUuid(token)) return null;
   const [{ data: roaster }, { data: supplier }] = await Promise.all([
     supabase.from('roasters').select('id, commission_percent').eq('postback_secret', token).maybeSingle(),
     supabase.from('suppliers').select('id, commission_percent').eq('postback_secret', token).maybeSingle(),
@@ -38,10 +38,10 @@ async function recordPurchase(params: {
   currency: string;
   rawPayload: unknown;
 }): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
-  if (!params.clickId || !UUID_RE.test(params.clickId)) {
+  if (!isValidUuid(params.clickId)) {
     return { ok: false, status: 400, error: 'missing_or_invalid_click_id' };
   }
-  if (!Number.isFinite(params.orderAmount) || params.orderAmount <= 0) {
+  if (!isValidOrderAmount(params.orderAmount)) {
     return { ok: false, status: 400, error: 'invalid_order_amount' };
   }
 
@@ -60,7 +60,7 @@ async function recordPurchase(params: {
   }
 
   const commissionPercent = business.commissionPercent ?? 0;
-  const commissionAmount = Math.round(params.orderAmount * (commissionPercent / 100) * 100) / 100;
+  const commissionAmount = calculateCommission(params.orderAmount, commissionPercent);
 
   const { error } = await supabase.from('affiliate_purchases').upsert(
     {
