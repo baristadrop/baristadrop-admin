@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import type { Session } from '@supabase/supabase-js';
 import { OverviewTab } from './tabs/OverviewTab';
 import { TrackingTab } from './tabs/TrackingTab';
+import { ProductClicksTab } from './tabs/ProductClicksTab';
 import { RecipesTab } from './tabs/RecipesTab';
 import { BeansTab } from './tabs/BeansTab';
 import { BusinessesTab } from './tabs/BusinessesTab';
@@ -37,11 +38,13 @@ import {
   ShieldIcon,
   BellIcon,
   CoinIcon,
+  CursorClickIcon,
 } from './icons/NavIcons';
 
 export type TabKey =
   | 'overview'
   | 'tracking'
+  | 'productClicks'
   | 'top'
   | 'recipes'
   | 'beans'
@@ -63,6 +66,7 @@ const NAV_GROUPS: NavGroup[] = [
     tabs: [
       { key: 'overview', label: 'نظرة عامة', Icon: OverviewIcon },
       { key: 'tracking', label: 'التتبع', Icon: PulseIcon },
+      { key: 'productClicks', label: 'نقرات كل منتج', Icon: CursorClickIcon },
       { key: 'top', label: 'أفضل 10 محاصيل', Icon: TrophyIcon },
     ],
   },
@@ -176,6 +180,7 @@ export function Dashboard({
         <main className="px-6 py-8">
           {active === 'overview' && <OverviewTab onNavigate={setActive} />}
           {active === 'tracking' && <TrackingTab />}
+          {active === 'productClicks' && <ProductClicksTab />}
           {active === 'top' && <TopBeansTab />}
           {active === 'recipes' && <RecipesTab />}
           {active === 'beans' && <BeansTab />}

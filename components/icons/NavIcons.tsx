@@ -172,3 +172,16 @@ export function CoinIcon({ className = base }: Props) {
     </svg>
   );
 }
+
+export function CursorClickIcon({ className = base }: Props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path
+        d="M6 4l3.5 14 2.2-4.8L16.5 15 18 13.5l-4.8-2.8L18 6 6 4Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
