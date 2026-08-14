@@ -74,7 +74,7 @@ function StatCard({
       disabled={!onClick}
       className={`rounded-2xl border p-5 text-right shadow-sm transition ${
         urgent && Number(value) > 0
-          ? 'border-gold/60 bg-gold/10'
+          ? 'border-gold/60 bg-sand'
           : 'border-latte bg-white'
       } ${onClick ? 'cursor-pointer hover:border-coffee' : ''}`}
     >
@@ -272,7 +272,7 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
   return (
     <div className="flex flex-col gap-8">
       {totalPending > 0 && (
-        <div className="rounded-2xl border border-gold/60 bg-gold/10 px-5 py-4 text-sm text-coffee">
+        <div className="rounded-2xl border border-gold/60 bg-sand px-5 py-4 text-sm text-coffee">
           <strong className="font-[var(--font-el-messiri)] text-base text-ink">{totalPending}</strong> عنصر بانتظار
           مراجعتك الآن — شوف قسم "قائمة المراجعة" تحت.
         </div>

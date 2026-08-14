@@ -429,7 +429,7 @@ export function BusinessesTab() {
                               </p>
                               <p className="text-sm font-bold text-coffee">{conversionRate === '—' ? conversionRate : `${conversionRate}%`}</p>
                             </div>
-                            <div className="rounded-lg border border-gold/50 bg-gold/10 p-2 text-center">
+                            <div className="rounded-lg border border-gold/50 bg-sand p-2 text-center">
                               <p className="text-[10px] text-mocha">العمولة المستحقة</p>
                               <p className="text-sm font-bold text-gold">{s.commissionOwed.toFixed(2)} د.إ</p>
                             </div>
