@@ -35,7 +35,7 @@ export default function Home() {
     return <LoginForm />;
   }
 
-  if (profile?.role === 'admin') return <Dashboard />;
+  if (profile?.role === 'admin') return <Dashboard profile={profile} session={session} signOut={signOut} />;
   if (profile?.role === 'roaster' || profile?.role === 'cafe') return <BusinessPortal />;
   if (profile?.role === 'supplier') return <SupplierPortal />;
 

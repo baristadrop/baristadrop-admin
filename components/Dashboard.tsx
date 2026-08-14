@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useAdminAuth } from '@/lib/useAdminAuth';
+import type { Session } from '@supabase/supabase-js';
 import { OverviewTab } from './tabs/OverviewTab';
 import { TrackingTab } from './tabs/TrackingTab';
 import { RecipesTab } from './tabs/RecipesTab';
@@ -104,8 +104,17 @@ const NAV_GROUPS: NavGroup[] = [
 
 const ALL_TABS: NavTab[] = NAV_GROUPS.flatMap((g) => g.tabs);
 
-export function Dashboard() {
-  const { profile, session, signOut } = useAdminAuth();
+type Profile = { full_name: string | null };
+
+export function Dashboard({
+  profile,
+  session,
+  signOut,
+}: {
+  profile: Profile | null;
+  session: Session | null;
+  signOut: () => void;
+}) {
   const [active, setActive] = useState<TabKey>('overview');
   const activeLabel = ALL_TABS.find((t) => t.key === active)?.label ?? '';
 

@@ -108,52 +108,47 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
 
   useEffect(() => {
     const load = async () => {
-      const [
-        recipes,
-        beans,
-        businessesPending,
-        suppliersPending,
-        productsPending,
-        businesses,
-        suppliers,
-        profiles,
-        subs,
-        orders,
-        clicks,
-        subInterests,
-        sessionRes,
-      ] = await Promise.all([
-        supabase.from('recipes').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('beans').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('roasters').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('suppliers').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('products').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('roasters').select('id', { count: 'exact', head: true }),
-        supabase.from('suppliers').select('id', { count: 'exact', head: true }),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('orders').select('id', { count: 'exact', head: true }),
-        supabase.from('affiliate_clicks').select('id', { count: 'exact', head: true }),
-        supabase.from('subscription_interests').select('id', { count: 'exact', head: true }),
+      // طلب واحد بدل 12 طلب متزامن -- كانت تسبب أحياناً أخطاء 503 من تجاوز
+      // حد اتصالات Supabase، بجانب إبطاء التحميل بدون داعٍ.
+      const [{ data: statsRows }, sessionRes] = await Promise.all([
+        supabase.rpc('get_overview_stats'),
         supabase.auth.getSession(),
       ]);
+      const stats = (
+        statsRows as
+          | {
+              pending_recipes: number;
+              pending_beans: number;
+              pending_businesses: number;
+              pending_suppliers: number;
+              pending_products: number;
+              total_businesses: number;
+              total_suppliers: number;
+              total_profiles: number;
+              active_subscribers: number;
+              total_orders: number;
+              affiliate_clicks: number;
+              subscription_interests: number;
+            }[]
+          | null
+      )?.[0];
 
       setCounts({
-        pendingRecipes: recipes.count ?? 0,
-        pendingBeans: beans.count ?? 0,
-        pendingBusinesses: businessesPending.count ?? 0,
-        pendingSuppliers: suppliersPending.count ?? 0,
-        pendingProducts: productsPending.count ?? 0,
-        totalBusinesses: businesses.count ?? 0,
-        totalSuppliers: suppliers.count ?? 0,
-        totalProfiles: profiles.count ?? 0,
-        activeSubscribers: subs.count ?? 0,
-        totalOrders: orders.count ?? 0,
+        pendingRecipes: stats?.pending_recipes ?? 0,
+        pendingBeans: stats?.pending_beans ?? 0,
+        pendingBusinesses: stats?.pending_businesses ?? 0,
+        pendingSuppliers: stats?.pending_suppliers ?? 0,
+        pendingProducts: stats?.pending_products ?? 0,
+        totalBusinesses: stats?.total_businesses ?? 0,
+        totalSuppliers: stats?.total_suppliers ?? 0,
+        totalProfiles: stats?.total_profiles ?? 0,
+        activeSubscribers: stats?.active_subscribers ?? 0,
+        totalOrders: stats?.total_orders ?? 0,
       });
 
       setEngagement({
-        affiliateClicks: clicks.count ?? 0,
-        subscriptionInterests: subInterests.count ?? 0,
+        affiliateClicks: stats?.affiliate_clicks ?? 0,
+        subscriptionInterests: stats?.subscription_interests ?? 0,
       });
 
       const token = sessionRes.data.session?.access_token;
