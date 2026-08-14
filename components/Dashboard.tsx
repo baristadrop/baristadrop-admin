@@ -14,6 +14,7 @@ import { ProductsTab } from './tabs/ProductsTab';
 import { OrdersTab } from './tabs/OrdersTab';
 import { SubscribersTab } from './tabs/SubscribersTab';
 import { NotificationsTab } from './tabs/NotificationsTab';
+import { MonetizationTab } from './tabs/MonetizationTab';
 import {
   OverviewIcon,
   PulseIcon,
@@ -27,6 +28,7 @@ import {
   UsersIcon,
   ShieldIcon,
   BellIcon,
+  CoinIcon,
 } from './icons/NavIcons';
 
 export type TabKey =
@@ -40,6 +42,7 @@ export type TabKey =
   | 'store'
   | 'orders'
   | 'subscribers'
+  | 'monetization'
   | 'notifications'
   | 'team';
 
@@ -76,6 +79,10 @@ const NAV_GROUPS: NavGroup[] = [
       { key: 'orders', label: 'الطلبات', Icon: ReceiptIcon },
       { key: 'subscribers', label: 'المشتركين', Icon: UsersIcon },
     ],
+  },
+  {
+    label: 'الاشتراكات والكريدت',
+    tabs: [{ key: 'monetization', label: 'بريميوم وكريدت', Icon: CoinIcon }],
   },
   {
     label: 'التسويق',
@@ -160,6 +167,7 @@ export function Dashboard() {
           {active === 'store' && <ProductsTab />}
           {active === 'orders' && <OrdersTab />}
           {active === 'subscribers' && <SubscribersTab />}
+          {active === 'monetization' && <MonetizationTab />}
           {active === 'notifications' && <NotificationsTab />}
           {active === 'team' && <TeamTab />}
         </main>
