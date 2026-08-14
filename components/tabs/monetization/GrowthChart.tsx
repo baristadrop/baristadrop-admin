@@ -24,10 +24,10 @@ type DayRow = {
 };
 
 const COLORS = {
-  users: '#332b21', // coffee
-  premium: '#3d6b63', // gold (verdigris)
-  revenue: '#6f9188', // gold-soft
-  grid: '#dcd2bc', // latte -- خط شبكة خفيف، ما يزاحم البيانات
+  users: '#171a2b', // coffee
+  premium: '#5b5fc7', // gold (indigo)
+  revenue: '#8b8ee0', // gold-soft
+  grid: '#dcdce6', // latte -- خط شبكة خفيف، ما يزاحم البيانات
 };
 
 function shortDate(iso: string) {
@@ -41,7 +41,7 @@ function ChartSkeleton() {
 
 const tooltipStyle = {
   borderRadius: 12,
-  border: '1px solid #dcd2bc',
+  border: '1px solid #dcdce6',
   background: '#ffffff',
   fontSize: 12,
   direction: 'rtl' as const,
@@ -95,8 +95,8 @@ export function GrowthChart() {
               </linearGradient>
             </defs>
             <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="day" tickFormatter={shortDate} tick={{ fontSize: 11, fill: '#7a6a57' }} minTickGap={24} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#7a6a57' }} width={28} />
+            <XAxis dataKey="day" tickFormatter={shortDate} tick={{ fontSize: 11, fill: '#6b6f85' }} minTickGap={24} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b6f85' }} width={28} />
             <Tooltip
               contentStyle={tooltipStyle}
               cursor={{ stroke: COLORS.grid, strokeWidth: 1 }}
@@ -137,8 +137,8 @@ export function GrowthChart() {
               </linearGradient>
             </defs>
             <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="day" tickFormatter={shortDate} tick={{ fontSize: 11, fill: '#7a6a57' }} minTickGap={24} />
-            <YAxis tick={{ fontSize: 11, fill: '#7a6a57' }} width={28} />
+            <XAxis dataKey="day" tickFormatter={shortDate} tick={{ fontSize: 11, fill: '#6b6f85' }} minTickGap={24} />
+            <YAxis tick={{ fontSize: 11, fill: '#6b6f85' }} width={28} />
             <Tooltip
               contentStyle={tooltipStyle}
               cursor={{ fill: COLORS.grid, fillOpacity: 0.3 }}
