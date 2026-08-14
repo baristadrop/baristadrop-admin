@@ -114,13 +114,13 @@ export function Dashboard() {
       <aside className="border-b border-mocha/30 bg-coffee lg:h-screen lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-l">
         <div className="px-5 py-5">
           <h1 className="font-[var(--font-cormorant)] text-xl font-bold tracking-wide text-gold">BARISTA DROP</h1>
-          <p className="text-xs text-stone">لوحة التحكم</p>
+          <p className="text-xs text-sand/80">لوحة التحكم</p>
         </div>
 
         <nav className="flex flex-col gap-5 px-3 pb-6">
           {NAV_GROUPS.map((group) => (
             <div key={group.label}>
-              <p className="mb-1.5 px-2 text-[11px] font-semibold tracking-wide text-stone">{group.label}</p>
+              <p className="mb-1.5 px-2 text-[11px] font-semibold tracking-wide text-sand/70">{group.label}</p>
               <div className="flex flex-col gap-1">
                 {group.tabs.map((tab) => {
                   const Icon = tab.Icon;
@@ -135,7 +135,7 @@ export function Dashboard() {
                           : 'text-sand hover:bg-white/5'
                       }`}
                     >
-                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-cream' : 'text-stone'}`} />
+                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-cream' : 'text-sand'}`} />
                       <span className="text-right">{tab.label}</span>
                     </button>
                   );
