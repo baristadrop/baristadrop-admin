@@ -26,7 +26,7 @@ type DayRow = {
 const COLORS = {
   users: '#171a2b', // coffee
   premium: '#5b5fc7', // gold (indigo)
-  revenue: '#8b8ee0', // gold-soft
+  revenue: '#6165c9', // gold-soft
   grid: '#dcdce6', // latte -- خط شبكة خفيف، ما يزاحم البيانات
 };
 

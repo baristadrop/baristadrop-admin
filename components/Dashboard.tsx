@@ -131,11 +131,11 @@ export function Dashboard() {
                       onClick={() => setActive(tab.key)}
                       className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
                         isActive
-                          ? 'bg-gold text-ink shadow-sm'
+                          ? 'bg-gold text-cream shadow-sm'
                           : 'text-sand hover:bg-white/5'
                       }`}
                     >
-                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-ink' : 'text-stone'}`} />
+                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-cream' : 'text-stone'}`} />
                       <span className="text-right">{tab.label}</span>
                     </button>
                   );
