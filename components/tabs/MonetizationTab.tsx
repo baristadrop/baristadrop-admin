@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { InfoTip } from '../ui/InfoTip';
+import { GrowthChart } from './monetization/GrowthChart';
 
 type Stats = {
   total_users: number;
@@ -79,6 +80,8 @@ export function MonetizationTab() {
           </button>
         ))}
       </div>
+
+      <GrowthChart />
 
       {!stats ? (
         <p className="text-mocha">تحميل...</p>

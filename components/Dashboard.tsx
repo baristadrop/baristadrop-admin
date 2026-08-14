@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useAdminAuth } from '@/lib/useAdminAuth';
 import { OverviewTab } from './tabs/OverviewTab';
 import { TrackingTab } from './tabs/TrackingTab';
@@ -14,7 +15,14 @@ import { ProductsTab } from './tabs/ProductsTab';
 import { OrdersTab } from './tabs/OrdersTab';
 import { SubscribersTab } from './tabs/SubscribersTab';
 import { NotificationsTab } from './tabs/NotificationsTab';
-import { MonetizationTab } from './tabs/MonetizationTab';
+
+// مؤجّل عمداً (dynamic import) -- مكتبة الرسوم البيانية (recharts) لازم ما
+// تثقّل الحزمة الأساسية لباقي التبويبات اللي ما تحتاجها، تُحمَّل بس أول ما
+// حد يفتح هذا التبويب فعلياً.
+const MonetizationTab = dynamic(() => import('./tabs/MonetizationTab').then((m) => m.MonetizationTab), {
+  loading: () => <p className="text-mocha">تحميل...</p>,
+  ssr: false,
+});
 import {
   OverviewIcon,
   PulseIcon,
