@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
+/* لوحة "صدأ النحاس" -- محايدات دافئة (بن محمّص) بدون تغيير، مع لون تمييز
+   جديد بالكامل: أخضر نحاسي غامق (Verdigris) بدل الذهبي -- مستوحى من صدأ
+   أدوات النحاس بمعدات القهوة، بعيد عن نمط "ذهبي/تراكوتا فوق كريمي" الشائع. */
 :root {
-  --color-cream: #f7f3ec;
-  --color-paper: #fbf9f4;
-  --color-sand: #eee6d8;
-  --color-latte: #e2d7c5;
-  --color-ink: #141210;
-  --color-coffee: #3a2e24;
-  --color-mocha: #7a6a57;
-  --color-stone: #a99b88;
-  --color-gold: #a9793f;
-  --color-gold-soft: #c9a876;
+  --color-cream: #f5f1ea;
+  --color-paper: #faf8f3;
+  --color-sand: #e7e0d1;
+  --color-latte: #dcd2bc;
+  --color-ink: #16140f;
+  --color-coffee: #332b21;
+  --color-mocha: #7d7360;
+  --color-stone: #a49b86;
+  --color-gold: #3d6b63;
+  --color-gold-soft: #6f9188;
 }
 
 @theme inline {

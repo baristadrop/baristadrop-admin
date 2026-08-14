@@ -32,18 +32,31 @@ function StatCard({
   label,
   value,
   info,
+  size = 'sm',
 }: {
   label: React.ReactNode;
   value: number | string;
   info?: string;
+  size?: 'lg' | 'sm';
 }) {
+  const isLg = size === 'lg';
   return (
-    <div className="rounded-2xl border border-latte bg-white p-5 text-right shadow-sm">
+    <div
+      className={`rounded-2xl border bg-white text-right shadow-sm ${
+        isLg ? 'border-gold/40 p-6' : 'border-latte p-5'
+      }`}
+    >
       <p className="flex items-center justify-end gap-1 text-sm text-mocha">
         {info && <InfoTip text={info} />}
         {label}
       </p>
-      <p className="mt-1 font-[var(--font-el-messiri)] text-3xl text-ink">{value}</p>
+      <p
+        className={`mt-1.5 font-[var(--font-el-messiri)] text-ink ${
+          isLg ? 'text-[2.75rem] leading-none' : 'text-3xl'
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
@@ -87,8 +100,16 @@ export function MonetizationTab() {
         <p className="text-mocha">تحميل...</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatCard label="إجمالي المستخدمين" value={stats.total_users} />
+          <div className="grid grid-cols-2 gap-4">
+            <StatCard label="إجمالي المستخدمين" value={stats.total_users} size="lg" />
+            <StatCard
+              label="معدل التحويل"
+              value={`${conversionRate}%`}
+              info="نسبة المستخدمين اللي تحوّلوا لمشترك بريميوم أو اشتروا كريدت، من إجمالي المستخدمين."
+              size="lg"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <StatCard
               label="مشتركي بريميوم"
               value={stats.active_premium + stats.trial_premium}
@@ -98,11 +119,6 @@ export function MonetizationTab() {
               label="مستخدمي كريدت فقط"
               value={stats.credits_only_users}
               info="اشتروا كريدت أو استخدموا الكريدت المجاني، بدون أي اشتراك بريميوم."
-            />
-            <StatCard
-              label="معدل التحويل"
-              value={`${conversionRate}%`}
-              info="نسبة المستخدمين اللي تحوّلوا لمشترك بريميوم أو اشتروا كريدت، من إجمالي المستخدمين."
             />
           </div>
 
