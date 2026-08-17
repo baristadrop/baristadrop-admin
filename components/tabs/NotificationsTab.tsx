@@ -15,6 +15,7 @@ type HistoryRow = {
 const AUDIENCE_OPTIONS: { value: string; label: string }[] = [
   { value: 'all', label: 'الكل' },
   { value: 'user', label: 'مستخدمين عاديين' },
+  { value: 'premium', label: 'مشتركي بريميوم' },
   { value: 'roaster', label: 'المحامص' },
   { value: 'supplier', label: 'الموردين' },
   { value: 'cafe', label: 'الكوفي شوب' },

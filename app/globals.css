@@ -37,3 +37,16 @@ body {
   background: var(--color-ink);
   color: var(--color-cream);
 }
+
+/* الحقول (input/textarea/select) توضع غالباً فوق خلفيات فاتحة (بطاقات
+   بيضاء) بعكس اللون الفاتح الافتراضي لل body (مصمم للخلفية الغامقة) --
+   بدون هذا، أي حقل ما يحدد لون نصه بشكل صريح يرث لون النص الفاتح فيصير
+   شبه غير مرئي فوق خلفية فاتحة. @layer base عشان أي كلاس Tailwind صريح
+   (زي text-ink) يقدر يتجاوزه عادي. */
+@layer base {
+  input,
+  textarea,
+  select {
+    color: var(--color-ink);
+  }
+}

@@ -30,6 +30,7 @@ const AUDIENCE_ROLES: Record<string, string[] | null> = {
   roaster: ['roaster'],
   supplier: ['supplier'],
   cafe: ['cafe'],
+  premium: null, // مفلترة بتاريخ الاشتراك لا بالدور -- انظر الاستعلام تحت
 };
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
 
   const roles = AUDIENCE_ROLES[audience];
   if (roles) query = query.in('role', roles);
+  if (audience === 'premium') query = query.gt('premium_expires_at', new Date().toISOString());
 
   const { data: recipients, error: fetchError } = await query;
   if (fetchError) return Response.json({ error: fetchError.message }, { status: 500 });
