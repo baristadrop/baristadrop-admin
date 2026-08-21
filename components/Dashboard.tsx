@@ -16,6 +16,14 @@ import { ProductsTab } from './tabs/ProductsTab';
 import { OrdersTab } from './tabs/OrdersTab';
 import { SubscribersTab } from './tabs/SubscribersTab';
 import { NotificationsTab } from './tabs/NotificationsTab';
+import { MerchantsTab } from './tabs/affiliate/MerchantsTab';
+import { NetworksTab } from './tabs/affiliate/NetworksTab';
+import { ProgramsTab } from './tabs/affiliate/ProgramsTab';
+import { LinksTab } from './tabs/affiliate/LinksTab';
+import { ConversionsTab } from './tabs/affiliate/ConversionsTab';
+import { AccountingTab } from './tabs/affiliate/AccountingTab';
+import { ReconciliationTab } from './tabs/affiliate/ReconciliationTab';
+import { PayoutsTab } from './tabs/affiliate/PayoutsTab';
 
 // مؤجّل عمداً (dynamic import) -- مكتبة الرسوم البيانية (recharts) لازم ما
 // تثقّل الحزمة الأساسية لباقي التبويبات اللي ما تحتاجها، تُحمَّل بس أول ما
@@ -39,6 +47,11 @@ import {
   BellIcon,
   CoinIcon,
   CursorClickIcon,
+  NetworkIcon,
+  TargetIcon,
+  LinkIcon,
+  ScaleIcon,
+  WalletIcon,
 } from './icons/NavIcons';
 
 export type TabKey =
@@ -55,7 +68,15 @@ export type TabKey =
   | 'subscribers'
   | 'monetization'
   | 'notifications'
-  | 'team';
+  | 'team'
+  | 'affiliateMerchants'
+  | 'affiliateNetworks'
+  | 'affiliatePrograms'
+  | 'affiliateLinks'
+  | 'affiliateConversions'
+  | 'affiliateAccounting'
+  | 'affiliateReconciliation'
+  | 'affiliatePayouts';
 
 type NavTab = { key: TabKey; label: string; Icon: (props: { className?: string }) => React.JSX.Element };
 type NavGroup = { label: string; tabs: NavTab[] };
@@ -99,6 +120,24 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'التسويق',
     tabs: [{ key: 'notifications', label: 'الإشعارات', Icon: BellIcon }],
+  },
+  {
+    label: 'برنامج الأفيليت',
+    tabs: [
+      { key: 'affiliateMerchants', label: 'التجار', Icon: StorefrontIcon },
+      { key: 'affiliateNetworks', label: 'الشبكات', Icon: NetworkIcon },
+      { key: 'affiliatePrograms', label: 'البرامج', Icon: TargetIcon },
+      { key: 'affiliateLinks', label: 'الروابط', Icon: LinkIcon },
+    ],
+  },
+  {
+    label: 'محاسبة الأفيليت',
+    tabs: [
+      { key: 'affiliateConversions', label: 'التحويلات', Icon: ReceiptIcon },
+      { key: 'affiliateAccounting', label: 'العمولات', Icon: CoinIcon },
+      { key: 'affiliateReconciliation', label: 'التسوية', Icon: ScaleIcon },
+      { key: 'affiliatePayouts', label: 'المدفوعات', Icon: WalletIcon },
+    ],
   },
   {
     label: 'الفريق',
@@ -191,6 +230,14 @@ export function Dashboard({
           {active === 'subscribers' && <SubscribersTab />}
           {active === 'monetization' && <MonetizationTab />}
           {active === 'notifications' && <NotificationsTab />}
+          {active === 'affiliateMerchants' && <MerchantsTab />}
+          {active === 'affiliateNetworks' && <NetworksTab />}
+          {active === 'affiliatePrograms' && <ProgramsTab />}
+          {active === 'affiliateLinks' && <LinksTab />}
+          {active === 'affiliateConversions' && <ConversionsTab />}
+          {active === 'affiliateAccounting' && <AccountingTab />}
+          {active === 'affiliateReconciliation' && <ReconciliationTab />}
+          {active === 'affiliatePayouts' && <PayoutsTab />}
           {active === 'team' && <TeamTab />}
         </main>
       </div>

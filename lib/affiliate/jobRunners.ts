@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { calculateCommission, postLedgerEntry } from './commissionService';
+import { calculateCommission, markPayoutReceived, postLedgerEntry } from './commissionService';
 import { matchConversionToClick } from './clickMatching';
 import { markPostbackEvent, processConversionEvent, transitionConversionStatus } from './conversionEngine';
 import { loadProviderCredentials } from './providers/credentials';
@@ -102,23 +102,8 @@ export async function runProcessPayout(supabase: SupabaseClient, payload: Record
   const payoutId = payload.payoutId as string;
   if (!payoutId) throw new Error('ProcessPayout requires payload.payoutId');
 
-  const { data: payout, error } = await supabase
-    .from('affiliate_payouts')
-    .select('affiliate_program_id, amount, currency, status')
-    .eq('id', payoutId)
-    .single();
-  if (error || !payout) throw new Error(`payout not found: ${payoutId}`);
-  if (payout.status === 'RECEIVED' || payout.status === 'RECONCILED') return 'already processed';
-
-  await supabase.from('affiliate_payouts').update({ status: 'RECEIVED', updated_at: new Date().toISOString() }).eq('id', payoutId);
-  await postLedgerEntry(supabase, {
-    affiliateProgramId: payout.affiliate_program_id as string,
-    eventType: 'PAYOUT_RECEIVED',
-    amount: -Number(payout.amount), // دفعة مستلمة تصفّر جزء من "المتوقّع" -- قيد سالب
-    currency: payout.currency as string,
-    reference: `payout ${payoutId} received`,
-  });
-  return `payout ${payoutId} marked received`;
+  const result = await markPayoutReceived(supabase, payoutId);
+  return result.outcome === 'already_processed' ? 'already processed' : `payout ${payoutId} marked received`;
 }
 
 // يعالج حدث postback خام مخزَّن مسبقاً (Phase 3's affiliate_postback_events)

@@ -124,6 +124,28 @@ export async function postLedgerEntry(
   if (error) throw new Error(`failed to post ledger entry: ${error.message}`);
 }
 
+// مشتركة بين jobRunners.ts's ProcessPayout (المسار المجدول) وزر "تسجيل
+// كمستلمة" اليدوي بـ PayoutsTab -- منطق واحد، مو نسختين.
+export async function markPayoutReceived(supabase: SupabaseClient, payoutId: string): Promise<{ outcome: 'received' | 'already_processed' }> {
+  const { data: payout, error } = await supabase
+    .from('affiliate_payouts')
+    .select('affiliate_program_id, amount, currency, status')
+    .eq('id', payoutId)
+    .single();
+  if (error || !payout) throw new Error(`payout not found: ${payoutId}`);
+  if (payout.status === 'RECEIVED' || payout.status === 'RECONCILED') return { outcome: 'already_processed' };
+
+  await supabase.from('affiliate_payouts').update({ status: 'RECEIVED', updated_at: new Date().toISOString() }).eq('id', payoutId);
+  await postLedgerEntry(supabase, {
+    affiliateProgramId: payout.affiliate_program_id as string,
+    eventType: 'PAYOUT_RECEIVED',
+    amount: -Number(payout.amount), // دفعة مستلمة تصفّر جزء من "المتوقّع" -- قيد سالب
+    currency: payout.currency as string,
+    reference: `payout ${payoutId} received`,
+  });
+  return { outcome: 'received' };
+}
+
 const LEDGER_PAGE_SIZE = 1000;
 
 export async function getProgramBalance(supabase: SupabaseClient, affiliateProgramId: string): Promise<CommissionBalance> {

@@ -185,3 +185,53 @@ export function CursorClickIcon({ className = base }: Props) {
     </svg>
   );
 }
+
+export function NetworkIcon({ className = base }: Props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <circle cx="5" cy="6" r="2.3" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="19" cy="6" r="2.3" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="12" cy="18" r="2.3" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M7 7.3 10.3 16M17 7.3 13.7 16M7.3 6h9.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function TargetIcon({ className = base }: Props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="12" cy="12" r="0.9" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function LinkIcon({ className = base }: Props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="M10 14a4 4 0 0 1 0-5.7l2.5-2.5a4 4 0 0 1 5.7 5.7L17 12.7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M14 10a4 4 0 0 1 0 5.7l-2.5 2.5a4 4 0 0 1-5.7-5.7L7 11.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function ScaleIcon({ className = base }: Props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="M12 3v18M8 21h8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M12 6 5 8l3.5 6.5L12 13l3.5 1.5L19 8l-7-2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M5 8a3 3 0 0 0 3.5 4.5M19 8a3 3 0 0 1-3.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function WalletIcon({ className = base }: Props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M3 10h18" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="16.5" cy="14" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
