@@ -44,6 +44,8 @@ export function ReconciliationTab() {
   const [triggerMsg, setTriggerMsg] = useState<string | null>(null);
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
   const [items, setItems] = useState<Record<string, ItemRow[]>>({});
+  const [uploading, setUploading] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState<string | null>(null);
 
   const load = async () => {
     const [{ data }, { data: p }] = await Promise.all([
@@ -74,6 +76,28 @@ export function ReconciliationTab() {
     setTriggering(false);
     setTriggerMsg(res.ok ? `تمت التسوية: ${body.matched} مطابقة، ${body.amountMismatch + body.statusMismatch} اختلافات` : (body.error ?? 'فشلت التسوية'));
     if (res.ok) load();
+  };
+
+  const uploadCsv = async (file: File) => {
+    if (!selectedProgram) return;
+    setUploading(true);
+    setUploadMsg(null);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const form = new FormData();
+    form.append('file', file);
+    form.append('affiliate_program_id', selectedProgram);
+    const res = await fetch('/api/admin/affiliate/imports', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
+      body: form,
+    });
+    const body = await res.json().catch(() => ({}));
+    setUploading(false);
+    setUploadMsg(
+      res.ok
+        ? `استُوردت ${body.rowsProcessed} صف: ${body.matched} مطابقة، ${body.unmatched} غير مطابقة، ${body.duplicate} مكررة${body.errors ? `، ${body.errors} خطأ` : ''}`
+        : (body.error ?? 'فشل الاستيراد')
+    );
   };
 
   const toggleRun = async (runId: string) => {
@@ -145,6 +169,23 @@ export function ReconciliationTab() {
           يحتاج البرنامج تكامل مزوّد نشط عنده conversion_api أو report_import (Awin/CJ/Amazon مع بيانات اعتماد محفوظة -- انظر تبويب
           "البرامج"). التاجر المباشر ما يدعم هذا حالياً (ما فيه API يُسوّى ضده).
         </p>
+
+        <div className="border-t border-latte pt-3 sm:col-span-4">
+          <p className="mb-1.5 text-xs font-semibold text-stone">استيراد تقرير CSV (لمزوّدات ما عندها API حي مثل Amazon)</p>
+          <input
+            type="file"
+            accept=".csv"
+            disabled={uploading || !selectedProgram}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) uploadCsv(file);
+              e.target.value = '';
+            }}
+            className="text-xs text-coffee file:ml-2 file:rounded-full file:border file:border-latte file:bg-white file:px-3 file:py-1.5 file:text-xs file:text-coffee disabled:opacity-50"
+          />
+          {uploading && <p className="mt-1 text-[11px] text-mocha">جاري الاستيراد...</p>}
+          {uploadMsg && <p className="mt-1 text-[11px] text-mocha">{uploadMsg}</p>}
+        </div>
       </div>
 
       <div className="space-y-2">

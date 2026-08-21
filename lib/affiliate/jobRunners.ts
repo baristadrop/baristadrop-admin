@@ -188,7 +188,11 @@ export async function runJob(supabase: SupabaseClient, job: QueuedJob): Promise<
     case 'ReconcileProvider':
       return 'reconciliation trigger requires a manual programId/period -- not auto-scheduled yet (no live network program to reconcile)';
     case 'ImportAffiliateReport':
-      throw new Error('CSV report import UI not built yet (Phase 8) -- nothing to process');
+      // ما يُجدوَل أبداً -- استيراد CSV يصير متزامن كامل جوّا
+      // /api/admin/affiliate/imports's POST handler وقت الرفع مباشرة (ملف
+      // صغير نسبياً، ما يستاهل تعقيد queue+storage bucket لتخزين الملف
+      // بينهما). هذا الفرع موجود بس لاكتمال المطابقة مع JobType.
+      throw new Error('ImportAffiliateReport is never enqueued -- processed synchronously by the imports API route');
     default:
       throw new Error(`unknown job type: ${job.job_type}`);
   }
