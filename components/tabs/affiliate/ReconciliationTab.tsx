@@ -49,7 +49,13 @@ export function ReconciliationTab() {
 
   const load = async () => {
     const [{ data }, { data: p }] = await Promise.all([
-      supabase.from('affiliate_reconciliation_runs').select('*').order('created_at', { ascending: false }).returns<RunRow[]>(),
+      supabase
+        .from('affiliate_reconciliation_runs')
+        .select(
+          'id, affiliate_program_id, provider_code, period_start, period_end, status, total_internal, total_provider, matched, amount_mismatch, status_mismatch, missing_from_provider, missing_from_internal, duplicates'
+        )
+        .order('created_at', { ascending: false })
+        .returns<RunRow[]>(),
       supabase.from('affiliate_programs').select('id, name').returns<Option[]>(),
     ]);
     setRuns(data ?? []);

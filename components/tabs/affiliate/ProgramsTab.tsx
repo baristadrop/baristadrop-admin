@@ -70,7 +70,7 @@ export function ProgramsTab() {
       adminFetch(`${PROGRAMS_API}?limit=100`),
       adminFetch(`${MERCHANTS_API}?limit=100`),
       adminFetch(`${NETWORKS_API}?limit=100`),
-      supabase.from('affiliate_provider_integrations').select('*').returns<IntegrationRow[]>(),
+      supabase.from('affiliate_provider_integrations').select('id, affiliate_program_id, provider_code, status, configuration').returns<IntegrationRow[]>(),
     ]);
     const programsBody = await programsRes.json().catch(() => ({}));
     const merchantsBody = await merchantsRes.json().catch(() => ({}));
@@ -139,7 +139,7 @@ export function ProgramsTab() {
     const { data } = await supabase
       .from('affiliate_provider_integrations')
       .insert({ affiliate_program_id: programId, provider_code: providerCode, configuration: { tracking: {} } })
-      .select('*')
+      .select('id, affiliate_program_id, provider_code, status, configuration')
       .single();
     if (data) setIntegrations((prev) => ({ ...prev, [programId]: data as IntegrationRow }));
   };
