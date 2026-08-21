@@ -1,15 +1,10 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { isValidUuid, isValidOrderAmount, calculateCommission } from '@/lib/affiliateCommission';
 import { processConversionEvent } from '@/lib/affiliate/conversionEngine';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
-// Phase 9 (AFFILIATE_PLATFORM_IMPLEMENTATION_PLAN.md 9.3) -- مطفّي افتراضياً.
-// لما يتفعّل، كل عملية شراء تتسجّل بالنظام القديم (كما هو) + الجديد
-// (affiliate_conversions عبر Phase 3's engine) بنفس الوقت، بدون ما يتوقف
-// أو يتأثر مسار النظام القديم لو الكتابة الجديدة فشلت.
-const DUAL_WRITE_ENABLED = process.env.AFFILIATE_DUAL_WRITE === 'true';
 
 // GIF شفاف 1x1 -- يُرجَّع دايماً للطلبات اللي تجي عن طريق pixel بصفحة "تم
 // الطلب" عند الشريك، حتى لو التحقق فشل (الخطأ يُسجَّل بالسيرفر بس، ما لازم
@@ -17,6 +12,14 @@ const DUAL_WRITE_ENABLED = process.env.AFFILIATE_DUAL_WRITE === 'true';
 const TRANSPARENT_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBTAA7', 'base64');
 
 type Business = { roasterId: string | null; supplierId: string | null; commissionPercent: number | null };
+
+// كليكات النظام الجديد صيغتها CLK-{uuid} (mobile/src/lib/affiliateTracking.ts
+// بعد تحويلة "ثبت النظام الجديد") -- أي click_id غير هذي الصيغة يُعتبر من
+// روابط قديمة ما زالت متداولة (كاش/مشاركة قديمة) وتُعالَج بالمسار القديم
+// تماماً بدون أي تغيير، للتوافق الرجعي الكامل.
+function isV2ClickId(value: string | null): boolean {
+  return !!value && value.startsWith('CLK-');
+}
 
 /** كل شركة عندها رمز فريد (postback_secret) صار هوية + مصادقة بنفس الوقت --
  * لو الرمز طابق صف، نعرف مين الشركة بدون ما تحتاج ترسل roaster_id/
@@ -36,15 +39,44 @@ async function resolveBusiness(
   return null;
 }
 
-async function recordPurchase(params: {
+type PurchaseParams = {
   token: string | null;
   clickId: string | null;
   orderAmount: number;
   orderReference: string | null;
   currency: string;
   rawPayload: unknown;
-}): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
-  if (!isValidUuid(params.clickId)) {
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function recordConversionV2(supabase: any, business: Business, params: PurchaseParams): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  try {
+    const { data: program } = await supabase
+      .from('affiliate_programs')
+      .select('id')
+      .or(business.roasterId ? `legacy_roaster_id.eq.${business.roasterId}` : `legacy_supplier_id.eq.${business.supplierId}`)
+      .maybeSingle();
+
+    if (!program) return { ok: false, status: 404, error: 'no_affiliate_program_for_business' };
+
+    await processConversionEvent(supabase, program.id as string, {
+      providerConversionId: params.orderReference ?? params.clickId!,
+      orderId: params.orderReference,
+      saleAmount: params.orderAmount,
+      currency: params.currency,
+      conversionTime: new Date().toISOString(),
+      clickId: params.clickId, // صيغة موحّدة -- يطابق فعلياً affiliate_click_events.click_id (مو UNMATCHED مثل مسار dual-write القديم)
+      rawEventId: params.orderReference ?? params.clickId!,
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error('[affiliate-purchase-webhook] v2 conversion write failed:', err);
+    return { ok: false, status: 500, error: 'v2_write_failed' };
+  }
+}
+
+async function recordPurchase(params: PurchaseParams): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  if (!isValidUuid(params.clickId) && !isV2ClickId(params.clickId)) {
     return { ok: false, status: 400, error: 'missing_or_invalid_click_id' };
   }
   if (!isValidOrderAmount(params.orderAmount)) {
@@ -63,6 +95,12 @@ async function recordPurchase(params: {
     console.error('[affiliate-purchase-webhook] rate limit check failed:', rateLimitError.message);
   } else if (withinLimit === false) {
     return { ok: false, status: 429, error: 'too_many_requests' };
+  }
+
+  // النظام الجديد هو الأساسي الآن لأي كليك بصيغته -- المسار القديم يفضل
+  // شغّال بدون تغيير بس لروابط قديمة ما زالت متداولة (توافق رجعي، مو مسار نشط جديد).
+  if (isV2ClickId(params.clickId)) {
+    return recordConversionV2(supabase, business, params);
   }
 
   const commissionPercent = business.commissionPercent ?? 0;
@@ -89,50 +127,7 @@ async function recordPurchase(params: {
     return { ok: false, status: 500, error: 'db_write_failed' };
   }
 
-  if (DUAL_WRITE_ENABLED) {
-    await dualWriteConversion(supabase, business, params, commissionAmount);
-  }
-
   return { ok: true };
-}
-
-// كتابة إضافية (لا تُفشل الطلب أبداً) لبرنامج الأفيليت الجديد -- تبحث عن
-// affiliate_program المربوط بنفس الشركة عبر legacy_roaster_id/
-// legacy_supplier_id (اللي عبّاه Phase 9's backfill migration). لو ما لقت
-// برنامج (شركة جديدة اتسجّلت بعد آخر تشغيل للـ backfill)، تتجاهل بصمت --
-// النظام القديم يفضل يشتغل بشكل طبيعي بغض النظر.
-async function dualWriteConversion(
-  supabase: SupabaseClient,
-  business: Business,
-  params: { clickId: string | null; orderReference: string | null; orderAmount: number; currency: string; rawPayload: unknown },
-  commissionAmount: number
-): Promise<void> {
-  try {
-    const { data: program } = await supabase
-      .from('affiliate_programs')
-      .select('id')
-      .or(
-        business.roasterId
-          ? `legacy_roaster_id.eq.${business.roasterId}`
-          : `legacy_supplier_id.eq.${business.supplierId}`
-      )
-      .maybeSingle();
-
-    if (!program) return;
-
-    await processConversionEvent(supabase, program.id as string, {
-      providerConversionId: params.orderReference ?? `click-${params.clickId}`,
-      orderId: params.orderReference,
-      saleAmount: params.orderAmount,
-      commissionAmount,
-      currency: params.currency,
-      conversionTime: new Date().toISOString(),
-      clickId: null, // كليك النظام القديم (affiliate_clicks) ما يطابق affiliate_click_events -- يُترك بلا مطابقة (UNMATCHED) بدل مطابقة وهمية
-      rawEventId: params.orderReference,
-    });
-  } catch (err) {
-    console.error('[affiliate-purchase-webhook] dual-write to v2 failed (legacy write already succeeded, not blocking):', err);
-  }
 }
 
 // المسار المفضّل -- للشركات اللي تقدر ترسل تأكيد من الباك-إند تبعها مباشرة
