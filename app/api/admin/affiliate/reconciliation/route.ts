@@ -1,25 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { runReconciliation } from '@/lib/affiliate/reconciliationService';
 import { loadProviderCredentials } from '@/lib/affiliate/providers/credentials';
 import { ProviderFactory } from '@/lib/affiliate/providers/factory';
 import type { ProviderConversionRecord } from '@/lib/affiliate/types';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
-
-async function requireAdmin(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '');
-  if (!token) return null;
-  const asCaller = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${token}` } } });
-  const { data: userData } = await asCaller.auth.getUser(token);
-  if (!userData.user) return null;
-  const { data: profile } = await asCaller.from('profiles').select('role').eq('id', userData.user.id).single();
-  if (profile?.role !== 'admin') return null;
-  return userData.user;
-}
+import { requireAdmin } from '@/lib/adminAuth';
+import { getAdminClient } from '@/lib/supabaseAdmin';
 
 // POST { programId, periodStart, periodEnd } -- يشغّل تسوية حقيقية لبرنامج
 // معيّن. هذا راوت سيرفر (مو استدعاء مباشر من العميل) لأن جلب تحويلات
@@ -33,7 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'programId, periodStart, and periodEnd are required' }, { status: 400 });
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = getAdminClient();
 
   const { data: integration } = await supabase
     .from('affiliate_provider_integrations')

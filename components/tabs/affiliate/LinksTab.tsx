@@ -43,16 +43,15 @@ export function LinksTab() {
     setPrograms(p ?? []);
 
     if (data && data.length > 0) {
+      // استعلام واحد لكل الروابط بدل استعلام منفصل لكل رابط (كان N+1).
+      const linkIds = data.map((l) => l.id);
+      const { data: clickRows } = await supabase.from('affiliate_click_events').select('affiliate_link_id').in('affiliate_link_id', linkIds);
+
       const counts: Record<string, number> = {};
-      await Promise.all(
-        data.map(async (link) => {
-          const { count } = await supabase
-            .from('affiliate_click_events')
-            .select('id', { count: 'exact', head: true })
-            .eq('affiliate_link_id', link.id);
-          counts[link.id] = count ?? 0;
-        })
-      );
+      for (const id of linkIds) counts[id] = 0;
+      for (const row of clickRows ?? []) {
+        counts[row.affiliate_link_id as string] = (counts[row.affiliate_link_id as string] ?? 0) + 1;
+      }
       setClickCounts(counts);
     }
   };

@@ -1,25 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { parseCsv } from '@/lib/affiliate/csv';
 import { processConversionEvent } from '@/lib/affiliate/conversionEngine';
 import { ProviderFactory } from '@/lib/affiliate/providers/factory';
 import { startReportImport } from '@/lib/affiliate/reconciliationService';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
-
-async function requireAdmin(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '');
-  if (!token) return null;
-  const asCaller = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${token}` } } });
-  const { data: userData } = await asCaller.auth.getUser(token);
-  if (!userData.user) return null;
-  const { data: profile } = await asCaller.from('profiles').select('role').eq('id', userData.user.id).single();
-  if (profile?.role !== 'admin') return null;
-  return userData.user;
-}
+import { requireAdmin } from '@/lib/adminAuth';
+import { getAdminClient } from '@/lib/supabaseAdmin';
 
 // POST multipart/form-data: file (CSV), affiliate_program_id
 // يستورد تقرير تحويلات مُصدَّر يدوياً من لوحة المزوّد (Amazon Associates
@@ -39,7 +24,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'file and affiliate_program_id are required' }, { status: 400 });
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = getAdminClient();
   const fileBuffer = Buffer.from(await file.arrayBuffer());
 
   const { data: integration } = await supabase

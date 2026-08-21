@@ -1,27 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { storeProviderCredential } from '@/lib/affiliate/providers/credentials';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
-
-// نفس نمط requireAdmin() الموجود بـ send-notification/route.ts -- الطريق
-// الوحيد اللي هذا الراوت موجود لأجله أصلاً هو إن التشفير (AES) لازم يصير
-// بالسيرفر (مفتاح AFFILIATE_CREDENTIAL_KEY ما يصح يوصل لأي كود عميل).
-async function requireAdmin(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '');
-  if (!token) return null;
-
-  const asCaller = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${token}` } } });
-  const { data: userData } = await asCaller.auth.getUser(token);
-  if (!userData.user) return null;
-
-  const { data: profile } = await asCaller.from('profiles').select('role').eq('id', userData.user.id).single();
-  if (profile?.role !== 'admin') return null;
-  return userData.user;
-}
+import { requireAdmin } from '@/lib/adminAuth';
+import { getAdminClient } from '@/lib/supabaseAdmin';
 
 // POST { integrationId, credentialType, value } -- يشفّر القيمة (AES-256-GCM)
 // ويخزّنها بـ affiliate_provider_credentials. القيمة الخام (API key حقيقي
@@ -36,7 +16,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = getAdminClient();
     await storeProviderCredential(supabase, {
       integrationId: body.integrationId,
       credentialType: body.credentialType,

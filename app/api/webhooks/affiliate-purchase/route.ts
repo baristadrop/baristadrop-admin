@@ -1,10 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { isValidUuid, isValidOrderAmount, calculateCommission } from '@/lib/affiliateCommission';
 import { processConversionEvent } from '@/lib/affiliate/conversionEngine';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
+import { getAdminClient } from '@/lib/supabaseAdmin';
 
 // GIF شفاف 1x1 -- يُرجَّع دايماً للطلبات اللي تجي عن طريق pixel بصفحة "تم
 // الطلب" عند الشريك، حتى لو التحقق فشل (الخطأ يُسجَّل بالسيرفر بس، ما لازم
@@ -83,7 +80,7 @@ async function recordPurchase(params: PurchaseParams): Promise<{ ok: true } | { 
     return { ok: false, status: 400, error: 'invalid_order_amount' };
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = getAdminClient();
   const business = await resolveBusiness(supabase, params.token);
   if (!business) return { ok: false, status: 401, error: 'unauthorized' };
 

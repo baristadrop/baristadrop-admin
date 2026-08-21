@@ -33,9 +33,12 @@ function makeBuilder(calls: QueryCall[], resolve: () => { data: unknown; error: 
   return builder;
 }
 
+export type RpcResolver = (params: Record<string, unknown>) => { data: unknown; error: unknown };
+
 /** resolvers: خريطة اسم الجدول -> دالة تحدد نتيجة أي استعلام على هذا الجدول.
- * لو الجدول ما له resolver، يرجع {data: null, error: null} بشكل افتراضي. */
-export function createMockSupabase(resolvers: Record<string, TableResolver>) {
+ * لو الجدول ما له resolver، يرجع {data: null, error: null} بشكل افتراضي.
+ * rpcResolvers (اختياري): خريطة اسم دالة RPC -> دالة تحدد نتيجتها. */
+export function createMockSupabase(resolvers: Record<string, TableResolver>, rpcResolvers: Record<string, RpcResolver> = {}) {
   const allCalls: Record<string, QueryCall[]> = {};
 
   const client = {
@@ -44,6 +47,10 @@ export function createMockSupabase(resolvers: Record<string, TableResolver>) {
       allCalls[table] = calls;
       const resolver = resolvers[table] ?? (() => ({ data: null, error: null }));
       return makeBuilder(calls, () => resolver(calls));
+    },
+    rpc(fnName: string, params: Record<string, unknown> = {}) {
+      const resolver = rpcResolvers[fnName] ?? (() => ({ data: null, error: null }));
+      return Promise.resolve(resolver(params));
     },
   };
 

@@ -146,9 +146,31 @@ export async function markPayoutReceived(supabase: SupabaseClient, payoutId: str
   return { outcome: 'received' };
 }
 
+// المصدر الأساسي -- استعلام SQL واحد (migration 0079) بدل حلقة صفحات
+// متسلسلة. الـ fallback تحته يُستخدم بس لو الـ RPC فشل لأي سبب (مثلاً
+// migration 0079 ما طُبّقت بعد ببيئة معيّنة) -- بيانات مالية، أفضل نطمن
+// نرجع رقم صحيح دايماً بدل ما نفشل بصمت.
+export async function getProgramBalance(supabase: SupabaseClient, affiliateProgramId: string): Promise<CommissionBalance> {
+  const { data, error } = await supabase.rpc('calculate_program_balance', { p_program_id: affiliateProgramId });
+
+  if (!error && data && data.length > 0) {
+    const row = data[0];
+    return {
+      expected: Number(row.expected),
+      reversed: Number(row.reversed),
+      paid: Number(row.paid),
+      outstanding: Number(row.outstanding),
+      currency: row.currency,
+    };
+  }
+
+  if (error) console.error('[commissionService] calculate_program_balance RPC failed, falling back to pagination:', error.message);
+  return getProgramBalanceLegacy(supabase, affiliateProgramId);
+}
+
 const LEDGER_PAGE_SIZE = 1000;
 
-export async function getProgramBalance(supabase: SupabaseClient, affiliateProgramId: string): Promise<CommissionBalance> {
+async function getProgramBalanceLegacy(supabase: SupabaseClient, affiliateProgramId: string): Promise<CommissionBalance> {
   const totals: Record<LedgerEventType, number> = {
     CONVERSION_PENDING: 0,
     CONVERSION_APPROVED: 0,

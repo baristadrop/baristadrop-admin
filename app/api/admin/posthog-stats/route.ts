@@ -1,24 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/adminAuth';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
 const POSTHOG_PROJECT_ID = '514557';
-
-async function requireAdmin(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '');
-  if (!token) return null;
-
-  const asCaller = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
-  const { data: userData } = await asCaller.auth.getUser(token);
-  if (!userData.user) return null;
-
-  const { data: profile } = await asCaller.from('profiles').select('role').eq('id', userData.user.id).single();
-  if (profile?.role !== 'admin') return null;
-  return userData.user;
-}
 
 async function hogql(query: string) {
   const res = await fetch(`https://us.posthog.com/api/projects/${POSTHOG_PROJECT_ID}/query/`, {

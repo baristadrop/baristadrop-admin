@@ -1,15 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { claimDueJobs, completeJob, enqueueJob, failJob, type JobType } from '@/lib/affiliate/jobs';
 import { runJob } from '@/lib/affiliate/jobRunners';
+import { getAdminClient } from '@/lib/supabaseAdmin';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 const jobsSecret = process.env.AFFILIATE_JOBS_SECRET as string | undefined;
-
-function adminClient() {
-  return createClient(supabaseUrl, serviceRoleKey);
-}
 
 // جدول "كل قد إيش" لكل مهمة مجدولة تلقائياً -- ما فيه إعداد cron على مستوى
 // المنصة (Netlify/Vercel) بهذا المشروع، فبدل vercel.json crons (اللي مو
@@ -24,7 +18,7 @@ const AUTO_SCHEDULE: Array<{ jobType: JobType; minGapMinutes: number }> = [
   { jobType: 'CleanupTrackingData', minGapMinutes: 6 * 24 * 60 },
 ];
 
-async function enqueueDueScheduledJobs(supabase: ReturnType<typeof adminClient>) {
+async function enqueueDueScheduledJobs(supabase: ReturnType<typeof getAdminClient>) {
   for (const { jobType, minGapMinutes } of AUTO_SCHEDULE) {
     const cutoff = new Date(Date.now() - minGapMinutes * 60 * 1000).toISOString();
     const { data: recent } = await supabase
@@ -52,7 +46,7 @@ export async function POST(request: Request) {
   const provided = request.headers.get('x-jobs-secret');
   if (provided !== jobsSecret) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const supabase = adminClient();
+  const supabase = getAdminClient();
   await enqueueDueScheduledJobs(supabase);
 
   const jobs = await claimDueJobs(supabase, 10);

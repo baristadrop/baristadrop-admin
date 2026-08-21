@@ -1,39 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
-
-async function requireAdmin(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '');
-  if (!token) return null;
-
-  const asCaller = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
-  const { data: userData } = await asCaller.auth.getUser(token);
-  if (!userData.user) return null;
-
-  const { data: profile } = await asCaller
-    .from('profiles')
-    .select('role')
-    .eq('id', userData.user.id)
-    .single();
-
-  if (profile?.role !== 'admin') return null;
-  return userData.user;
-}
-
-function adminClient() {
-  return createClient(supabaseUrl, serviceRoleKey);
-}
+import { requireAdmin } from '@/lib/adminAuth';
+import { getAdminClient } from '@/lib/supabaseAdmin';
 
 export async function GET(request: Request) {
   const caller = await requireAdmin(request);
   if (!caller) return Response.json({ error: 'unauthorized' }, { status: 403 });
 
-  const admin = adminClient();
+  const admin = getAdminClient();
   const [{ data: authUsers }, { data: profiles }] = await Promise.all([
     admin.auth.admin.listUsers(),
     admin.from('profiles').select('id, full_name, role, country, created_at'),
@@ -68,7 +40,7 @@ export async function POST(request: Request) {
   };
   if (!email || !password) return Response.json({ error: 'missing fields' }, { status: 400 });
 
-  const admin = adminClient();
+  const admin = getAdminClient();
   const { data: created, error } = await admin.auth.admin.createUser({
     email,
     password,
@@ -92,7 +64,7 @@ export async function PATCH(request: Request) {
   const { userId, role } = body as { userId: string; role: string };
   if (!userId || !role) return Response.json({ error: 'missing fields' }, { status: 400 });
 
-  const admin = adminClient();
+  const admin = getAdminClient();
   const { error } = await admin.from('profiles').update({ role }).eq('id', userId);
   if (error) return Response.json({ error: error.message }, { status: 500 });
 

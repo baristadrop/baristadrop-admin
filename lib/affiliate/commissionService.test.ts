@@ -145,18 +145,36 @@ describe('postLedgerEntry', () => {
 });
 
 describe('getProgramBalance', () => {
-  it('sums ledger entries into expected/reversed/paid/outstanding correctly', async () => {
-    const { client } = createMockSupabase({
-      affiliate_commission_ledger: () => ({
-        data: [
-          { event_type: 'CONVERSION_PENDING', amount: 100, currency: 'AED' },
-          { event_type: 'CONVERSION_APPROVED', amount: 0, currency: 'AED' },
-          { event_type: 'CONVERSION_REJECTED', amount: -20, currency: 'AED' },
-          { event_type: 'PAYOUT_RECEIVED', amount: -50, currency: 'AED' },
-        ],
-        error: null,
-      }),
-    });
+  it('uses the calculate_program_balance RPC (migration 0079) as the primary path', async () => {
+    const { client } = createMockSupabase(
+      {},
+      {
+        calculate_program_balance: (params) => {
+          expect(params.p_program_id).toBe('program-1');
+          return { data: [{ expected: 100, reversed: -20, paid: -50, outstanding: 30, currency: 'AED' }], error: null };
+        },
+      }
+    );
+
+    const balance = await getProgramBalance(client as unknown as SupabaseClient, 'program-1');
+    expect(balance).toEqual({ expected: 100, reversed: -20, paid: -50, outstanding: 30, currency: 'AED' });
+  });
+
+  it('falls back to paginated summation if the RPC fails (defensive -- financial data must never silently return nothing)', async () => {
+    const { client } = createMockSupabase(
+      {
+        affiliate_commission_ledger: () => ({
+          data: [
+            { event_type: 'CONVERSION_PENDING', amount: 100, currency: 'AED' },
+            { event_type: 'CONVERSION_APPROVED', amount: 0, currency: 'AED' },
+            { event_type: 'CONVERSION_REJECTED', amount: -20, currency: 'AED' },
+            { event_type: 'PAYOUT_RECEIVED', amount: -50, currency: 'AED' },
+          ],
+          error: null,
+        }),
+      },
+      { calculate_program_balance: () => ({ data: null, error: { message: 'function not found' } }) }
+    );
 
     const balance = await getProgramBalance(client as unknown as SupabaseClient, 'program-1');
     expect(balance.expected).toBe(100);

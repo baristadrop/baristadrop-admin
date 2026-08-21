@@ -1,8 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
+import { getAdminClient } from '@/lib/supabaseAdmin';
 
 // RevenueCat event types that mean the subscriber currently has access.
 const ACTIVE_EVENT_TYPES = new Set(['INITIAL_PURCHASE', 'RENEWAL', 'UNCANCELLATION', 'PRODUCT_CHANGE', 'TRANSFER']);
@@ -46,7 +43,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'malformed_event' }, { status: 400 });
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = getAdminClient();
 
   // شراء كريدت (استهلاكي) -- مسار منفصل تماماً عن الاشتراك، ما يلمس
   // premium_subscriptions إطلاقاً (نفس مبدأ الفصل بين الأنظمة بالمشروع).

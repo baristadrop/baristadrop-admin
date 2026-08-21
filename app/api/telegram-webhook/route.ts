@@ -1,7 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { getAdminClient } from '@/lib/supabaseAdmin';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 const botToken = process.env.TELEGRAM_BOT_TOKEN as string;
 const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET as string;
 const submitterUserId = process.env.TELEGRAM_SUBMITTER_USER_ID as string;
@@ -9,10 +7,6 @@ const anthropicApiKey = process.env.ANTHROPIC_API_KEY as string;
 
 /** روستر بديل تُنسب له المحاصيل اللي ما إلها محمصة معروفة — نفس الثابت المستخدم بـ AddRecipeModal بالتطبيق */
 const COMMUNITY_ROASTER_ID = '00000000-0000-0000-0000-000000000001';
-
-function adminClient() {
-  return createClient(supabaseUrl, serviceRoleKey);
-}
 
 type TelegramPhotoSize = { file_id: string; width: number; height: number };
 type TelegramMessage = {
@@ -146,7 +140,7 @@ async function createBeanFromPhoto(
   const flavorNotes = vision?.flavorNotes ?? [];
   const altitude = vision?.altitude ?? null;
 
-  const admin = adminClient();
+  const admin = getAdminClient();
   const path = `telegram/${Date.now()}-${photo.file_id}.jpg`;
   const { error: uploadError } = await admin.storage.from('bean-photos').upload(path, photoBuffer, {
     contentType: 'image/jpeg',
@@ -220,7 +214,7 @@ async function handlePrivateMessage(message: TelegramMessage) {
   const chatId = message.chat.id;
   const replyTarget = message.message_id;
   const rawText = message.text ?? message.caption ?? '';
-  const admin = adminClient();
+  const admin = getAdminClient();
 
   if (message.photo && message.photo.length > 0) {
     const xbloomLink = extractXbloomLink(rawText);

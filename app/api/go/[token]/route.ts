@@ -1,14 +1,13 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createHash, randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
 import { ProviderFactory } from '@/lib/affiliate/providers/factory';
 import type { TrackingConfig } from '@/lib/affiliate/providers/types';
+import { getAdminClient } from '@/lib/supabaseAdmin';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 // Falls back to the service-role key so hashing works out of the box; set a
 // dedicated AFFILIATE_IP_HASH_SALT in Netlify env vars to rotate it independently.
-const IP_HASH_SALT = process.env.AFFILIATE_IP_HASH_SALT || serviceRoleKey;
+const IP_HASH_SALT = process.env.AFFILIATE_IP_HASH_SALT || (process.env.SUPABASE_SERVICE_ROLE_KEY as string);
 
 const CLICK_WINDOW_DAYS = 30;
 
@@ -39,7 +38,7 @@ function deviceType(userAgent: string | null): string | null {
 //    لل destination_url الخام، لا توقف الكليك أبداً" الموجودة بالخطة)
 export async function GET(request: Request, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params;
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const supabase = getAdminClient();
 
   const { data: link } = await supabase
     .from('affiliate_links')
