@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field } from '@/components/ui/Field';
 
 type LinkRow = {
@@ -11,11 +11,14 @@ type LinkRow = {
   destination_url: string;
   token: string;
   status: 'active' | 'paused' | 'expired';
+  click_count?: number;
 };
 
 type Option = { id: string; name: string };
 
 const GO_BASE_URL = 'https://admin.baristadrop.com/api/go';
+const LINKS_API = '/api/admin/affiliate/links';
+const PROGRAMS_API = '/api/admin/affiliate/programs';
 
 const STATUS_META: Record<LinkRow['status'], { label: string; className: string }> = {
   active: { label: 'نشط', className: 'bg-green-100 text-green-700' },
@@ -28,32 +31,19 @@ const emptyForm = { programId: '', name: '', destinationUrl: '' };
 export function LinksTab() {
   const [rows, setRows] = useState<LinkRow[] | null>(null);
   const [programs, setPrograms] = useState<Option[]>([]);
-  const [clickCounts, setClickCounts] = useState<Record<string, number>>({});
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const [{ data }, { data: p }] = await Promise.all([
-      supabase.from('affiliate_links').select('*').order('name').returns<LinkRow[]>(),
-      supabase.from('affiliate_programs').select('id, name').order('name').returns<Option[]>(),
-    ]);
-    setRows(data ?? []);
-    setPrograms(p ?? []);
-
-    if (data && data.length > 0) {
-      // استعلام واحد لكل الروابط بدل استعلام منفصل لكل رابط (كان N+1).
-      const linkIds = data.map((l) => l.id);
-      const { data: clickRows } = await supabase.from('affiliate_click_events').select('affiliate_link_id').in('affiliate_link_id', linkIds);
-
-      const counts: Record<string, number> = {};
-      for (const id of linkIds) counts[id] = 0;
-      for (const row of clickRows ?? []) {
-        counts[row.affiliate_link_id as string] = (counts[row.affiliate_link_id as string] ?? 0) + 1;
-      }
-      setClickCounts(counts);
-    }
+    const [linksRes, programsRes] = await Promise.all([adminFetch(`${LINKS_API}?limit=100`), adminFetch(`${PROGRAMS_API}?limit=100`)]);
+    const linksBody = await linksRes.json().catch(() => ({}));
+    const programsBody = await programsRes.json().catch(() => ({}));
+    if (linksRes.ok) setRows(linksBody.data ?? []);
+    else setError(linksBody.error ?? 'فشل تحميل الروابط');
+    setPrograms(programsBody.data ?? []);
   };
 
   useEffect(() => {
@@ -63,22 +53,30 @@ export function LinksTab() {
   const createLink = async () => {
     if (!form.programId || !form.name.trim() || !form.destinationUrl.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from('affiliate_links').insert({
-      affiliate_program_id: form.programId,
-      name: form.name.trim(),
-      destination_url: form.destinationUrl.trim(),
+    setError(null);
+    const res = await adminFetchJson(LINKS_API, {
+      method: 'POST',
+      body: JSON.stringify({ affiliate_program_id: form.programId, name: form.name.trim(), destination_url: form.destinationUrl.trim() }),
     });
     setSaving(false);
-    if (!error) {
+    if (res.ok) {
       setForm(emptyForm);
       setShowAdd(false);
       load();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل إنشاء الرابط');
     }
   };
 
   const setStatus = async (id: string, status: LinkRow['status']) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, status } : r)) ?? null);
-    await supabase.from('affiliate_links').update({ status }).eq('id', id);
+    const res = await adminFetchJson(`${LINKS_API}?id=${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل تحديث الحالة');
+      load();
+    }
   };
 
   const copyGoUrl = (id: string, token: string) => {
@@ -92,6 +90,14 @@ export function LinksTab() {
 
   return (
     <div className="space-y-3">
+      {error && (
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+          {error}
+          <button onClick={() => setError(null)} className="mr-2 font-bold">
+            ×
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <p className="text-xs text-mocha">كل رابط له توكن فريد -- استخدم رابط /go/{'{token}'} بدل الرابط المباشر عشان يتسجّل الكليك والإحالة.</p>
         <button onClick={() => setShowAdd((v) => !v)} className="rounded-full bg-ink px-4 py-1.5 text-xs font-bold text-cream">
@@ -168,7 +174,7 @@ export function LinksTab() {
                 <tr key={l.id} className="border-t border-latte">
                   <td className="px-3 py-2 font-medium text-ink">{l.name}</td>
                   <td className="px-3 py-2 text-xs text-mocha">{programs.find((p) => p.id === l.affiliate_program_id)?.name ?? '—'}</td>
-                  <td className="px-3 py-2 font-[var(--font-el-messiri)] tabular-nums text-coffee">{clickCounts[l.id] ?? 0}</td>
+                  <td className="px-3 py-2 font-[var(--font-el-messiri)] tabular-nums text-coffee">{l.click_count ?? 0}</td>
                   <td className="px-3 py-2">
                     <select
                       value={l.status}

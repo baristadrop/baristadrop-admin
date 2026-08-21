@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field, SectionTitle } from '@/components/ui/Field';
+
+const API_URL = '/api/admin/affiliate/networks';
 
 type NetworkRow = {
   id: string;
@@ -23,10 +25,13 @@ const STATUS_META: Record<NetworkRow['status'], { label: string; className: stri
 export function NetworksTab() {
   const [rows, setRows] = useState<NetworkRow[] | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await supabase.from('affiliate_networks').select('*').order('name').returns<NetworkRow[]>();
-    setRows(data ?? []);
+    const res = await adminFetch(`${API_URL}?limit=100`);
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) setRows(body.data ?? []);
+    else setError(body.error ?? 'فشل تحميل الشبكات');
   };
 
   useEffect(() => {
@@ -35,18 +40,36 @@ export function NetworksTab() {
 
   const setStatus = async (id: string, status: NetworkRow['status']) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, status } : r)) ?? null);
-    await supabase.from('affiliate_networks').update({ status }).eq('id', id);
+    const res = await adminFetchJson(`${API_URL}?id=${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل تحديث الحالة');
+      load();
+    }
   };
 
   const saveField = async (id: string, field: 'website_url' | 'api_base_url', value: string) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, [field]: value.trim() || null } : r)) ?? null);
-    await supabase.from('affiliate_networks').update({ [field]: value.trim() || null }).eq('id', id);
+    const res = await adminFetchJson(`${API_URL}?id=${id}`, { method: 'PATCH', body: JSON.stringify({ [field]: value.trim() || null }) });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل الحفظ');
+      load();
+    }
   };
 
   if (!rows) return <p className="text-mocha">تحميل...</p>;
 
   return (
     <div className="space-y-3">
+      {error && (
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+          {error}
+          <button onClick={() => setError(null)} className="mr-2 font-bold">
+            ×
+          </button>
+        </div>
+      )}
       <p className="text-xs text-mocha">
         الشبكات الوسيطة اللي ممكن برامج الأفيليت تُربط معها (Awin/CJ/Amazon/...) -- كودها (`code`) هو نفسه
         provider_code المستخدم بأدابتر المزوّد المطابق. 6 شبكات قياسية مزروعة مسبقاً؛ "تاجر مباشر" هو الافتراضي

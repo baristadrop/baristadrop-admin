@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { markPayoutReceived } from '@/lib/affiliate/commissionService';
+import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field } from '@/components/ui/Field';
+
+const PAYOUTS_API = '/api/admin/affiliate/payouts';
+const PROGRAMS_API = '/api/admin/affiliate/programs';
 
 type PayoutRow = {
   id: string;
@@ -33,14 +35,15 @@ export function PayoutsTab() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const [{ data }, { data: p }] = await Promise.all([
-      supabase.from('affiliate_payouts').select('*').order('payout_date', { ascending: false }).returns<PayoutRow[]>(),
-      supabase.from('affiliate_programs').select('id, name').returns<Option[]>(),
-    ]);
-    setRows(data ?? []);
-    setPrograms(p ?? []);
+    const [payoutsRes, programsRes] = await Promise.all([adminFetch(`${PAYOUTS_API}?limit=100`), adminFetch(`${PROGRAMS_API}?limit=100`)]);
+    const payoutsBody = await payoutsRes.json().catch(() => ({}));
+    const programsBody = await programsRes.json().catch(() => ({}));
+    if (payoutsRes.ok) setRows(payoutsBody.data ?? []);
+    else setError(payoutsBody.error ?? 'فشل تحميل المدفوعات');
+    setPrograms(programsBody.data ?? []);
   };
 
   useEffect(() => {
@@ -51,32 +54,52 @@ export function PayoutsTab() {
     const amount = Number(form.amount);
     if (!form.programId || !Number.isFinite(amount) || amount <= 0) return;
     setSaving(true);
-    const { error } = await supabase.from('affiliate_payouts').insert({
-      affiliate_program_id: form.programId,
-      amount,
-      currency: form.currency.trim() || 'AED',
-      payout_date: form.payoutDate,
-      payment_reference: form.reference.trim() || null,
+    setError(null);
+    const res = await adminFetchJson(PAYOUTS_API, {
+      method: 'POST',
+      body: JSON.stringify({
+        affiliate_program_id: form.programId,
+        amount,
+        currency: form.currency.trim() || 'AED',
+        payout_date: form.payoutDate,
+        payment_reference: form.reference.trim() || null,
+      }),
     });
     setSaving(false);
-    if (!error) {
+    if (res.ok) {
       setForm(emptyForm);
       setShowAdd(false);
       load();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل إنشاء الدفعة');
     }
   };
 
   const markReceived = async (id: string) => {
     setBusyId(id);
-    await markPayoutReceived(supabase, id);
+    setError(null);
+    const res = await adminFetchJson(`${PAYOUTS_API}?id=${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'RECEIVED' }) });
     setBusyId(null);
-    load();
+    if (res.ok) load();
+    else {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل تعليم الدفعة كمستلمة');
+    }
   };
 
   if (!rows) return <p className="text-mocha">تحميل...</p>;
 
   return (
     <div className="space-y-3">
+      {error && (
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+          {error}
+          <button onClick={() => setError(null)} className="mr-2 font-bold">
+            ×
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <p className="text-xs text-mocha">دفعات فعلية مستلمة من الشبكة/التاجر -- "تعليم كمستلمة" يسجّل قيد PAYOUT_RECEIVED بدفتر الأستاذ تلقائياً.</p>
         <button onClick={() => setShowAdd((v) => !v)} className="rounded-full bg-ink px-4 py-1.5 text-xs font-bold text-cream">

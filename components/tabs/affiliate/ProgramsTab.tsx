@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field, SectionTitle } from '@/components/ui/Field';
+
+const PROGRAMS_API = '/api/admin/affiliate/programs';
+const MERCHANTS_API = '/api/admin/affiliate/merchants';
+const NETWORKS_API = '/api/admin/affiliate/networks';
 
 type ProgramRow = {
   id: string;
@@ -58,17 +63,22 @@ export function ProgramsTab() {
   const [credForm, setCredForm] = useState<{ type: string; value: string }>({ type: CREDENTIAL_TYPES[0], value: '' });
   const [saving, setSaving] = useState(false);
   const [credMsg, setCredMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const [{ data }, { data: m }, { data: n }, { data: integ }] = await Promise.all([
-      supabase.from('affiliate_programs').select('*').order('name').returns<ProgramRow[]>(),
-      supabase.from('affiliate_merchants').select('id, name').order('name').returns<Option[]>(),
-      supabase.from('affiliate_networks').select('id, name').order('name').returns<Option[]>(),
+    const [programsRes, merchantsRes, networksRes, { data: integ }] = await Promise.all([
+      adminFetch(`${PROGRAMS_API}?limit=100`),
+      adminFetch(`${MERCHANTS_API}?limit=100`),
+      adminFetch(`${NETWORKS_API}?limit=100`),
       supabase.from('affiliate_provider_integrations').select('*').returns<IntegrationRow[]>(),
     ]);
-    setRows(data ?? []);
-    setMerchants(m ?? []);
-    setNetworks(n ?? []);
+    const programsBody = await programsRes.json().catch(() => ({}));
+    const merchantsBody = await merchantsRes.json().catch(() => ({}));
+    const networksBody = await networksRes.json().catch(() => ({}));
+    if (programsRes.ok) setRows(programsBody.data ?? []);
+    else setError(programsBody.error ?? 'فشل تحميل البرامج');
+    setMerchants(merchantsBody.data ?? []);
+    setNetworks(networksBody.data ?? []);
     const byProgram: Record<string, IntegrationRow> = {};
     for (const i of integ ?? []) byProgram[i.affiliate_program_id] = i;
     setIntegrations(byProgram);
@@ -93,24 +103,36 @@ export function ProgramsTab() {
   const createProgram = async () => {
     if (!form.name.trim() || !form.merchantId) return;
     setSaving(true);
-    const { error } = await supabase.from('affiliate_programs').insert({
-      name: form.name.trim(),
-      merchant_id: form.merchantId,
-      network_id: form.networkId || null,
-      commission_model: form.commissionModel,
-      currency: form.currency.trim() || 'AED',
+    setError(null);
+    const res = await adminFetchJson(PROGRAMS_API, {
+      method: 'POST',
+      body: JSON.stringify({
+        name: form.name.trim(),
+        merchant_id: form.merchantId,
+        network_id: form.networkId || null,
+        commission_model: form.commissionModel,
+        currency: form.currency.trim() || 'AED',
+      }),
     });
     setSaving(false);
-    if (!error) {
+    if (res.ok) {
       setForm(emptyForm);
       setShowAdd(false);
       load();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل إنشاء البرنامج');
     }
   };
 
   const setStatus = async (id: string, status: ProgramRow['status']) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, status } : r)) ?? null);
-    await supabase.from('affiliate_programs').update({ status }).eq('id', id);
+    const res = await adminFetchJson(`${PROGRAMS_API}?id=${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل تحديث الحالة');
+      load();
+    }
   };
 
   const createIntegration = async (programId: string, providerCode: string) => {
@@ -145,6 +167,14 @@ export function ProgramsTab() {
 
   return (
     <div className="space-y-3">
+      {error && (
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+          {error}
+          <button onClick={() => setError(null)} className="mr-2 font-bold">
+            ×
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <p className="text-xs text-mocha">البرنامج هو حدّ التكامل الفعلي: تاجر + شبكة (اختياري) + إعدادات تتبّع/تحويل/عمولة.</p>
         <button onClick={() => setShowAdd((v) => !v)} className="rounded-full bg-ink px-4 py-1.5 text-xs font-bold text-cream">

@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { isValidConversionTransition, transitionConversionStatus } from '@/lib/affiliate/conversionEngine';
+import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
+import { isValidConversionTransition } from '@/lib/affiliate/conversionEngine';
 import type { ConversionStatus } from '@/lib/affiliate/types';
+
+const CONVERSIONS_API = '/api/admin/affiliate/conversions';
+const PROGRAMS_API = '/api/admin/affiliate/programs';
 
 type ConversionRow = {
   id: string;
@@ -46,14 +49,18 @@ export function ConversionsTab() {
   const [programs, setPrograms] = useState<Option[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | ConversionStatus>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const [{ data }, { data: p }] = await Promise.all([
-      supabase.from('affiliate_conversions').select('*').order('conversion_time', { ascending: false }).limit(200).returns<ConversionRow[]>(),
-      supabase.from('affiliate_programs').select('id, name').returns<Option[]>(),
+    const [conversionsRes, programsRes] = await Promise.all([
+      adminFetch(`${CONVERSIONS_API}?limit=200`),
+      adminFetch(`${PROGRAMS_API}?limit=100`),
     ]);
-    setRows(data ?? []);
-    setPrograms(p ?? []);
+    const conversionsBody = await conversionsRes.json().catch(() => ({}));
+    const programsBody = await programsRes.json().catch(() => ({}));
+    if (conversionsRes.ok) setRows(conversionsBody.data ?? []);
+    else setError(conversionsBody.error ?? 'فشل تحميل التحويلات');
+    setPrograms(programsBody.data ?? []);
   };
 
   useEffect(() => {
@@ -62,9 +69,17 @@ export function ConversionsTab() {
 
   const transition = async (id: string, to: ConversionStatus) => {
     setBusyId(id);
-    const result = await transitionConversionStatus(supabase, id, to, { reason: 'admin manual action (ConversionsTab)' });
+    setError(null);
+    const res = await adminFetchJson(`${CONVERSIONS_API}?id=${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ conversion_status: to, reason: 'admin manual action (ConversionsTab)' }),
+    });
     setBusyId(null);
-    if (result.ok) load();
+    if (res.ok) load();
+    else {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل تغيير الحالة');
+    }
   };
 
   const filtered = useMemo(() => {
@@ -76,6 +91,14 @@ export function ConversionsTab() {
 
   return (
     <div className="space-y-3">
+      {error && (
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+          {error}
+          <button onClick={() => setError(null)} className="mr-2 font-bold">
+            ×
+          </button>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={() => setStatusFilter('all')}

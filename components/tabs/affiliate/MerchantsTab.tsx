@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field, SectionTitle } from '@/components/ui/Field';
 
 type MerchantRow = {
@@ -25,6 +26,7 @@ const STATUS_META: Record<MerchantRow['status'], { label: string; className: str
 };
 
 const emptyForm = { name: '', legalName: '', country: '', currency: 'AED', roasterId: '', supplierId: '' };
+const API_URL = '/api/admin/affiliate/merchants';
 
 export function MerchantsTab() {
   const [rows, setRows] = useState<MerchantRow[] | null>(null);
@@ -34,14 +36,17 @@ export function MerchantsTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const [{ data }, { data: r }, { data: s }] = await Promise.all([
-      supabase.from('affiliate_merchants').select('*').order('name').returns<MerchantRow[]>(),
+    const [res, { data: r }, { data: s }] = await Promise.all([
+      adminFetch(`${API_URL}?limit=100`),
       supabase.from('roasters').select('id, name').order('name').returns<BusinessOption[]>(),
       supabase.from('suppliers').select('id, name').order('name').returns<BusinessOption[]>(),
     ]);
-    setRows(data ?? []);
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) setRows(body.data ?? []);
+    else setError(body.error ?? 'فشل تحميل التجار');
     setRoasters(r ?? []);
     setSuppliers(s ?? []);
   };
@@ -53,36 +58,61 @@ export function MerchantsTab() {
   const createMerchant = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from('affiliate_merchants').insert({
-      name: form.name.trim(),
-      legal_name: form.legalName.trim() || null,
-      country: form.country.trim() || null,
-      currency: form.currency.trim() || 'AED',
-      roaster_id: form.roasterId || null,
-      supplier_id: form.supplierId || null,
+    setError(null);
+    const res = await adminFetchJson(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        name: form.name.trim(),
+        legal_name: form.legalName.trim() || null,
+        country: form.country.trim() || null,
+        currency: form.currency.trim() || 'AED',
+        roaster_id: form.roasterId || null,
+        supplier_id: form.supplierId || null,
+      }),
     });
     setSaving(false);
-    if (!error) {
+    if (res.ok) {
       setForm(emptyForm);
       setShowAdd(false);
       load();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل إنشاء التاجر');
     }
   };
 
   const setStatus = async (id: string, status: MerchantRow['status']) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, status } : r)) ?? null);
-    await supabase.from('affiliate_merchants').update({ status }).eq('id', id);
+    const res = await adminFetchJson(`${API_URL}?id=${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل تحديث الحالة');
+      load();
+    }
   };
 
   const saveField = async (id: string, field: 'legal_name' | 'website_url' | 'country' | 'currency', value: string) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, [field]: value.trim() || null } : r)) ?? null);
-    await supabase.from('affiliate_merchants').update({ [field]: value.trim() || null }).eq('id', id);
+    const res = await adminFetchJson(`${API_URL}?id=${id}`, { method: 'PATCH', body: JSON.stringify({ [field]: value.trim() || null }) });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل الحفظ');
+      load();
+    }
   };
 
   if (!rows) return <p className="text-mocha">تحميل...</p>;
 
   return (
     <div className="space-y-3">
+      {error && (
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+          {error}
+          <button onClick={() => setError(null)} className="mr-2 font-bold">
+            ×
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <p className="text-xs text-mocha">التاجر هو الجهة اللي تبيع المنتج/الخدمة -- ممكن مربوط بمحمصة/مورّد موجود بالتطبيق، أو مستقل تماماً.</p>
         <button onClick={() => setShowAdd((v) => !v)} className="rounded-full bg-ink px-4 py-1.5 text-xs font-bold text-cream">

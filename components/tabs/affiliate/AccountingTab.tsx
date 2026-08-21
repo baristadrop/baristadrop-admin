@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { getProgramBalance } from '@/lib/affiliate/commissionService';
+import { adminFetch } from '@/lib/adminApiClient';
 import type { CommissionBalance } from '@/lib/affiliate/types';
+
+const PROGRAMS_API = '/api/admin/affiliate/programs';
+const LEDGER_API = '/api/admin/affiliate/ledger';
 
 type Program = { id: string; name: string; currency: string };
 type LedgerEntry = {
@@ -34,36 +36,31 @@ export function AccountingTab() {
   const [balance, setBalance] = useState<CommissionBalance | null>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [loadingBalance, setLoadingBalance] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase
-      .from('affiliate_programs')
-      .select('id, name, currency')
-      .order('name')
-      .returns<Program[]>()
-      .then(({ data }) => {
-        setPrograms(data ?? []);
-        if (data && data.length > 0) setSelectedProgram(data[0].id);
+    adminFetch(`${PROGRAMS_API}?limit=100`)
+      .then((res) => res.json())
+      .then((body) => {
+        setPrograms(body.data ?? []);
+        if (body.data?.length > 0) setSelectedProgram(body.data[0].id);
       });
   }, []);
 
   useEffect(() => {
     if (!selectedProgram) return;
     setLoadingBalance(true);
-    Promise.all([
-      getProgramBalance(supabase, selectedProgram),
-      supabase
-        .from('affiliate_commission_ledger')
-        .select('id, affiliate_program_id, event_type, amount, currency, reference, accounting_date')
-        .eq('affiliate_program_id', selectedProgram)
-        .order('created_at', { ascending: false })
-        .limit(50)
-        .returns<LedgerEntry[]>(),
-    ]).then(([bal, { data }]) => {
-      setBalance(bal);
-      setLedger(data ?? []);
-      setLoadingBalance(false);
-    });
+    adminFetch(`${LEDGER_API}?affiliate_program_id=${selectedProgram}&limit=50`)
+      .then(async (res) => {
+        const body = await res.json().catch(() => ({}));
+        if (res.ok) {
+          setBalance(body.balance ?? null);
+          setLedger(body.data ?? []);
+        } else {
+          setError(body.error ?? 'فشل تحميل دفتر الأستاذ');
+        }
+        setLoadingBalance(false);
+      });
   }, [selectedProgram]);
 
   if (programs.length === 0) {
@@ -72,6 +69,14 @@ export function AccountingTab() {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+          {error}
+          <button onClick={() => setError(null)} className="mr-2 font-bold">
+            ×
+          </button>
+        </div>
+      )}
       <select
         value={selectedProgram}
         onChange={(e) => setSelectedProgram(e.target.value)}
