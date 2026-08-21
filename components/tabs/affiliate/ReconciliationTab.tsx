@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field } from '@/components/ui/Field';
+
+const PROGRAMS_API = '/api/admin/affiliate/programs';
 
 type RunRow = {
   id: string;
@@ -46,9 +49,10 @@ export function ReconciliationTab() {
   const [items, setItems] = useState<Record<string, ItemRow[]>>({});
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const [{ data }, { data: p }] = await Promise.all([
+    const [{ data }, res] = await Promise.all([
       supabase
         .from('affiliate_reconciliation_runs')
         .select(
@@ -56,11 +60,17 @@ export function ReconciliationTab() {
         )
         .order('created_at', { ascending: false })
         .returns<RunRow[]>(),
-      supabase.from('affiliate_programs').select('id, name').returns<Option[]>(),
+      adminFetch(`${PROGRAMS_API}?limit=100`),
     ]);
+    const body = await res.json().catch(() => ({}));
     setRuns(data ?? []);
-    setPrograms(p ?? []);
-    if (p && p.length > 0 && !selectedProgram) setSelectedProgram(p[0].id);
+    if (res.ok) {
+      const p: Option[] = body.data ?? [];
+      setPrograms(p);
+      if (p.length > 0 && !selectedProgram) setSelectedProgram(p[0].id);
+    } else {
+      setError(body.error ?? 'فشل تحميل البرامج');
+    }
   };
 
   useEffect(() => {
@@ -72,38 +82,39 @@ export function ReconciliationTab() {
     if (!selectedProgram) return;
     setTriggering(true);
     setTriggerMsg(null);
-    const { data: sessionData } = await supabase.auth.getSession();
-    const res = await fetch('/api/admin/affiliate/reconciliation', {
+    setError(null);
+    const res = await adminFetchJson('/api/admin/affiliate/reconciliation', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionData.session?.access_token}` },
       body: JSON.stringify({ programId: selectedProgram, periodStart, periodEnd }),
     });
     const body = await res.json().catch(() => ({}));
     setTriggering(false);
-    setTriggerMsg(res.ok ? `تمت التسوية: ${body.matched} مطابقة، ${body.amountMismatch + body.statusMismatch} اختلافات` : (body.error ?? 'فشلت التسوية'));
-    if (res.ok) load();
+    if (res.ok) {
+      setTriggerMsg(`تمت التسوية: ${body.matched} مطابقة، ${body.amountMismatch + body.statusMismatch} اختلافات`);
+      load();
+    } else {
+      setError(body.error ?? 'فشلت التسوية');
+    }
   };
 
   const uploadCsv = async (file: File) => {
     if (!selectedProgram) return;
     setUploading(true);
     setUploadMsg(null);
-    const { data: sessionData } = await supabase.auth.getSession();
+    setError(null);
     const form = new FormData();
     form.append('file', file);
     form.append('affiliate_program_id', selectedProgram);
-    const res = await fetch('/api/admin/affiliate/imports', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
-      body: form,
-    });
+    const res = await adminFetch('/api/admin/affiliate/imports', { method: 'POST', body: form });
     const body = await res.json().catch(() => ({}));
     setUploading(false);
-    setUploadMsg(
-      res.ok
-        ? `استُوردت ${body.rowsProcessed} صف: ${body.matched} مطابقة، ${body.unmatched} غير مطابقة، ${body.duplicate} مكررة${body.errors ? `، ${body.errors} خطأ` : ''}`
-        : (body.error ?? 'فشل الاستيراد')
-    );
+    if (res.ok) {
+      setUploadMsg(
+        `استُوردت ${body.rowsProcessed} صف: ${body.matched} مطابقة، ${body.unmatched} غير مطابقة، ${body.duplicate} مكررة${body.errors ? `، ${body.errors} خطأ` : ''}`
+      );
+    } else {
+      setError(body.error ?? 'فشل الاستيراد');
+    }
   };
 
   const toggleRun = async (runId: string) => {
@@ -128,6 +139,14 @@ export function ReconciliationTab() {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+          {error}
+          <button onClick={() => setError(null)} className="mr-2 font-bold">
+            ×
+          </button>
+        </div>
+      )}
       <div className="grid gap-3 rounded-2xl border border-latte bg-white p-4 shadow-sm sm:grid-cols-4">
         <Field label="البرنامج">
           <select

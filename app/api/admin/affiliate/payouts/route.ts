@@ -3,11 +3,12 @@ import { requireAdmin } from '@/lib/adminAuth';
 import { getAdminClient } from '@/lib/supabaseAdmin';
 import { parsePagination, paginateQuery } from '@/lib/db/pagination';
 import { markPayoutReceived } from '@/lib/affiliate/commissionService';
+import { withErrorHandler } from '@/lib/errorHandler';
 
 const COLUMNS = 'id, affiliate_program_id, amount, currency, status, payout_date, payment_reference, created_at';
 
 // GET /api/admin/affiliate/payouts?affiliate_program_id=...&status=...
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   const admin = await requireAdmin(request);
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -22,16 +23,12 @@ export async function GET(request: Request) {
   if (status) query = query.eq('status', status);
   query = query.order('payout_date', { ascending: false });
 
-  try {
-    const result = await paginateQuery(query, pagination);
-    return NextResponse.json(result);
-  } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
-  }
-}
+  const result = await paginateQuery(query, pagination);
+  return NextResponse.json(result);
+});
 
 // POST { affiliate_program_id, amount, currency?, payout_date?, payment_reference? }
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   const admin = await requireAdmin(request);
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -56,11 +53,11 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ data }, { status: 201 });
-}
+});
 
 // PATCH ?id=... { status } -- تعليم كـ'RECEIVED' يمر عبر markPayoutReceived()
 // (يسجّل قيد PAYOUT_RECEIVED بدفتر الأستاذ تلقائياً)؛ أي حالة ثانية تحديث مباشر.
-export async function PATCH(request: Request) {
+export const PATCH = withErrorHandler(async (request: Request) => {
   const admin = await requireAdmin(request);
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -84,4 +81,4 @@ export async function PATCH(request: Request) {
 
   const { data } = await supabase.from('affiliate_payouts').select(COLUMNS).eq('id', id).single();
   return NextResponse.json({ data });
-}
+});

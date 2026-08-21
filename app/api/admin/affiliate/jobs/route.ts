@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { claimDueJobs, completeJob, enqueueJob, failJob, type JobType } from '@/lib/affiliate/jobs';
 import { runJob } from '@/lib/affiliate/jobRunners';
 import { getAdminClient } from '@/lib/supabaseAdmin';
+import { withErrorHandler } from '@/lib/errorHandler';
 
 const jobsSecret = process.env.AFFILIATE_JOBS_SECRET as string | undefined;
 
@@ -38,7 +39,7 @@ async function enqueueDueScheduledJobs(supabase: ReturnType<typeof getAdminClien
 // يجدول أي مهمة دورية متأخرة، يسحب حتى 10 مهام مستحقة، يشغّلها، ويحدّث
 // حالتها (نجاح/فشل مع إعادة محاولة/فشل نهائي) — نفس أنبوب 7.2/7.3 بالخطة
 // لكن مبني على البنية الفعلية للمشروع بدل Vercel Cron.
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   // رفض افتراضي -- لو AFFILIATE_JOBS_SECRET ما اتضبط بعد بمتغيرات بيئة
   // Netlify، الراوت ما يشتغل أبداً بدل ما يفضل مفتوح للعامة بدون أي تحقق.
   if (!jobsSecret) return NextResponse.json({ error: 'AFFILIATE_JOBS_SECRET not configured' }, { status: 500 });
@@ -65,4 +66,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ processed: results.length, results });
-}
+});

@@ -4,12 +4,13 @@ import { getAdminClient } from '@/lib/supabaseAdmin';
 import { parsePagination, paginateQuery } from '@/lib/db/pagination';
 import { isValidConversionTransition, transitionConversionStatus } from '@/lib/affiliate/conversionEngine';
 import type { ConversionStatus } from '@/lib/affiliate/types';
+import { withErrorHandler } from '@/lib/errorHandler';
 
 const COLUMNS =
   'id, affiliate_program_id, click_id, provider_conversion_id, sale_amount, commission_amount, currency, conversion_status, conversion_time';
 
 // GET /api/admin/affiliate/conversions?affiliate_program_id=...&conversion_status=...&date_from=...&date_to=...
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   const admin = await requireAdmin(request);
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -30,19 +31,15 @@ export async function GET(request: Request) {
 
   query = query.order('conversion_time', { ascending: false });
 
-  try {
-    const result = await paginateQuery(query, pagination);
-    return NextResponse.json(result);
-  } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
-  }
-}
+  const result = await paginateQuery(query, pagination);
+  return NextResponse.json(result);
+});
 
 // PATCH ?id=... { conversion_status } -- تحويلة حالة يدوية عبر الأدمن، تمر
 // بنفس آلة الحالة والتحقق اللي يستخدمها المحرك (conversionEngine.ts) --
 // ما فيه تكرار منطق، هذا الراوت يستدعي نفس الدالة اللي كانت تُستدعى من
 // العميل مباشرة قبل هذا التعديل.
-export async function PATCH(request: Request) {
+export const PATCH = withErrorHandler(async (request: Request) => {
   const admin = await requireAdmin(request);
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -68,4 +65,4 @@ export async function PATCH(request: Request) {
 
   const { data } = await supabase.from('affiliate_conversions').select(COLUMNS).eq('id', id).single();
   return NextResponse.json({ data });
-}
+});

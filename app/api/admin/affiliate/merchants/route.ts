@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/adminAuth';
 import { getAdminClient } from '@/lib/supabaseAdmin';
 import { parsePagination, paginateQuery } from '@/lib/db/pagination';
+import { withErrorHandler } from '@/lib/errorHandler';
 
 const COLUMNS = 'id, name, legal_name, website_url, country, currency, status, roaster_id, supplier_id, created_at';
 
 // GET /api/admin/affiliate/merchants?status=active&search=...
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   const admin = await requireAdmin(request);
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -23,16 +24,12 @@ export async function GET(request: Request) {
 
   query = query.order('name');
 
-  try {
-    const result = await paginateQuery(query, pagination);
-    return NextResponse.json(result);
-  } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
-  }
-}
+  const result = await paginateQuery(query, pagination);
+  return NextResponse.json(result);
+});
 
 // POST { name, legal_name?, website_url?, country?, currency?, roaster_id?, supplier_id? }
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   const admin = await requireAdmin(request);
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -57,10 +54,10 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ data }, { status: 201 });
-}
+});
 
 // PATCH ?id=... { status?, legal_name?, website_url?, country?, currency? }
-export async function PATCH(request: Request) {
+export const PATCH = withErrorHandler(async (request: Request) => {
   const admin = await requireAdmin(request);
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -74,4 +71,4 @@ export async function PATCH(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ data });
-}
+});

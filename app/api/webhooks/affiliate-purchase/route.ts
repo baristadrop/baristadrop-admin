@@ -2,11 +2,17 @@ import { NextResponse } from 'next/server';
 import { isValidUuid, isValidOrderAmount, calculateCommission } from '@/lib/affiliateCommission';
 import { processConversionEvent } from '@/lib/affiliate/conversionEngine';
 import { getAdminClient } from '@/lib/supabaseAdmin';
+import { enqueueJob } from '@/lib/affiliate/jobs';
 
 // GIF شفاف 1x1 -- يُرجَّع دايماً للطلبات اللي تجي عن طريق pixel بصفحة "تم
 // الطلب" عند الشريك، حتى لو التحقق فشل (الخطأ يُسجَّل بالسيرفر بس، ما لازم
 // يظهر بصفحة عامة للعميل النهائي).
 const TRANSPARENT_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBTAA7', 'base64');
+
+// لما true -- يخزّن الحدث الخام ويجندل معالجة غير متزامنة عبر طابور مهام
+// الأفيليت (نفس مسار webhooks/[provider]) بدل المعالجة الفورية. الافتراضي
+// false (معالجة متزامنة كما هو) للتوافق الرجعي الكامل.
+const QUEUE_WEBHOOKS = process.env.AFFILIATE_QUEUE_WEBHOOKS === 'true';
 
 type Business = { roasterId: string | null; supplierId: string | null; commissionPercent: number | null };
 
@@ -46,17 +52,22 @@ type PurchaseParams = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveProgramId(supabase: any, business: Business): Promise<string | null> {
+  const { data: program } = await supabase
+    .from('affiliate_programs')
+    .select('id')
+    .or(business.roasterId ? `legacy_roaster_id.eq.${business.roasterId}` : `legacy_supplier_id.eq.${business.supplierId}`)
+    .maybeSingle();
+  return (program?.id as string | undefined) ?? null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function recordConversionV2(supabase: any, business: Business, params: PurchaseParams): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   try {
-    const { data: program } = await supabase
-      .from('affiliate_programs')
-      .select('id')
-      .or(business.roasterId ? `legacy_roaster_id.eq.${business.roasterId}` : `legacy_supplier_id.eq.${business.supplierId}`)
-      .maybeSingle();
+    const programId = await resolveProgramId(supabase, business);
+    if (!programId) return { ok: false, status: 404, error: 'no_affiliate_program_for_business' };
 
-    if (!program) return { ok: false, status: 404, error: 'no_affiliate_program_for_business' };
-
-    await processConversionEvent(supabase, program.id as string, {
+    await processConversionEvent(supabase, programId, {
       providerConversionId: params.orderReference ?? params.clickId!,
       orderId: params.orderReference,
       saleAmount: params.orderAmount,
@@ -92,6 +103,37 @@ async function recordPurchase(params: PurchaseParams): Promise<{ ok: true } | { 
     console.error('[affiliate-purchase-webhook] rate limit check failed:', rateLimitError.message);
   } else if (withinLimit === false) {
     return { ok: false, status: 429, error: 'too_many_requests' };
+  }
+
+  // مسار الطابور -- يخزّن الحدث الخام ويجندل معالجة غير متزامنة بدل
+  // المعالجة الفورية أدناه. يحل affiliate_program_id هنا (نعرف الشركة أصلاً
+  // من postback_secret) عشان runProcessAffiliateWebhook ما يرفضه لاحقاً.
+  if (QUEUE_WEBHOOKS) {
+    const programId = await resolveProgramId(supabase, business);
+    const { data: postback, error: insertError } = await supabase
+      .from('affiliate_postback_events')
+      .insert({
+        affiliate_program_id: programId,
+        provider_code: 'direct',
+        raw_payload: params.rawPayload,
+        click_id: params.clickId,
+        transaction_id: params.orderReference,
+        status: 'received',
+      })
+      .select('id')
+      .single();
+
+    if (insertError) {
+      console.error('[affiliate-purchase-webhook] postback insert failed:', insertError.message);
+      return { ok: false, status: 500, error: 'postback_store_failed' };
+    }
+
+    await enqueueJob(supabase, 'ProcessAffiliateWebhook', {
+      postbackEventId: postback.id,
+      providerCode: 'direct',
+    });
+
+    return { ok: true };
   }
 
   // النظام الجديد هو الأساسي الآن لأي كليك بصيغته -- المسار القديم يفضل

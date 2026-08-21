@@ -5,6 +5,7 @@ import { ProviderFactory } from '@/lib/affiliate/providers/factory';
 import { startReportImport } from '@/lib/affiliate/reconciliationService';
 import { requireAdmin } from '@/lib/adminAuth';
 import { getAdminClient } from '@/lib/supabaseAdmin';
+import { withErrorHandler } from '@/lib/errorHandler';
 
 // POST multipart/form-data: file (CSV), affiliate_program_id
 // يستورد تقرير تحويلات مُصدَّر يدوياً من لوحة المزوّد (Amazon Associates
@@ -12,7 +13,7 @@ import { getAdminClient } from '@/lib/supabaseAdmin';
 // بقدراتها). كل صف يمر بنفس أنبوب Phase 3 (processConversionEvent) عبر
 // أدابتر المزوّد نفسه (parseConversion) -- ما فيه منطق تحليل مكرر هنا،
 // عشان أي عمود/صيغة خاصة بمزوّد يبقى بمكانه الوحيد (providers/*).
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   const admin = await requireAdmin(request);
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -50,9 +51,9 @@ export async function POST(request: Request) {
 
   const importId = started.importId;
 
-  try {
-    await supabase.from('affiliate_report_imports').update({ status: 'processing' }).eq('id', importId);
+  await supabase.from('affiliate_report_imports').update({ status: 'processing' }).eq('id', importId);
 
+  try {
     const rows = parseCsv(fileBuffer.toString('utf8'));
     let matched = 0;
     let unmatched = 0;
@@ -86,8 +87,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ importId, rowsProcessed: rows.length, matched, unmatched, duplicate, errors: errorLog.length });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    await supabase.from('affiliate_report_imports').update({ status: 'failed', error_log: [{ error: message }] }).eq('id', importId);
-    return NextResponse.json({ error: message }, { status: 500 });
+    // فشل غير متوقع (مو فشل صف مفرد -- ذاك متتبَّع بـ errorLog) -- علّم
+    // الاستيراد failed عشان ما يعلق على processing للأبد، وخلّي withErrorHandler
+    // يكوّن رد الخطأ للعميل.
+    await supabase.from('affiliate_report_imports').update({ status: 'failed' }).eq('id', importId);
+    throw err;
   }
-}
+});

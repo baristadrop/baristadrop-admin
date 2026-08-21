@@ -3,13 +3,14 @@ import { requireAdmin } from '@/lib/adminAuth';
 import { getAdminClient } from '@/lib/supabaseAdmin';
 import { parsePagination, paginateQuery } from '@/lib/db/pagination';
 import { getProgramBalance } from '@/lib/affiliate/commissionService';
+import { withErrorHandler } from '@/lib/errorHandler';
 
 const COLUMNS = 'id, affiliate_program_id, event_type, amount, currency, reference, accounting_date, created_at';
 
 // GET /api/admin/affiliate/ledger?affiliate_program_id=...&event_type=...
 // يرجّع صفحة من قيود دفتر الأستاذ + الرصيد المحسوب (عبر calculate_program_balance
 // RPC -- migration 0079) بنفس الاستجابة.
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   const admin = await requireAdmin(request);
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -25,10 +26,6 @@ export async function GET(request: Request) {
   if (eventType) query = query.eq('event_type', eventType);
   query = query.order('created_at', { ascending: false });
 
-  try {
-    const [entries, balance] = await Promise.all([paginateQuery(query, pagination), getProgramBalance(supabase, programId)]);
-    return NextResponse.json({ ...entries, balance });
-  } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
-  }
-}
+  const [entries, balance] = await Promise.all([paginateQuery(query, pagination), getProgramBalance(supabase, programId)]);
+  return NextResponse.json({ ...entries, balance });
+});

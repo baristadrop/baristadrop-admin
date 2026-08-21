@@ -5,11 +5,12 @@ import { ProviderFactory } from '@/lib/affiliate/providers/factory';
 import type { ProviderConversionRecord } from '@/lib/affiliate/types';
 import { requireAdmin } from '@/lib/adminAuth';
 import { getAdminClient } from '@/lib/supabaseAdmin';
+import { withErrorHandler } from '@/lib/errorHandler';
 
 // POST { programId, periodStart, periodEnd } -- يشغّل تسوية حقيقية لبرنامج
 // معيّن. هذا راوت سيرفر (مو استدعاء مباشر من العميل) لأن جلب تحويلات
 // المزوّد يحتاج فك تشفير بيانات الاعتماد (AES key سيرفر فقط -- Phase 6).
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   const admin = await requireAdmin(request);
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -62,17 +63,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `fetchConversions failed: ${message}` }, { status: 502 });
   }
 
-  try {
-    const summary = await runReconciliation(supabase, {
-      affiliateProgramId: body.programId,
-      providerCode: integration.provider_code as string,
-      periodStart: start,
-      periodEnd: end,
-      providerRecords,
-    });
-    return NextResponse.json(summary);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
-}
+  const summary = await runReconciliation(supabase, {
+    affiliateProgramId: body.programId,
+    providerCode: integration.provider_code as string,
+    periodStart: start,
+    periodEnd: end,
+    providerRecords,
+  });
+  return NextResponse.json(summary);
+});
