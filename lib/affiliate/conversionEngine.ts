@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { calculateCommission, postLedgerEntry } from './commissionService';
 import { matchConversionToClick } from './clickMatching';
-import type { ConversionStatus, NormalizedConversion } from './types';
+import type { ConversionStatus, LedgerEventType, NormalizedConversion } from './types';
 
 const UNIQUE_VIOLATION = '23505';
 
@@ -69,10 +70,9 @@ export type ProcessConversionResult =
   | { outcome: 'created'; conversionId: string; status: ConversionStatus }
   | { outcome: 'duplicate'; conversionId: string; status: ConversionStatus };
 
-// خطوات 3، 5، 6 من الأنبوب (3.2 بالخطة). خطوة 4 (Normalize) مسؤولية
-// المستدعي (محول المزوّد -- Phase 6)، وخطوة 7 (حساب العمولة الحقيقي عبر
-// دفتر الأستاذ) مسؤولية Phase 4 -- هنا commission_amount يُخزَّن كما جاء
-// بالـ normalized (افتراضي 0) وتحدّثه Phase 4 لاحقاً.
+// خطوات 3، 5، 6، 7 من الأنبوب (3.2 بالخطة). خطوة 4 (Normalize) مسؤولية
+// المستدعي (محول المزوّد -- Phase 6) -- الدالة هذي تستقبل NormalizedConversion
+// جاهزة وما تحلل أي payload خام بنفسها.
 export async function processConversionEvent(
   supabase: SupabaseClient,
   affiliateProgramId: string,
@@ -94,6 +94,15 @@ export async function processConversionEvent(
   const clickId = await matchConversionToClick(supabase, affiliateProgramId, normalized);
   const initialStatus: ConversionStatus = clickId ? 'PENDING' : 'UNMATCHED';
 
+  // خطوة 7 (محسوبة قبل الإدراج عشان نخزّن commission_amount الصحيح من أول
+  // مرة): لو المزوّد ما أرسل عمولة صريحة، تُطبَّق قواعد العمولة النشطة
+  // للبرنامج (Phase 4 -- commissionService.ts).
+  const commission = await calculateCommission(supabase, affiliateProgramId, {
+    saleAmount: normalized.saleAmount,
+    providerCommission: normalized.providerCommission,
+    productCategory: normalized.productCategory,
+  });
+
   // خطوة 6: إنشاء التحويلة + حدث CONVERSION_CREATED
   const { data: inserted, error } = await supabase
     .from('affiliate_conversions')
@@ -105,7 +114,7 @@ export async function processConversionEvent(
       order_id: normalized.orderId ?? null,
       product_id: normalized.productId ?? null,
       sale_amount: normalized.saleAmount,
-      commission_amount: normalized.commissionAmount ?? 0,
+      commission_amount: commission.amount,
       currency: normalized.currency,
       exchange_rate: normalized.exchangeRate ?? null,
       base_amount: normalized.baseAmount ?? null,
@@ -143,13 +152,38 @@ export async function processConversionEvent(
     status_before: null,
     status_after: initialStatus,
     amount: normalized.saleAmount,
-    commission: normalized.commissionAmount ?? 0,
+    commission: commission.amount,
     currency: normalized.currency,
     raw_payload: normalized as unknown as Record<string, unknown>,
   });
 
+  // خطوة 7 (تكملة): تحويلة PENDING فقط هي اللي تُحسب "متوقّعة" بدفتر الأستاذ.
+  // UNMATCHED ما تُحسب حتى تُربط يدوياً بكليك (transitionConversionStatus
+  // يفتحها لـ PENDING ويسجّل نفس القيد وقتها).
+  if (initialStatus === 'PENDING' && commission.amount !== 0) {
+    await postLedgerEntry(supabase, {
+      affiliateProgramId,
+      conversionId,
+      eventType: 'CONVERSION_PENDING',
+      amount: commission.amount,
+      currency: normalized.currency,
+      exchangeRate: normalized.exchangeRate,
+      baseAmount: normalized.baseAmount,
+      baseCurrency: normalized.baseCurrency,
+      reference: `conversion ${normalized.providerConversionId} (${commission.source})`,
+    });
+  }
+
   return { outcome: 'created', conversionId, status: initialStatus };
 }
+
+/** يعكس قيد CONVERSION_PENDING لما تحويلة تُرفض/تُلغى/تُعكس -- بدون هذا،
+ * دفتر الأستاذ يفضل يحسبها "متوقّعة" للأبد رغم إنها ما راح تُدفع. */
+const OFFSETTING_LEDGER_EVENT: Partial<Record<ConversionStatus, LedgerEventType>> = {
+  REJECTED: 'CONVERSION_REJECTED',
+  CANCELLED: 'CONVERSION_REJECTED', // ما فيه CONVERSION_CANCELLED بقيد الـ CHECK؛ أقرب نوع مسموح
+  REVERSED: 'CONVERSION_REVERSED',
+};
 
 export function isValidConversionTransition(from: ConversionStatus, to: ConversionStatus): boolean {
   return VALID_TRANSITIONS[from]?.includes(to) ?? false;
@@ -164,7 +198,7 @@ export async function transitionConversionStatus(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { data: conversion, error: fetchError } = await supabase
     .from('affiliate_conversions')
-    .select('conversion_status, sale_amount, commission_amount, currency')
+    .select('affiliate_program_id, conversion_status, sale_amount, commission_amount, currency')
     .eq('id', conversionId)
     .single();
 
@@ -200,6 +234,35 @@ export async function transitionConversionStatus(
     currency: conversion.currency,
     raw_payload: opts?.rawPayload ?? (opts?.reason ? { reason: opts.reason } : null),
   });
+
+  const commissionAmount = Number(conversion.commission_amount);
+
+  // UNMATCHED -> PENDING (ربط يدوي بكليك): أول مرة تُحسب فيها متوقّعة --
+  // ما فيه قيد سابق لها لأنها اتولدت بدون كليك.
+  if (fromStatus === 'UNMATCHED' && toStatus === 'PENDING' && commissionAmount !== 0) {
+    await postLedgerEntry(supabase, {
+      affiliateProgramId: conversion.affiliate_program_id as string,
+      conversionId,
+      eventType: 'CONVERSION_PENDING',
+      amount: commissionAmount,
+      currency: conversion.currency,
+      reference: opts?.reason ?? 'manually linked to click',
+    });
+  }
+
+  // PENDING -> REJECTED/CANCELLED/REVERSED: يعكس قيد CONVERSION_PENDING
+  // الأصلي عشان الرصيد "المتوقّع" ما يفضل معلّق للأبد على تحويلة ما راح تُدفع.
+  const offsettingEvent = OFFSETTING_LEDGER_EVENT[toStatus];
+  if (offsettingEvent && commissionAmount !== 0) {
+    await postLedgerEntry(supabase, {
+      affiliateProgramId: conversion.affiliate_program_id as string,
+      conversionId,
+      eventType: offsettingEvent,
+      amount: -commissionAmount,
+      currency: conversion.currency,
+      reference: opts?.reason ?? `conversion ${toStatus.toLowerCase()}`,
+    });
+  }
 
   return { ok: true };
 }
