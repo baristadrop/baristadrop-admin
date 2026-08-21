@@ -47,6 +47,26 @@ export type CommissionResult = {
   ruleId?: string;
 };
 
+export type ReconciliationStatus =
+  | 'MATCHED'
+  | 'AMOUNT_MISMATCH'
+  | 'STATUS_MISMATCH'
+  | 'MISSING_FROM_PROVIDER'
+  | 'MISSING_FROM_INTERNAL'
+  | 'DUPLICATE'
+  | 'UNMATCHED'
+  | 'MANUAL_REVIEW';
+
+/** سجل تحويلة من جانب المزوّد -- سواء جاي من adapter.fetchConversions()
+ * (Phase 6) أو من استيراد CSV، بشكل موحّد يكفي للمطابقة فقط (مو الشكل
+ * الكامل لـ NormalizedConversion). */
+export type ProviderConversionRecord = {
+  providerConversionId: string;
+  amount: number;
+  status: string;
+  raw?: unknown;
+};
+
 export type CommissionBalance = {
   expected: number; // PENDING + APPROVED, not yet paid or reversed
   reversed: number; // negative
