@@ -41,10 +41,10 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-      <p className="text-lg text-ink">هذا الحساب ما عنده صلاحية وصول للوحة التحكم.</p>
+      <p className="text-lg text-cream">هذا الحساب ما عنده صلاحية وصول للوحة التحكم.</p>
       <button
         onClick={() => signOut()}
-        className="rounded-full border border-latte px-4 py-2 text-sm text-coffee"
+        className="rounded-full border border-latte/40 px-4 py-2 text-sm text-cream transition hover:border-latte hover:bg-white/5"
       >
         تسجيل خروج
       </button>
