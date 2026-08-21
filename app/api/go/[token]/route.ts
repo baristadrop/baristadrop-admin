@@ -1,6 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { createHash, randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
+import { ProviderFactory } from '@/lib/affiliate/providers/factory';
+import type { TrackingConfig } from '@/lib/affiliate/providers/types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
@@ -81,8 +83,10 @@ export async function GET(request: Request, context: { params: Promise<{ token: 
     console.error('[affiliate-go] failed to record click event:', error.message);
   }
 
-  // Phase 6 هيضيف هنا: resolveProviderAdapter(link).generateTrackingUrl(...)
-  const destination = link.destination_url;
+  // Phase 6: يحوّل عبر أدابتر مزوّد البرنامج لو مربوط ومُعدّ صح -- أي فشل
+  // (ما فيه تكامل، إعداد ناقص، خطأ بالأدابتر) يرجع لـ destination_url الخام
+  // بدل ما يوقف الكليك، بالضبط زي قاعدة الخطة "never block the click".
+  const destination = await resolveDestination(supabase, link, clickId);
 
   return new NextResponse(null, {
     status: 302,
@@ -92,4 +96,31 @@ export async function GET(request: Request, context: { params: Promise<{ token: 
       'X-Click-Id': clickId,
     },
   });
+}
+
+type ActiveLink = { id: string; affiliate_program_id: string; destination_url: string };
+
+async function resolveDestination(supabase: SupabaseClient, link: ActiveLink, clickId: string): Promise<string> {
+  try {
+    const { data: integration } = await supabase
+      .from('affiliate_provider_integrations')
+      .select('provider_code, configuration')
+      .eq('affiliate_program_id', link.affiliate_program_id)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (!integration) return link.destination_url; // ما فيه تكامل مزوّد -- تاجر مباشر فعلياً
+
+    const provider = ProviderFactory.forCode(integration.provider_code as string);
+    const trackingConfig = ((integration.configuration as Record<string, unknown> | null)?.tracking ?? {}) as TrackingConfig;
+
+    return provider.generateTrackingUrl(
+      { id: link.id, affiliateProgramId: link.affiliate_program_id, productId: null, destinationUrl: link.destination_url, trackingTemplate: null, token: '', status: 'active' },
+      clickId,
+      trackingConfig
+    );
+  } catch (err) {
+    console.error('[affiliate-go] provider adapter failed, falling back to raw destination_url:', err);
+    return link.destination_url;
+  }
 }
