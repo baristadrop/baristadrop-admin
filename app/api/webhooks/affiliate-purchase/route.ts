@@ -1,9 +1,15 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { isValidUuid, isValidOrderAmount, calculateCommission } from '@/lib/affiliateCommission';
+import { processConversionEvent } from '@/lib/affiliate/conversionEngine';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
+// Phase 9 (AFFILIATE_PLATFORM_IMPLEMENTATION_PLAN.md 9.3) -- مطفّي افتراضياً.
+// لما يتفعّل، كل عملية شراء تتسجّل بالنظام القديم (كما هو) + الجديد
+// (affiliate_conversions عبر Phase 3's engine) بنفس الوقت، بدون ما يتوقف
+// أو يتأثر مسار النظام القديم لو الكتابة الجديدة فشلت.
+const DUAL_WRITE_ENABLED = process.env.AFFILIATE_DUAL_WRITE === 'true';
 
 // GIF شفاف 1x1 -- يُرجَّع دايماً للطلبات اللي تجي عن طريق pixel بصفحة "تم
 // الطلب" عند الشريك، حتى لو التحقق فشل (الخطأ يُسجَّل بالسيرفر بس، ما لازم
@@ -82,7 +88,51 @@ async function recordPurchase(params: {
     console.error('[affiliate-purchase-webhook] upsert failed:', error.message);
     return { ok: false, status: 500, error: 'db_write_failed' };
   }
+
+  if (DUAL_WRITE_ENABLED) {
+    await dualWriteConversion(supabase, business, params, commissionAmount);
+  }
+
   return { ok: true };
+}
+
+// كتابة إضافية (لا تُفشل الطلب أبداً) لبرنامج الأفيليت الجديد -- تبحث عن
+// affiliate_program المربوط بنفس الشركة عبر legacy_roaster_id/
+// legacy_supplier_id (اللي عبّاه Phase 9's backfill migration). لو ما لقت
+// برنامج (شركة جديدة اتسجّلت بعد آخر تشغيل للـ backfill)، تتجاهل بصمت --
+// النظام القديم يفضل يشتغل بشكل طبيعي بغض النظر.
+async function dualWriteConversion(
+  supabase: SupabaseClient,
+  business: Business,
+  params: { clickId: string | null; orderReference: string | null; orderAmount: number; currency: string; rawPayload: unknown },
+  commissionAmount: number
+): Promise<void> {
+  try {
+    const { data: program } = await supabase
+      .from('affiliate_programs')
+      .select('id')
+      .or(
+        business.roasterId
+          ? `legacy_roaster_id.eq.${business.roasterId}`
+          : `legacy_supplier_id.eq.${business.supplierId}`
+      )
+      .maybeSingle();
+
+    if (!program) return;
+
+    await processConversionEvent(supabase, program.id as string, {
+      providerConversionId: params.orderReference ?? `click-${params.clickId}`,
+      orderId: params.orderReference,
+      saleAmount: params.orderAmount,
+      commissionAmount,
+      currency: params.currency,
+      conversionTime: new Date().toISOString(),
+      clickId: null, // كليك النظام القديم (affiliate_clicks) ما يطابق affiliate_click_events -- يُترك بلا مطابقة (UNMATCHED) بدل مطابقة وهمية
+      rawEventId: params.orderReference,
+    });
+  } catch (err) {
+    console.error('[affiliate-purchase-webhook] dual-write to v2 failed (legacy write already succeeded, not blocking):', err);
+  }
 }
 
 // المسار المفضّل -- للشركات اللي تقدر ترسل تأكيد من الباك-إند تبعها مباشرة
