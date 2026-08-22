@@ -1,26 +1,28 @@
 @import "tailwindcss";
 
-/* لوحة "لوحة تحليلات احترافية" -- محايدات باردة (سليت/كحلي غامق) بدل
-   الدرجات الدافئة السابقة، مع لون تمييز بنفسجي-نيلي واثق (مو أزرق افتراضي
-   ولا تدرج بنفسجي صارخ) -- نفس أسلوب لوحات التحليلات والـSaaS الاحترافية
-   (Linear/Vercel/Stripe) بدون نسخ حرفي لأي منها. المحايدات فيها ميل خفيف
-   لدرجة لون التمييز نفسه (بنفسجي رمادي) بدل رمادي محايد بحت. */
+/* هوية "إسبريسو ونحاس" -- محايدات فحمية دافئة (بني غامق حقيقي، مو رمادي
+   بارد) + لون تمييز نحاسي أصيل (يرمز لتحميص القهوة بدون ما يكون كافيه
+   ساذج). Canvas فاتح للمحتوى + شريط جانبي/هيدر غامقين للهوية والتنقّل --
+   نفس نمط لوحات التحكم المؤسسية الجادة (Stripe/GitHub) بدل نمط "أداة
+   مطوّرين" بخلفية غامقة بالكامل. */
 :root {
-  --color-cream: #f6f6f9;
+  --color-ink: #1b1712;
+  --color-coffee: #2a231b;
+  --color-canvas: #f6f1e8;
   --color-paper: #ffffff;
-  --color-sand: #ececf2;
-  --color-latte: #dcdce6;
-  --color-ink: #0d0e17;
-  --color-coffee: #171a2b;
-  --color-mocha: #6b6f85;
-  --color-stone: #666a82;
-  --color-gold: #5b5fc7;
-  --color-gold-soft: #6165c9;
+  --color-sand: #ece1cd;
+  --color-latte: #d9cdb8;
+  --color-mocha: #6b5f4e;
+  --color-stone: #8a7d68;
+  --color-cream: #f5efe3;
+  --color-gold: #9c5f28;
+  --color-gold-soft: #b8763b;
 }
 
 @theme inline {
   --color-cream: var(--color-cream);
   --color-paper: var(--color-paper);
+  --color-canvas: var(--color-canvas);
   --color-sand: var(--color-sand);
   --color-latte: var(--color-latte);
   --color-ink: var(--color-ink);
@@ -34,8 +36,8 @@
 }
 
 body {
-  background: var(--color-ink);
-  color: var(--color-cream);
+  background: var(--color-canvas);
+  color: var(--color-ink);
 }
 
 /* الحقول (input/textarea/select) توضع غالباً فوق خلفيات فاتحة (بطاقات

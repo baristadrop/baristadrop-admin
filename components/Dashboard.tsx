@@ -216,7 +216,7 @@ export function Dashboard({
           </div>
         </header>
 
-        <main className="px-6 py-8">
+        <main className="min-h-screen bg-canvas px-6 py-8">
           {active === 'overview' && <OverviewTab onNavigate={setActive} />}
           {active === 'tracking' && <TrackingTab />}
           {active === 'productClicks' && <ProductClicksTab />}
