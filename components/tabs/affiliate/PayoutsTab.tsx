@@ -13,6 +13,8 @@ type PayoutRow = {
   amount: number;
   currency: string;
   payout_date: string;
+  period_start: string | null;
+  period_end: string | null;
   status: 'EXPECTED' | 'RECEIVED' | 'RECONCILED' | 'DISPUTED';
   payment_reference: string | null;
 };
@@ -26,7 +28,15 @@ const STATUS_META: Record<PayoutRow['status'], { label: string; className: strin
   DISPUTED: { label: 'محل نزاع', className: 'bg-red-100 text-red-700' },
 };
 
-const emptyForm = { programId: '', amount: '', currency: 'AED', payoutDate: new Date().toISOString().slice(0, 10), reference: '' };
+const emptyForm = {
+  programId: '',
+  amount: '',
+  currency: 'AED',
+  payoutDate: new Date().toISOString().slice(0, 10),
+  periodStart: '',
+  periodEnd: '',
+  reference: '',
+};
 
 export function PayoutsTab() {
   const [rows, setRows] = useState<PayoutRow[] | null>(null);
@@ -62,6 +72,8 @@ export function PayoutsTab() {
         amount,
         currency: form.currency.trim() || 'AED',
         payout_date: form.payoutDate,
+        period_start: form.periodStart || null,
+        period_end: form.periodEnd || null,
         payment_reference: form.reference.trim() || null,
       }),
     });
@@ -150,6 +162,27 @@ export function PayoutsTab() {
               className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
             />
           </Field>
+          <Field label="بداية نافذة التحويلات (اختياري)">
+            <input
+              value={form.periodStart}
+              onChange={(e) => setForm((f) => ({ ...f, periodStart: e.target.value }))}
+              type="date"
+              dir="ltr"
+              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+            />
+          </Field>
+          <Field label="نهاية نافذة التحويلات (اختياري)">
+            <input
+              value={form.periodEnd}
+              onChange={(e) => setForm((f) => ({ ...f, periodEnd: e.target.value }))}
+              type="date"
+              dir="ltr"
+              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+            />
+          </Field>
+          <p className="text-[11px] text-stone sm:col-span-2">
+            أي تحويلات "موافَق عليها" ضمن هالنافذة تنتقل تلقائياً لـ"مدفوعة" لما تُعلّم الدفعة كمستلمة. بدون نافذة، يُستخدم كل الموافَق عليه قبل تاريخ الدفعة.
+          </p>
           <div className="sm:col-span-2">
             <button
               onClick={createPayout}
@@ -169,6 +202,7 @@ export function PayoutsTab() {
               <th className="px-3 py-2">البرنامج</th>
               <th className="px-3 py-2">المبلغ</th>
               <th className="px-3 py-2">التاريخ</th>
+              <th className="px-3 py-2">النافذة</th>
               <th className="px-3 py-2">الحالة</th>
               <th className="px-3 py-2">إجراء</th>
             </tr>
@@ -176,7 +210,7 @@ export function PayoutsTab() {
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-6 text-center text-mocha">
+                <td colSpan={6} className="p-6 text-center text-mocha">
                   ما فيه دفعات بعد.
                 </td>
               </tr>
@@ -190,6 +224,9 @@ export function PayoutsTab() {
                     {Number(p.amount).toFixed(2)} {p.currency}
                   </td>
                   <td className="px-3 py-2 text-[11px] text-stone">{p.payout_date}</td>
+                  <td dir="ltr" className="px-3 py-2 text-left text-[11px] text-stone">
+                    {p.period_start || p.period_end ? `${p.period_start ?? '…'} → ${p.period_end ?? '…'}` : '—'}
+                  </td>
                   <td className="px-3 py-2">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.className}`}>{meta.label}</span>
                   </td>

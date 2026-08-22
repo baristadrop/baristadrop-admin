@@ -5,7 +5,7 @@ import { parsePagination, paginateQuery } from '@/lib/db/pagination';
 import { markPayoutReceived } from '@/lib/affiliate/commissionService';
 import { withErrorHandler } from '@/lib/errorHandler';
 
-const COLUMNS = 'id, affiliate_program_id, amount, currency, status, payout_date, payment_reference, created_at';
+const COLUMNS = 'id, affiliate_program_id, amount, currency, status, payout_date, period_start, period_end, payment_reference, created_at';
 
 // GET /api/admin/affiliate/payouts?affiliate_program_id=...&status=...
 export const GET = withErrorHandler(async (request: Request) => {
@@ -46,6 +46,8 @@ export const POST = withErrorHandler(async (request: Request) => {
       amount,
       currency: (body.currency as string) ?? 'AED',
       payout_date: body.payout_date ?? new Date().toISOString().slice(0, 10),
+      period_start: body.period_start ?? null,
+      period_end: body.period_end ?? null,
       payment_reference: body.payment_reference ?? null,
     })
     .select(COLUMNS)
@@ -65,7 +67,7 @@ export const PATCH = withErrorHandler(async (request: Request) => {
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
 
-  const body = (await request.json().catch(() => ({}))) as { status?: string };
+  const body = (await request.json().catch(() => ({}))) as { status?: string; period_start?: string; period_end?: string };
   const supabase = getAdminClient();
 
   if (body.status === 'RECEIVED') {
@@ -76,6 +78,12 @@ export const PATCH = withErrorHandler(async (request: Request) => {
     }
   } else if (body.status) {
     const { error } = await supabase.from('affiliate_payouts').update({ status: body.status }).eq('id', id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  } else if (body.period_start !== undefined || body.period_end !== undefined) {
+    const { error } = await supabase
+      .from('affiliate_payouts')
+      .update({ period_start: body.period_start ?? null, period_end: body.period_end ?? null })
+      .eq('id', id);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
 

@@ -34,9 +34,12 @@ export async function runCleanupTrackingData(supabase: SupabaseClient): Promise<
 // تحويلات UNMATCHED ممكن كليكها يوصل متأخر (تأخير شبكة/postback) -- هذي
 // المهمة تعيد محاولة المطابقة دورياً بدل ما تفضل عالقة UNMATCHED للأبد.
 export async function runMatchUnmatchedConversions(supabase: SupabaseClient): Promise<string> {
+  // Fix 4: ينتقي أيضاً provider_click_id المخزّن وقت الإنشاء -- بدون هالعمود
+  // كانت المهمة تمرر click_id الفارغ دايماً (UNMATCHED يعني click_id=null
+  // بالتعريف) وما تقدر تطابق شي أبداً.
   const { data: unmatched } = await supabase
     .from('affiliate_conversions')
-    .select('id, affiliate_program_id, provider_conversion_id, click_id')
+    .select('id, affiliate_program_id, provider_conversion_id, click_id, provider_click_id')
     .eq('conversion_status', 'UNMATCHED')
     .limit(200);
 
@@ -50,6 +53,7 @@ export async function runMatchUnmatchedConversions(supabase: SupabaseClient): Pr
       currency: 'AED',
       conversionTime: new Date().toISOString(),
       clickId: row.click_id as string | null,
+      providerClickId: row.provider_click_id as string | null,
     });
     if (!matched) continue;
 
@@ -117,20 +121,35 @@ export async function runProcessAffiliateWebhook(supabase: SupabaseClient, paylo
 
   const { data: event, error } = await supabase
     .from('affiliate_postback_events')
-    .select('affiliate_program_id, provider_code, raw_payload')
+    .select('affiliate_program_id, provider_code, raw_payload, status')
     .eq('id', postbackEventId)
     .single();
   if (error || !event) throw new Error(`postback event not found: ${postbackEventId}`);
+
+  // Fix 1 (حارس دفاعي): لو الحدث خلص فعلاً (رُفض/عُولج/مكرر) قبل ما تشتغل
+  // هالمهمة (مثلاً أعيدت جدولتها قبل نشر إصلاح)، ما نعيد معالجته من الصفر.
+  if (event.status !== 'received') {
+    return `skipped: event already finalized (${event.status})`;
+  }
+
   if (!event.affiliate_program_id || !event.provider_code) {
     await markPostbackEvent(supabase, postbackEventId, 'rejected', 'missing program/provider on event');
     return 'rejected: missing program/provider';
   }
 
-  const provider = ProviderFactory.forCode(event.provider_code as string);
-  const normalized = provider.parseConversion(event.raw_payload);
-  const result = await processConversionEvent(supabase, event.affiliate_program_id as string, normalized);
-  await markPostbackEvent(supabase, postbackEventId, result.outcome === 'duplicate' ? 'duplicate' : 'processed');
-  return `conversion ${result.outcome}: ${result.conversionId}`;
+  try {
+    const provider = ProviderFactory.forCode(event.provider_code as string);
+    const normalized = provider.parseConversion(event.raw_payload);
+    const result = await processConversionEvent(supabase, event.affiliate_program_id as string, normalized);
+    await markPostbackEvent(supabase, postbackEventId, result.outcome === 'duplicate' ? 'duplicate' : 'processed');
+    return `conversion ${result.outcome}: ${result.conversionId}`;
+  } catch (err) {
+    // Fix 5: payload تالف أو محوّل فشل -- نعلّم الحدث بخطأ موثّق بدل ما يضل
+    // 'received' للأبد وتنتهي المهمة ميتة بدون أثر
+    const message = err instanceof Error ? err.message : String(err);
+    await markPostbackEvent(supabase, postbackEventId, 'error', message);
+    throw err; // نعيد رميه عشان جدول الإعادة بالمهمة يشتغل كما صُمّم
+  }
 }
 
 // يسحب تحويلات المزوّدين النشطين اللي عندهم conversion_api/transaction_api

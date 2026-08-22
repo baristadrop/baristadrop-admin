@@ -35,4 +35,9 @@ export interface AffiliateProvider {
 
   // Identity strategy -- يحدد كيف نمنع تحويلات مكررة لهذا المزوّد تحديداً
   getIdempotencyKey(conversion: NormalizedConversion): string;
+
+  // يحدد هوية البرنامج من الـ payload (مثلاً merchant id) عشان نطابقه مع
+  // affiliate_provider_integrations.configuration -- يرجع null لو المزوّد
+  // ما يرسل معرّفاً (عندها نستخدم التكامل الوحيد النشط لهذا المزوّد)
+  extractProgramKey(rawPayload: unknown): { configKey: string; value: string } | null;
 }

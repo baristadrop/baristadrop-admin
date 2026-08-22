@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createMockSupabase } from '../testUtils/mockSupabase';
 
 // AFFILIATE_CREDENTIAL_KEY يُقرأ من process.env وقت الاستدعاء (مو وقت
 // تحميل الموديول) -- تعيينه هنا قبل أي اختبار كافٍ، بدون احتياج لـ mock.
@@ -36,5 +38,28 @@ describe('encryptCredential / decryptCredential', () => {
     delete process.env.AFFILIATE_CREDENTIAL_KEY;
     expect(() => encryptCredential('x')).toThrow(/AFFILIATE_CREDENTIAL_KEY/);
     process.env.AFFILIATE_CREDENTIAL_KEY = original;
+  });
+});
+
+// Fix 12: expires_at كان يُتجاهل تماماً بالاستعلام -- توكن منتهي كان يُستخدم
+// طالما status='active' لسه.
+describe('loadProviderCredentials (Fix 12: expiry enforcement)', () => {
+  it('filters credentials with an expires_at/status .or() clause instead of status alone', async () => {
+    const { loadProviderCredentials } = await import('./credentials');
+    let orArgs: unknown[] | null = null;
+    const { client } = createMockSupabase({
+      affiliate_provider_credentials: (calls) => {
+        const orCall = calls.find((c) => c.method === 'or');
+        orArgs = orCall?.args ?? null;
+        return { data: [], error: null };
+      },
+    });
+
+    await loadProviderCredentials(client as unknown as SupabaseClient, 'integration-1');
+
+    expect(orArgs).not.toBeNull();
+    const filter = String((orArgs ?? [])[0]);
+    expect(filter).toContain('expires_at.is.null');
+    expect(filter).toContain('expires_at.gte.');
   });
 });

@@ -77,4 +77,10 @@ export class DirectMerchantProvider implements AffiliateProvider {
   getIdempotencyKey(conversion: NormalizedConversion): string {
     return conversion.providerConversionId;
   }
+
+  // التاجر المباشر لا يمر بالراوت العام [provider]/route.ts أصلاً (يستخدم
+  // affiliate-purchase الخاص فيه) -- ما فيه هوية برنامج بالـ payload هنا.
+  extractProgramKey(_rawPayload: unknown): { configKey: string; value: string } | null {
+    return null;
+  }
 }

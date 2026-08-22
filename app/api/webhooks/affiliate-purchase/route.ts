@@ -61,20 +61,33 @@ async function resolveProgramId(supabase: any, business: Business): Promise<stri
   return (program?.id as string | undefined) ?? null;
 }
 
+// Fix 8: بدون order_reference، طلبان مختلفان من نفس الكليك (نفس المبلغ حتى)
+// كانا يتصادمان على نفس الهوية (clickId فقط) فيُفقد الثاني كـ"مكرر" للأبد.
+// هوية حتمية من معطيات الطلب نفسه: نفس الدقيقة = نفس الهوية (إعادة المحاولة
+// تبقى idempotent)، طلبان بدقيقتين مختلفتين = هويتان منفصلتان. الحافة
+// المتبقية (طلبان بنفس المبلغ بنفس الدقيقة بدون مرجع) مقبولة كتنازل موثّق --
+// شركاء الـpixel المفروض يرسلون order_reference.
+function v2ConversionIdentity(params: PurchaseParams): string {
+  if (params.orderReference) return params.orderReference;
+  const minuteBucket = Math.floor(Date.now() / 60000);
+  return `${params.clickId}:${params.orderAmount}:${minuteBucket}`;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function recordConversionV2(supabase: any, business: Business, params: PurchaseParams): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
   try {
     const programId = await resolveProgramId(supabase, business);
     if (!programId) return { ok: false, status: 404, error: 'no_affiliate_program_for_business' };
 
+    const identity = v2ConversionIdentity(params);
     await processConversionEvent(supabase, programId, {
-      providerConversionId: params.orderReference ?? params.clickId!,
+      providerConversionId: identity,
       orderId: params.orderReference,
       saleAmount: params.orderAmount,
       currency: params.currency,
       conversionTime: new Date().toISOString(),
       clickId: params.clickId, // صيغة موحّدة -- يطابق فعلياً affiliate_click_events.click_id (مو UNMATCHED مثل مسار dual-write القديم)
-      rawEventId: params.orderReference ?? params.clickId!,
+      rawEventId: identity,
     });
     return { ok: true };
   } catch (err) {

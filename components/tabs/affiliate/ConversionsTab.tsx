@@ -50,6 +50,7 @@ export function ConversionsTab() {
   const [statusFilter, setStatusFilter] = useState<'all' | ConversionStatus>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [linkInputs, setLinkInputs] = useState<Record<string, string>>({});
 
   const load = async () => {
     const [conversionsRes, programsRes] = await Promise.all([
@@ -79,6 +80,27 @@ export function ConversionsTab() {
     else {
       const body = await res.json().catch(() => ({}));
       setError(body.error ?? 'فشل تغيير الحالة');
+    }
+  };
+
+  // Fix 4: ربط يدوي بكليك -- الوحيدة الطريقة لإنقاذ تحويلة UNMATCHED (الكليك
+  // وصل متأخر ولا فيه مطابقة تلقائية، أو محول المزوّد ما أرسل معرّفاً أصلاً).
+  const linkClick = async (id: string) => {
+    const clickId = (linkInputs[id] ?? '').trim();
+    if (!clickId) return;
+    setBusyId(id);
+    setError(null);
+    const res = await adminFetchJson(`${CONVERSIONS_API}?id=${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ conversion_status: 'PENDING', click_id: clickId, reason: 'manual click link (ConversionsTab)' }),
+    });
+    setBusyId(null);
+    if (res.ok) {
+      setLinkInputs((prev) => ({ ...prev, [id]: '' }));
+      load();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل ربط الكليك');
     }
   };
 
@@ -158,18 +180,37 @@ export function ConversionsTab() {
                   </td>
                   <td className="px-3 py-2 text-[11px] text-stone">{new Date(c.conversion_time).toLocaleDateString('ar')}</td>
                   <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-1">
-                      {nextOptions.map((s) => (
+                    {c.conversion_status === 'UNMATCHED' ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          value={linkInputs[c.id] ?? ''}
+                          onChange={(e) => setLinkInputs((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                          placeholder="click_id"
+                          dir="ltr"
+                          className="w-28 rounded-lg border border-latte px-2 py-1 text-[10px] outline-none focus:border-gold"
+                        />
                         <button
-                          key={s}
-                          disabled={busyId === c.id}
-                          onClick={() => transition(c.id, s)}
+                          disabled={busyId === c.id || !(linkInputs[c.id] ?? '').trim()}
+                          onClick={() => linkClick(c.id)}
                           className="rounded-full border border-latte px-2 py-1 text-[10px] text-coffee hover:border-gold disabled:opacity-50"
                         >
-                          {NEXT_STATUS_LABEL[s]}
+                          ربط
                         </button>
-                      ))}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {nextOptions.map((s) => (
+                          <button
+                            key={s}
+                            disabled={busyId === c.id}
+                            onClick={() => transition(c.id, s)}
+                            className="rounded-full border border-latte px-2 py-1 text-[10px] text-coffee hover:border-gold disabled:opacity-50"
+                          >
+                            {NEXT_STATUS_LABEL[s]}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </td>
                 </tr>
               );

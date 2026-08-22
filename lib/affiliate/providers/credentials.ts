@@ -36,11 +36,15 @@ export function decryptCredential(encrypted: string): string {
 // يجيب كل بيانات اعتماد التكامل ويفك تشفيرها لخريطة مسطّحة (credential_type -> value)
 // عشان الأدابتر يقرأها مباشرة (credentials.api_key، credentials.postback_secret، ...).
 export async function loadProviderCredentials(supabase: SupabaseClient, integrationId: string): Promise<ProviderCredentials> {
+  // Fix 12: expires_at كان يُتجاهل تماماً -- توكن Awin/CJ منتهي كان يفضل
+  // يُستخدم لأنه status='active' لسه بغض النظر عن انتهاء صلاحيته الزمنية.
+  const nowIso = new Date().toISOString();
   const { data, error } = await supabase
     .from('affiliate_provider_credentials')
     .select('credential_type, encrypted_value, status')
     .eq('integration_id', integrationId)
-    .eq('status', 'active');
+    .eq('status', 'active')
+    .or(`expires_at.is.null,expires_at.gte.${nowIso}`);
 
   if (error || !data) return {};
 

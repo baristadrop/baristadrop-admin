@@ -93,4 +93,12 @@ export class AwinProvider implements AffiliateProvider {
   getIdempotencyKey(conversion: NormalizedConversion): string {
     return conversion.providerTransactionId ?? conversion.providerConversionId;
   }
+
+  // awinmid يُمرَّر بالرابط الصادر (generateTrackingUrl) و Awin يفترض يردّه
+  // بنفس البوستباك -- غير مؤكد على حساب Awin حقيقي بعد (سقالة، انظر ملاحظة الملف).
+  extractProgramKey(rawPayload: unknown): { configKey: string; value: string } | null {
+    const p = rawPayload as Record<string, unknown>;
+    const value = String(p.awinmid ?? p.advertiserId ?? '');
+    return value ? { configKey: 'awinMerchantId', value } : null;
+  }
 }

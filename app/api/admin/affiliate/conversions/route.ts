@@ -47,15 +47,34 @@ export const PATCH = withErrorHandler(async (request: Request) => {
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
 
-  const body = (await request.json().catch(() => ({}))) as { conversion_status?: ConversionStatus; reason?: string };
+  const body = (await request.json().catch(() => ({}))) as { conversion_status?: ConversionStatus; reason?: string; click_id?: string };
   if (!body.conversion_status) return NextResponse.json({ error: 'conversion_status is required' }, { status: 400 });
 
   const supabase = getAdminClient();
-  const { data: current, error: fetchError } = await supabase.from('affiliate_conversions').select('conversion_status').eq('id', id).single();
+  const { data: current, error: fetchError } = await supabase
+    .from('affiliate_conversions')
+    .select('affiliate_program_id, conversion_status')
+    .eq('id', id)
+    .single();
   if (fetchError || !current) return NextResponse.json({ error: 'conversion not found' }, { status: 404 });
 
   if (!isValidConversionTransition(current.conversion_status as ConversionStatus, body.conversion_status)) {
     return NextResponse.json({ error: `cannot transition from ${current.conversion_status} to ${body.conversion_status}` }, { status: 400 });
+  }
+
+  // Fix 4: ربط يدوي بكليك -- يُستخدم لتحويلات UNMATCHED->PENDING اللي تحتاج
+  // click_id حقيقي قبل ما تنتقل الحالة (تحقق الانتماء لنفس البرنامج أولاً
+  // عشان ما يُربط كليك من برنامج ثاني).
+  if (body.click_id) {
+    const { data: click } = await supabase
+      .from('affiliate_click_events')
+      .select('id')
+      .eq('click_id', body.click_id)
+      .eq('affiliate_program_id', current.affiliate_program_id as string)
+      .maybeSingle();
+    if (!click) return NextResponse.json({ error: 'click_not_found_for_program' }, { status: 400 });
+
+    await supabase.from('affiliate_conversions').update({ click_id: body.click_id, updated_at: new Date().toISOString() }).eq('id', id);
   }
 
   const result = await transitionConversionStatus(supabase, id, body.conversion_status, {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { calculateCommission, getProgramBalance, postLedgerEntry } from './commissionService';
+import { calculateCommission, getProgramBalance, markPayoutReceived, postLedgerEntry } from './commissionService';
 import { createMockSupabase } from './testUtils/mockSupabase';
 
 type Rule = {
@@ -182,5 +182,56 @@ describe('getProgramBalance', () => {
     expect(balance.paid).toBe(-50);
     expect(balance.outstanding).toBe(30); // 100 - 20 - 50
     expect(balance.currency).toBe('AED');
+  });
+});
+
+// Fix 3: يقفل حلقة APPROVED → PAID -- بدون هذا كان markPayoutReceived يسجّل
+// القيد المالي بس ما ينقل حالة أي تحويلة لـPAID أبداً.
+describe('markPayoutReceived (Fix 3: APPROVED → PAID within the payout window)', () => {
+  it('transitions APPROVED conversions inside the period to PAID and leaves out-of-window ones untouched', async () => {
+    const transitioned: string[] = [];
+    const { client } = createMockSupabase(
+      {
+        affiliate_payouts: (calls) => {
+          if (calls.some((c) => c.method === 'update')) return { data: null, error: null };
+          return {
+            data: {
+              affiliate_program_id: 'prog-1',
+              amount: 500,
+              currency: 'AED',
+              status: 'EXPECTED',
+              period_start: '2026-01-01',
+              period_end: '2026-01-31',
+              payout_date: '2026-02-01',
+            },
+            error: null,
+          };
+        },
+        affiliate_conversions: () => ({ data: [{ id: 'conv-in-window' }], error: null }),
+        affiliate_commission_ledger: () => ({ data: null, error: null }),
+      },
+      {
+        affiliate_transition_conversion: (params) => {
+          transitioned.push(params.p_conversion_id as string);
+          return { data: null, error: null };
+        },
+      }
+    );
+
+    const result = await markPayoutReceived(client as unknown as SupabaseClient, 'payout-1');
+    expect(result.outcome).toBe('received');
+    expect(transitioned).toEqual(['conv-in-window']);
+  });
+
+  it('returns already_processed without touching any conversion when the payout was already received', async () => {
+    const { client } = createMockSupabase({
+      affiliate_payouts: () => ({
+        data: { affiliate_program_id: 'prog-1', amount: 500, currency: 'AED', status: 'RECEIVED', period_start: null, period_end: null, payout_date: '2026-02-01' },
+        error: null,
+      }),
+    });
+
+    const result = await markPayoutReceived(client as unknown as SupabaseClient, 'payout-2');
+    expect(result.outcome).toBe('already_processed');
   });
 });

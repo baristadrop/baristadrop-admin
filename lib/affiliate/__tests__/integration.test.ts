@@ -20,26 +20,26 @@ describe('Integration: Webhook → Conversion → Ledger flow', () => {
   };
 
   it('creates conversion as UNMATCHED when no click matches, and posts ledger entry', async () => {
-    const { client } = createMockSupabase({
-      affiliate_conversions: (calls) => {
-        if (calls.some((c) => c.method === 'insert')) {
-          return { data: { id: 'conv-int-001' }, error: null };
-        }
-        return { data: null, error: null }; // no duplicate
+    const { client } = createMockSupabase(
+      {
+        // Fix 9: الإنشاء الفعلي (تحويلة + حدث + قيد) صار عبر RPC ذرية واحدة --
+        // هذا الجدول يُستعلَم بس لفحص التكرار قبل استدعاء الـRPC.
+        affiliate_conversions: () => ({ data: null, error: null }), // no duplicate
+        affiliate_click_events: () => ({ data: null, error: null }),
+        affiliate_commission_rules: () => ({
+          data: [{ commission_rate: 10, commission_model: 'percentage', currency: 'AED' }],
+          error: null,
+        }),
+        // Fix 14: UNMATCHED يجدول إعادة مطابقة -- ما فيه مهمة سابقة، فيُضاف واحدة
+        affiliate_jobs: (calls) => {
+          if (calls.some((c) => c.method === 'insert')) return { data: { id: 'job-follow-up' }, error: null };
+          return { data: [], error: null };
+        },
       },
-      affiliate_click_events: () => ({ data: null, error: null }),
-      affiliate_commission_rules: () => ({
-        data: [{ commission_rate: 10, commission_model: 'percentage', currency: 'AED' }],
-        error: null,
-      }),
-      affiliate_conversion_events: () => ({ data: null, error: null }),
-      affiliate_commission_ledger: (calls) => {
-        if (calls.some((c) => c.method === 'insert')) {
-          return { data: null, error: null };
-        }
-        return { data: [], error: null };
-      },
-    });
+      {
+        affiliate_record_conversion: () => ({ data: { outcome: 'created', conversion_id: 'conv-int-001' }, error: null }),
+      }
+    );
 
     const result = await processConversionEvent(client as unknown as SupabaseClient, programId, conversion);
 

@@ -41,6 +41,23 @@ describe('DirectMerchantProvider', () => {
   it('never calls a live API for conversions (postback-only provider)', async () => {
     await expect(provider.fetchConversions()).resolves.toEqual([]);
   });
+
+  // Fix 1 verification -- validatePostback يحمي الراوت العام؛ لازم يرفض بدون
+  // السر الصحيح ويقبل بيه بالضبط.
+  it('validatePostback rejects a missing token', async () => {
+    const request = new Request('https://x.test/api/webhooks/direct');
+    expect(await provider.validatePostback(request, { postback_secret: 'correct' })).toBe(false);
+  });
+
+  it('validatePostback accepts the correct token', async () => {
+    const request = new Request('https://x.test/api/webhooks/direct?token=correct');
+    expect(await provider.validatePostback(request, { postback_secret: 'correct' })).toBe(true);
+  });
+
+  // Fix 2 verification -- التاجر المباشر لا يمر بالراوت العام أصلاً
+  it('extractProgramKey never resolves a program key (single active integration path only)', () => {
+    expect(provider.extractProgramKey({})).toBeNull();
+  });
 });
 
 describe('AwinProvider', () => {
@@ -78,6 +95,28 @@ describe('AwinProvider', () => {
     });
     expect(key).toBe('txn-1');
   });
+
+  // Fix 1 verification
+  it('validatePostback rejects a missing password', async () => {
+    const request = new Request('https://x.test/api/webhooks/awin');
+    expect(await provider.validatePostback(request, { postback_secret: 'correct' })).toBe(false);
+  });
+
+  it('validatePostback rejects a wrong password', async () => {
+    const request = new Request('https://x.test/api/webhooks/awin?password=wrong');
+    expect(await provider.validatePostback(request, { postback_secret: 'correct' })).toBe(false);
+  });
+
+  it('validatePostback accepts the correct password', async () => {
+    const request = new Request('https://x.test/api/webhooks/awin?password=correct');
+    expect(await provider.validatePostback(request, { postback_secret: 'correct' })).toBe(true);
+  });
+
+  // Fix 2 verification
+  it('extractProgramKey reads awinmid from the payload', () => {
+    expect(provider.extractProgramKey({ awinmid: 'M1' })).toEqual({ configKey: 'awinMerchantId', value: 'M1' });
+    expect(provider.extractProgramKey({})).toBeNull();
+  });
 });
 
 describe('CJProvider', () => {
@@ -99,6 +138,23 @@ describe('CJProvider', () => {
     expect(parsed.providerConversionId).toBe('cj-txn-1');
     expect(parsed.saleAmount).toBe(80);
     expect(parsed.clickId).toBe('CLK-3');
+  });
+
+  // Fix 1 verification
+  it('validatePostback rejects a wrong token', async () => {
+    const request = new Request('https://x.test/api/webhooks/cj?token=wrong');
+    expect(await provider.validatePostback(request, { postback_secret: 'correct' })).toBe(false);
+  });
+
+  it('validatePostback accepts the correct token', async () => {
+    const request = new Request('https://x.test/api/webhooks/cj?token=correct');
+    expect(await provider.validatePostback(request, { postback_secret: 'correct' })).toBe(true);
+  });
+
+  // Fix 2 verification
+  it('extractProgramKey reads advertiserId from the payload', () => {
+    expect(provider.extractProgramKey({ advertiserId: 'A1' })).toEqual({ configKey: 'cjAdvertiserId', value: 'A1' });
+    expect(provider.extractProgramKey({})).toBeNull();
   });
 });
 
@@ -122,5 +178,10 @@ describe('AmazonProvider', () => {
   it('honestly has no live conversion API (Associates does not offer one to standard partners)', async () => {
     await expect(provider.fetchConversions()).rejects.toThrow(/report_import/);
     expect(provider.capabilities.conversion_api).toBe(false);
+  });
+
+  // Fix 2 verification -- ما فيه معرّف معلن لكل payload بتقارير Associates
+  it('extractProgramKey never resolves a program key (single active integration path only)', () => {
+    expect(provider.extractProgramKey({})).toBeNull();
   });
 });

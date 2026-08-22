@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { transitionConversionStatus } from './conversionEngine';
 import type { CommissionBalance, CommissionResult, LedgerEventType, NormalizedConversion } from './types';
 
 type CommissionRuleRow = {
@@ -129,7 +130,7 @@ export async function postLedgerEntry(
 export async function markPayoutReceived(supabase: SupabaseClient, payoutId: string): Promise<{ outcome: 'received' | 'already_processed' }> {
   const { data: payout, error } = await supabase
     .from('affiliate_payouts')
-    .select('affiliate_program_id, amount, currency, status')
+    .select('affiliate_program_id, amount, currency, status, period_start, period_end, payout_date')
     .eq('id', payoutId)
     .single();
   if (error || !payout) throw new Error(`payout not found: ${payoutId}`);
@@ -143,6 +144,25 @@ export async function markPayoutReceived(supabase: SupabaseClient, payoutId: str
     currency: payout.currency as string,
     reference: `payout ${payoutId} received`,
   });
+
+  // Fix 3: يقفل حلقة APPROVED → PAID المعرّفة بآلة الحالة لكن ما كان يستدعيها
+  // أحد -- يعلّم تحويلات APPROVED الواقعة داخل نافذة الدفعة كمدفوعة. القيد
+  // المالي الوحيد هو PAYOUT_RECEIVED أعلاه؛ الانتقال هنا سجل حالة/تدقيق فقط
+  // (بدون مبلغ ledger جديد) عشان ما يتكرر حساب الرصيد.
+  let scope = supabase
+    .from('affiliate_conversions')
+    .select('id')
+    .eq('affiliate_program_id', payout.affiliate_program_id as string)
+    .eq('conversion_status', 'APPROVED');
+  if (payout.period_start) scope = scope.gte('approved_at', payout.period_start as string);
+  if (payout.period_end) scope = scope.lte('approved_at', `${payout.period_end}T23:59:59.999Z`);
+  else if (!payout.period_start) scope = scope.lte('approved_at', `${payout.payout_date}T23:59:59.999Z`);
+
+  const { data: approvedRows } = await scope;
+  for (const row of approvedRows ?? []) {
+    await transitionConversionStatus(supabase, row.id as string, 'PAID', { reason: `payout ${payoutId} received` });
+  }
+
   return { outcome: 'received' };
 }
 
@@ -170,7 +190,14 @@ export async function getProgramBalance(supabase: SupabaseClient, affiliateProgr
 
 const LEDGER_PAGE_SIZE = 1000;
 
+// Fix 11: النسخة القديمة كانت تاخذ عملة "آخر صف" وتجمع كل الصفوف فيها بغض
+// النظر عن عملتها الفعلية -- تخلط عملات مختلفة برقم واحد مضلل. الآن نقرأ
+// عملة البرنامج الأساسية (migration 0071) ونستبعد أي صف بعملة مختلفة بدل
+// ما نجمعه بالخطأ (لا يوجد خدمة تحويل عملة حية بعد -- Fix 11 out-of-scope).
 async function getProgramBalanceLegacy(supabase: SupabaseClient, affiliateProgramId: string): Promise<CommissionBalance> {
+  const { data: program } = await supabase.from('affiliate_programs').select('currency').eq('id', affiliateProgramId).single();
+  const baseCurrency = (program?.currency as string | undefined) ?? 'AED';
+
   const totals: Record<LedgerEventType, number> = {
     CONVERSION_PENDING: 0,
     CONVERSION_APPROVED: 0,
@@ -181,9 +208,9 @@ async function getProgramBalanceLegacy(supabase: SupabaseClient, affiliateProgra
     MANUAL_ADJUSTMENT: 0,
     RECONCILIATION_ADJUSTMENT: 0,
   };
-  let currency = 'AED';
 
   let from = 0;
+  let skippedCount = 0;
   for (;;) {
     const { data, error } = await supabase
       .from('affiliate_commission_ledger')
@@ -194,12 +221,19 @@ async function getProgramBalanceLegacy(supabase: SupabaseClient, affiliateProgra
     if (error || !data || data.length === 0) break;
 
     for (const row of data) {
+      if (row.currency !== baseCurrency) {
+        skippedCount += 1;
+        continue;
+      }
       totals[row.event_type as LedgerEventType] += Number(row.amount);
-      currency = row.currency;
     }
 
     if (data.length < LEDGER_PAGE_SIZE) break;
     from += LEDGER_PAGE_SIZE;
+  }
+
+  if (skippedCount > 0) {
+    console.warn(`[commissionService] ${skippedCount} ledger rows in foreign currencies excluded from balance for program ${affiliateProgramId}`);
   }
 
   const expected = totals.CONVERSION_PENDING + totals.CONVERSION_APPROVED + totals.MANUAL_ADJUSTMENT + totals.RECONCILIATION_ADJUSTMENT;
@@ -211,6 +245,6 @@ async function getProgramBalanceLegacy(supabase: SupabaseClient, affiliateProgra
     reversed,
     paid,
     outstanding: expected + reversed + paid,
-    currency,
+    currency: baseCurrency,
   };
 }

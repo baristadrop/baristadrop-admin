@@ -70,4 +70,10 @@ export class AmazonProvider implements AffiliateProvider {
   getIdempotencyKey(conversion: NormalizedConversion): string {
     return conversion.orderId ?? conversion.providerConversionId;
   }
+
+  // ما فيه معرّف معلن لكل payload بتقارير Associates -- التكامل النشط الوحيد
+  // لهذا المزوّد هو المستخدَم دايماً (resolveIntegration يتعامل مع هذا).
+  extractProgramKey(_rawPayload: unknown): { configKey: string; value: string } | null {
+    return null;
+  }
 }

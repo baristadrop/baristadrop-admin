@@ -88,4 +88,12 @@ export class CJProvider implements AffiliateProvider {
   getIdempotencyKey(conversion: NormalizedConversion): string {
     return conversion.providerTransactionId ?? conversion.providerConversionId;
   }
+
+  // اسم الحقل غير مؤكد على حساب CJ حقيقي بعد (سقالة، انظر ملاحظة الملف) --
+  // CJ's postback عادة يرسل advertiserId أو companyId، يحتاج تأكيد من توثيق حقيقي.
+  extractProgramKey(rawPayload: unknown): { configKey: string; value: string } | null {
+    const p = rawPayload as Record<string, unknown>;
+    const value = String(p.advertiserId ?? p.companyId ?? '');
+    return value ? { configKey: 'cjAdvertiserId', value } : null;
+  }
 }
