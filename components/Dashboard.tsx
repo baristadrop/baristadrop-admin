@@ -8,6 +8,7 @@ import { TrackingTab } from './tabs/TrackingTab';
 import { ProductClicksTab } from './tabs/ProductClicksTab';
 import { RecipesTab } from './tabs/RecipesTab';
 import { BeansTab } from './tabs/BeansTab';
+import { MarketplaceListingsTab } from './tabs/MarketplaceListingsTab';
 import { BusinessesTab } from './tabs/BusinessesTab';
 import { SuppliersTab } from './tabs/SuppliersTab';
 import { TeamTab } from './tabs/TeamTab';
@@ -52,6 +53,7 @@ import {
   LinkIcon,
   ScaleIcon,
   WalletIcon,
+  TagIcon,
 } from './icons/NavIcons';
 
 export type TabKey =
@@ -61,6 +63,7 @@ export type TabKey =
   | 'top'
   | 'recipes'
   | 'beans'
+  | 'marketplaceListings'
   | 'businesses'
   | 'suppliers'
   | 'store'
@@ -96,6 +99,7 @@ const NAV_GROUPS: NavGroup[] = [
     tabs: [
       { key: 'recipes', label: 'الوصفات المعلّقة', Icon: CupIcon },
       { key: 'beans', label: 'المحاصيل المعلّقة', Icon: BeanIcon },
+      { key: 'marketplaceListings', label: 'سوق المعدات المستعملة', Icon: TagIcon },
     ],
   },
   {
@@ -223,6 +227,7 @@ export function Dashboard({
           {active === 'top' && <TopBeansTab />}
           {active === 'recipes' && <RecipesTab />}
           {active === 'beans' && <BeansTab />}
+          {active === 'marketplaceListings' && <MarketplaceListingsTab />}
           {active === 'businesses' && <BusinessesTab />}
           {active === 'suppliers' && <SuppliersTab />}
           {active === 'store' && <ProductsTab />}
