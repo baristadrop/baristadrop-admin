@@ -1,8 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
+import { Sidebar, type SidebarGroup } from '@/components/ui/Sidebar';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Button } from '@/components/ui/Button';
+import { ToastProvider } from '@/components/ui/Toast';
 import { OverviewTab } from './tabs/OverviewTab';
 import { TrackingTab } from './tabs/TrackingTab';
 import { ProductClicksTab } from './tabs/ProductClicksTab';
@@ -81,10 +86,10 @@ export type TabKey =
   | 'affiliateReconciliation'
   | 'affiliatePayouts';
 
-type NavTab = { key: TabKey; label: string; Icon: (props: { className?: string }) => React.JSX.Element };
-type NavGroup = { label: string; tabs: NavTab[] };
+type NavGroup = SidebarGroup<TabKey>;
 
-const NAV_GROUPS: NavGroup[] = [
+function buildNavGroups(counts: { recipes: number; beans: number; marketplaceListings: number }): NavGroup[] {
+  return [
   {
     label: 'نظرة عامة وتحليلات',
     tabs: [
@@ -97,9 +102,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'قائمة المراجعة',
     tabs: [
-      { key: 'recipes', label: 'الوصفات المعلّقة', Icon: CupIcon },
-      { key: 'beans', label: 'المحاصيل المعلّقة', Icon: BeanIcon },
-      { key: 'marketplaceListings', label: 'سوق المعدات المستعملة', Icon: TagIcon },
+      { key: 'recipes', label: 'الوصفات المعلّقة', Icon: CupIcon, badge: counts.recipes },
+      { key: 'beans', label: 'المحاصيل المعلّقة', Icon: BeanIcon, badge: counts.beans },
+      { key: 'marketplaceListings', label: 'سوق المعدات المستعملة', Icon: TagIcon, badge: counts.marketplaceListings },
     ],
   },
   {
@@ -147,9 +152,8 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'الفريق',
     tabs: [{ key: 'team', label: 'الفريق', Icon: ShieldIcon }],
   },
-];
-
-const ALL_TABS: NavTab[] = NAV_GROUPS.flatMap((g) => g.tabs);
+  ];
+}
 
 type Profile = { full_name: string | null };
 
@@ -163,64 +167,49 @@ export function Dashboard({
   signOut: () => void;
 }) {
   const [active, setActive] = useState<TabKey>('overview');
-  const activeLabel = ALL_TABS.find((t) => t.key === active)?.label ?? '';
+  const [counts, setCounts] = useState({ recipes: 0, beans: 0, marketplaceListings: 0 });
+
+  useEffect(() => {
+    (async () => {
+      const [{ data: stats }, { count: listingsCount }] = await Promise.all([
+        supabase.rpc('get_overview_stats').single<{ pending_recipes: number; pending_beans: number }>(),
+        supabase.from('marketplace_listings').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
+      ]);
+      setCounts({
+        recipes: stats?.pending_recipes ?? 0,
+        beans: stats?.pending_beans ?? 0,
+        marketplaceListings: listingsCount ?? 0,
+      });
+    })();
+  }, []);
+
+  const navGroups = buildNavGroups(counts);
+  const allTabs = navGroups.flatMap((g) => g.tabs);
+  const activeLabel = allTabs.find((t) => t.key === active)?.label ?? '';
+
+  const headerBrand = (
+    <div>
+      <h1 className="font-[var(--font-cormorant)] text-xl font-bold tracking-wide text-gold">BARISTA DROP</h1>
+      <p className="text-xs text-sand/80">لوحة التحكم</p>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-ink lg:flex">
-      <aside className="border-b border-mocha/30 bg-coffee lg:h-screen lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:border-l">
-        <div className="px-5 py-5">
-          <h1 className="font-[var(--font-cormorant)] text-xl font-bold tracking-wide text-gold">BARISTA DROP</h1>
-          <p className="text-xs text-sand/80">لوحة التحكم</p>
-        </div>
+    <ToastProvider>
+      <div className="min-h-screen bg-ink lg:flex">
+        <Sidebar groups={navGroups} active={active} onSelect={setActive} header={headerBrand} />
 
-        <nav className="flex flex-col gap-5 px-3 pb-6">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label}>
-              <p className="mb-1.5 px-2 text-[11px] font-semibold tracking-wide text-sand/70">{group.label}</p>
-              <div className="flex flex-col gap-1">
-                {group.tabs.map((tab) => {
-                  const Icon = tab.Icon;
-                  const isActive = active === tab.key;
-                  return (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActive(tab.key)}
-                      className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition ${
-                        isActive
-                          ? 'bg-gold text-cream shadow-sm'
-                          : 'text-sand hover:bg-white/5'
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-cream' : 'text-sand'}`} />
-                      <span className="text-right">{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-      </aside>
+        <div className="min-w-0 flex-1">
+          <PageHeader title={activeLabel}>
+            <span className="rounded-full bg-white/10 px-3 py-1.5 font-medium text-sand">
+              {profile?.full_name || session?.user.email}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => signOut()} className="border-mocha/40 bg-transparent text-sand hover:border-gold hover:bg-white/5">
+              تسجيل خروج
+            </Button>
+          </PageHeader>
 
-      <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-10 border-b border-mocha/30 bg-coffee/95 shadow-[0_1px_0_0_rgba(0,0,0,0.2)] backdrop-blur">
-          <div className="flex items-center justify-between px-6 py-4">
-            <h2 className="font-[var(--font-el-messiri)] text-lg text-cream">{activeLabel}</h2>
-            <div className="flex items-center gap-3 text-sm text-stone">
-              <span className="rounded-full bg-white/10 px-3 py-1.5 font-medium text-sand">
-                {profile?.full_name || session?.user.email}
-              </span>
-              <button
-                onClick={() => signOut()}
-                className="rounded-full border border-mocha/40 px-3 py-1.5 font-medium text-sand transition hover:border-gold hover:bg-white/5"
-              >
-                تسجيل خروج
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <main id="main-content" className="min-h-screen bg-canvas px-6 py-8">
+          <main id="main-content" className="min-h-screen bg-canvas px-6 py-8">
           {active === 'overview' && <OverviewTab onNavigate={setActive} />}
           {active === 'tracking' && <TrackingTab />}
           {active === 'productClicks' && <ProductClicksTab />}
@@ -244,8 +233,9 @@ export function Dashboard({
           {active === 'affiliateReconciliation' && <ReconciliationTab />}
           {active === 'affiliatePayouts' && <PayoutsTab />}
           {active === 'team' && <TeamTab />}
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
+    </ToastProvider>
   );
 }

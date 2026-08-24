@@ -2,6 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
+import { Button } from '@/components/ui/Button';
+import { FilterBar } from '@/components/ui/FilterBar';
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { useToast } from '@/components/ui/Toast';
 
 type HistoryRow = {
   id: string;
@@ -26,11 +33,11 @@ const AUDIENCE_LABEL: Record<string, string> = Object.fromEntries(
 );
 
 export function NotificationsTab() {
+  const { toast } = useToast();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [audience, setAudience] = useState('all');
   const [sending, setSending] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryRow[] | null>(null);
 
   const loadHistory = async () => {
@@ -52,7 +59,6 @@ export function NotificationsTab() {
   const handleSend = async () => {
     if (!canSend) return;
     setSending(true);
-    setMessage(null);
     const sessionRes = await supabase.auth.getSession();
     const token = sessionRes.data.session?.access_token;
     const res = await fetch('/api/admin/send-notification', {
@@ -63,10 +69,10 @@ export function NotificationsTab() {
     const json = await res.json();
     setSending(false);
     if (!res.ok) {
-      setMessage(json.error ?? 'صار خطأ، جرّب مرة ثانية');
+      toast({ title: 'صار خطأ', description: json.error ?? 'جرّب مرة ثانية', variant: 'destructive' });
       return;
     }
-    setMessage(`تم الإرسال لـ${json.sentCount} مستخدم ✓`);
+    toast({ title: `تم الإرسال لـ${json.sentCount} مستخدم`, variant: 'success' });
     setTitle('');
     setBody('');
     loadHistory();
@@ -74,53 +80,22 @@ export function NotificationsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
+      <Card className="p-5">
         <p className="mb-1 font-[var(--font-el-messiri)] text-base text-ink">إشعار جديد</p>
         <p className="mb-4 text-xs text-mocha">
           يُرسل فورًا لكل مستخدم فعّل الإشعارات ضمن الجمهور المختار. لا يوجد إرسال تلقائي أو مجدول — القرار
           والتوقيت بيدك دائمًا.
         </p>
 
-        {message && <p className="mb-3 rounded-lg bg-sand px-3 py-2 text-sm text-coffee">{message}</p>}
-
         <div className="space-y-3">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="عنوان الإشعار"
-            maxLength={60}
-            className="w-full rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold"
-          />
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="نص الإشعار"
-            rows={3}
-            maxLength={180}
-            className="w-full rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold"
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            {AUDIENCE_OPTIONS.map((o) => (
-              <button
-                key={o.value}
-                onClick={() => setAudience(o.value)}
-                className={`rounded-full border px-3 py-1.5 text-xs ${
-                  audience === o.value ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
-                }`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={handleSend}
-            disabled={!canSend}
-            className="rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-cream disabled:opacity-50"
-          >
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="عنوان الإشعار" maxLength={60} />
+          <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="نص الإشعار" rows={3} maxLength={180} />
+          <FilterBar options={AUDIENCE_OPTIONS} value={audience} onChange={setAudience} />
+          <Button onClick={handleSend} disabled={!canSend}>
             {sending ? 'جاري الإرسال...' : 'إرسال الإشعار'}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       <div className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
         <p className="border-b border-latte p-4 font-[var(--font-el-messiri)] text-base text-ink">
@@ -129,7 +104,7 @@ export function NotificationsTab() {
         {!history ? (
           <p className="p-4 text-sm text-mocha">تحميل...</p>
         ) : history.length === 0 ? (
-          <p className="p-4 text-sm text-mocha">ما فيه إشعارات مرسلة بعد.</p>
+          <EmptyState title="ما فيه إشعارات مرسلة بعد" />
         ) : (
           history.map((h) => (
             <div key={h.id} className="border-b border-latte/60 p-4 last:border-0">

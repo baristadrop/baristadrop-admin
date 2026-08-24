@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 
 type UserRow = {
   id: string;
@@ -13,6 +18,7 @@ type UserRow = {
 };
 
 const ROLE_OPTIONS = ['user', 'roaster', 'supplier', 'cafe', 'admin'];
+const ROLE_SELECT_OPTIONS = ROLE_OPTIONS.map((r) => ({ value: r, label: r }));
 
 async function authHeader() {
   const { data } = await supabase.auth.getSession();
@@ -75,98 +81,41 @@ export function TeamTab() {
     setCreating(false);
   };
 
-  if (error) return <p className="text-[#B3392C]">{error}</p>;
+  if (error) return <p className="text-danger">{error}</p>;
   if (!rows) return <p className="text-mocha">تحميل...</p>;
+
+  const columns: DataTableColumn<UserRow>[] = [
+    { key: 'name', header: 'الاسم', render: (u) => u.full_name || '—', sortValue: (u) => u.full_name ?? '' },
+    { key: 'email', header: 'الإيميل', render: (u) => <span dir="ltr">{u.email}</span>, sortValue: (u) => u.email ?? '' },
+    {
+      key: 'role',
+      header: 'الصلاحية',
+      render: (u) => <Select value={u.role} onChange={(v) => changeRole(u.id, v)} options={ROLE_SELECT_OPTIONS} className="h-8 w-32 text-xs" />,
+    },
+  ];
 
   return (
     <div>
-      <form
-        onSubmit={handleCreate}
-        className="mb-6 rounded-2xl border border-latte bg-white p-5 shadow-sm"
-      >
-        <p className="mb-3 font-[var(--font-el-messiri)] text-base text-ink">إضافة عضو فريق جديد</p>
-        {createError && <p className="mb-3 rounded-lg bg-sand px-3 py-2 text-sm text-[#B3392C]">{createError}</p>}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-          <input
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="الاسم"
-            className="rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold"
-          />
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="الإيميل"
-            type="email"
-            dir="ltr"
-            className="rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold"
-          />
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="كلمة المرور"
-            type="password"
-            dir="ltr"
-            className="rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold"
-          />
-          <select
-            value={newRole}
-            onChange={(e) => setNewRole(e.target.value)}
-            className="rounded-lg border border-latte bg-paper px-3 py-2 text-sm"
-          >
-            {ROLE_OPTIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button
-          type="submit"
-          disabled={creating || !email.trim() || password.length < 6}
-          className="mt-3 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-cream disabled:opacity-50"
-        >
-          {creating ? '...' : 'إضافة'}
-        </button>
-      </form>
+      <Card className="mb-6 p-5">
+        <form onSubmit={handleCreate}>
+          <p className="mb-3 font-[var(--font-el-messiri)] text-base text-ink">إضافة عضو فريق جديد</p>
+          {createError && <p className="mb-3 rounded-lg bg-danger-bg px-3 py-2 text-sm text-danger">{createError}</p>}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="الاسم" />
+            <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="الإيميل" type="email" dir="ltr" />
+            <Input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="كلمة المرور" type="password" dir="ltr" />
+            <Select value={newRole} onChange={setNewRole} options={ROLE_SELECT_OPTIONS} />
+          </div>
+          <Button type="submit" disabled={creating || !email.trim() || password.length < 6} className="mt-3">
+            {creating ? '...' : 'إضافة'}
+          </Button>
+        </form>
+      </Card>
 
       <p className="mb-4 text-sm text-mocha">
         كل مستخدم مسجّل بالتطبيق (أو أضفته هنا) يظهر بالجدول. أعطِ أي حساب صلاحية "أدمن" أو "محمصة" أو "مورّد" حسب دوره.
       </p>
-      <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
-        <table className="w-full min-w-[640px] text-sm">
-          <thead>
-            <tr className="border-b border-latte bg-sand/40 text-mocha">
-              <th className="p-3 text-right">الاسم</th>
-              <th className="p-3 text-right">الإيميل</th>
-              <th className="p-3 text-right">الصلاحية</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((u) => (
-              <tr key={u.id} className="border-b border-latte/60">
-                <td className="p-3 font-medium text-ink">{u.full_name || '—'}</td>
-                <td className="p-3 text-xs text-mocha" dir="ltr">
-                  {u.email}
-                </td>
-                <td className="p-3">
-                  <select
-                    value={u.role}
-                    onChange={(e) => changeRole(u.id, e.target.value)}
-                    className="rounded-lg border border-latte bg-paper px-2 py-1 text-xs"
-                  >
-                    {ROLE_OPTIONS.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable columns={columns} data={rows} emptyMessage="ما فيه أعضاء بعد." />
     </div>
   );
 }

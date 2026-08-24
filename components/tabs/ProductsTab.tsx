@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
 import { ICON_OPTIONS, iconGlyph } from '@/lib/categoryIcons';
+import { AlertDialog } from '@/components/ui/AlertDialog';
+import { useToast } from '@/components/ui/Toast';
 
 type ProductCategoryRow = {
   key: string;
@@ -76,6 +78,7 @@ function CategoryManager({
   const [newNameEn, setNewNameEn] = useState('');
   const [newIcon, setNewIcon] = useState('box');
   const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const addCategory = async () => {
     const key = newKey.trim().toLowerCase().replace(/\s+/g, '_');
@@ -90,7 +93,7 @@ function CategoryManager({
     });
     setSubmitting(false);
     if (error) {
-      alert('صار خطأ: ' + error.message);
+      toast({ title: 'صار خطأ', description: error.message, variant: 'destructive' });
       return;
     }
     setNewKey('');
@@ -198,6 +201,7 @@ function NewProductForm({
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!category && categories[0]) setCategory(categories[0].key);
@@ -235,7 +239,7 @@ function NewProductForm({
     });
     setSubmitting(false);
     if (error) {
-      alert('صار خطأ: ' + error.message);
+      toast({ title: 'صار خطأ', description: error.message, variant: 'destructive' });
       return;
     }
     reset();
@@ -331,6 +335,7 @@ function ProductCard({
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const { toast } = useToast();
   const isVendorOwned = Boolean(product.supplier_id || product.cafe_id || product.roaster_id);
 
   const saveField = async (field: 'name' | 'price' | 'description' | 'external_url', value: string) => {
@@ -365,13 +370,9 @@ function ProductCard({
   };
 
   const remove = async () => {
-    if (!confirmingDelete) {
-      setConfirmingDelete(true);
-      return;
-    }
     const { error } = await supabase.from('products').delete().eq('id', product.id);
     if (error) {
-      alert('فشل الحذف: ' + error.message);
+      toast({ title: 'فشل الحذف', description: error.message, variant: 'destructive' });
       setConfirmingDelete(false);
       return;
     }
@@ -479,20 +480,17 @@ function ProductCard({
           مفعّل
         </label>
         <div className="flex items-center gap-2">
-          {confirmingDelete && (
-            <button
-              onClick={() => setConfirmingDelete(false)}
-              className="text-xs text-mocha underline"
-            >
-              تراجع
-            </button>
-          )}
-          <button
-            onClick={remove}
-            className={`text-xs underline ${confirmingDelete ? 'font-bold text-red-700' : 'text-red-600'}`}
-          >
-            {confirmingDelete ? 'تأكيد الحذف؟' : 'حذف'}
+          <button onClick={() => setConfirmingDelete(true)} className="text-xs text-red-600 underline">
+            حذف
           </button>
+          <AlertDialog
+            open={confirmingDelete}
+            title="حذف المنتج"
+            description="هل أنت متأكد؟ هذا الإجراء لا يمكن التراجع عنه."
+            confirmLabel="حذف"
+            onConfirm={remove}
+            onCancel={() => setConfirmingDelete(false)}
+          />
         </div>
       </div>
     </div>

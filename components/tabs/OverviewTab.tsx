@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { TabKey } from '../Dashboard';
+import { StatCard } from '@/components/ui/StatCard';
 
 type Counts = {
   pendingRecipes: number;
@@ -55,34 +56,6 @@ const KIND_LABEL: Record<ActivityItem['kind'], string> = {
   order: 'طلب جديد',
   subscriber: 'اشتراك جديد',
 };
-
-function StatCard({
-  label,
-  value,
-  urgent,
-  onClick,
-}: {
-  label: string;
-  value: number | string;
-  urgent?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={!onClick}
-      className={`rounded-2xl border p-5 text-right shadow-sm transition ${
-        urgent && Number(value) > 0
-          ? 'border-gold/60 bg-sand'
-          : 'border-latte bg-white'
-      } ${onClick ? 'cursor-pointer hover:border-coffee' : ''}`}
-    >
-      <p className="text-sm text-mocha">{label}</p>
-      <p className="mt-1 font-[var(--font-el-messiri)] text-3xl text-ink">{value}</p>
-    </button>
-  );
-}
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <p className="mb-3 text-xs font-semibold tracking-wide text-stone">{children}</p>;

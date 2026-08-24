@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { InfoTip } from '../ui/InfoTip';
 import { GrowthChart } from './monetization/GrowthChart';
+import { FilterBar } from '@/components/ui/FilterBar';
 
 type Stats = {
   total_users: number;
@@ -80,19 +81,7 @@ export function MonetizationTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2">
-        {PERIOD_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setPeriod(f.value)}
-            className={`rounded-full border px-3 py-1.5 text-xs ${
-              period === f.value ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <FilterBar options={PERIOD_FILTERS} value={period} onChange={(v) => setPeriod(v as 'all' | 'month')} />
 
       <GrowthChart />
 

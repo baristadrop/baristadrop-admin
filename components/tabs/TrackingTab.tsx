@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { StatCard } from '@/components/ui/StatCard';
 
 type EngagementCounts = {
   affiliateClicks: number;
@@ -14,15 +15,6 @@ type PostHogStats = {
   appOpens30d: number;
   newInstalls30d: number;
 };
-
-function MiniStat({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="rounded-xl border border-latte bg-white px-4 py-3 shadow-sm">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-mocha">{label}</p>
-      <p className="mt-1 font-[var(--font-el-messiri)] text-xl font-bold text-ink">{value}</p>
-    </div>
-  );
-}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -63,16 +55,16 @@ export function TrackingTab() {
   return (
     <div className="flex flex-col gap-6">
       <Section title="التفاعل داخل التطبيق">
-        <MiniStat label="ضغطات روابط الشراء" value={counts.affiliateClicks} />
-        <MiniStat label="طلبات اهتمام بالاشتراك" value={counts.subscriptionInterests} />
+        <StatCard label="ضغطات روابط الشراء" value={counts.affiliateClicks} />
+        <StatCard label="طلبات اهتمام بالاشتراك" value={counts.subscriptionInterests} />
       </Section>
 
       <Section title="الزوار والتثبيتات (٣٠ يوم)">
         {ph?.connected ? (
           <>
-            <MiniStat label="زوار فريدين" value={ph.uniqueVisitors30d} />
-            <MiniStat label="مرات فتح التطبيق" value={ph.appOpens30d} />
-            <MiniStat label="تثبيتات جديدة" value={ph.newInstalls30d} />
+            <StatCard label="زوار فريدين" value={ph.uniqueVisitors30d} />
+            <StatCard label="مرات فتح التطبيق" value={ph.appOpens30d} />
+            <StatCard label="تثبيتات جديدة" value={ph.newInstalls30d} />
           </>
         ) : !loadingPh ? (
           <div className="col-span-full rounded-xl border border-dashed border-stone bg-sand/40 px-4 py-3 text-xs text-mocha">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 type TopBean = {
   id: string;
@@ -39,10 +40,10 @@ export function TopBeansTab() {
         تتحدّث تلقائياً من تقييمات المستخدمين الحقيقية بالتطبيق — انسخها مباشرة لبوست "أفضل 10 محاصيل هالشهر".
       </p>
       {rows.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-stone bg-sand/40 p-5 text-sm text-mocha">
-          ما فيه محاصيل عليها تقييمات حقيقية بعد — القائمة بتتعبّى تلقائياً أول ما المستخدمين يبدأون يقيّمون
-          الوصفات بالتطبيق.
-        </p>
+        <EmptyState
+          title="ما فيه محاصيل عليها تقييمات حقيقية بعد"
+          description="القائمة بتتعبّى تلقائياً أول ما المستخدمين يبدأون يقيّمون الوصفات بالتطبيق."
+        />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
           {rows.map((b, i) => (

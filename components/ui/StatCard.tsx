@@ -6,6 +6,7 @@ export function StatCard({
   trend,
   icon,
   onClick,
+  urgent,
   className,
 }: {
   label: string;
@@ -13,16 +14,20 @@ export function StatCard({
   trend?: { value: number; label: string };
   icon?: React.ReactNode;
   onClick?: () => void;
+  /** يبرز البطاقة (حدّ وخلفية ذهبية) لما القيمة > 0 -- لعناصر تحتاج انتباه فوري زي "معلّق للمراجعة". */
+  urgent?: boolean;
   className?: string;
 }) {
   const positive = trend ? trend.value >= 0 : null;
+  const isUrgentActive = urgent && Number(value) > 0;
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={!onClick}
       className={cn(
-        'flex flex-col gap-2 rounded-2xl border border-latte bg-white p-4 text-start shadow-sm',
+        'flex flex-col gap-2 rounded-2xl border p-4 text-start shadow-sm',
+        isUrgentActive ? 'border-gold/60 bg-sand' : 'border-latte bg-white',
         onClick && 'card-interactive cursor-pointer',
         !onClick && 'cursor-default',
         className

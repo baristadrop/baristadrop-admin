@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
+import { Button } from '@/components/ui/Button';
+import { AlertDialog } from '@/components/ui/AlertDialog';
+import { useToast } from '@/components/ui/Toast';
 
 type OrderItemRow = {
   qty: number;
@@ -49,6 +52,7 @@ function formatOrderText(o: OrderRow) {
 }
 
 export function OrdersTab() {
+  const { toast } = useToast();
   const [orders, setOrders] = useState<OrderRow[] | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -80,13 +84,9 @@ export function OrdersTab() {
   };
 
   const removeOrder = async (id: string) => {
-    if (confirmingId !== id) {
-      setConfirmingId(id);
-      return;
-    }
     const { error } = await supabase.from('orders').delete().eq('id', id);
     if (error) {
-      alert('فشل الحذف: ' + error.message);
+      toast({ title: 'فشل الحذف', description: error.message, variant: 'destructive' });
       setConfirmingId(null);
       return;
     }
@@ -118,30 +118,20 @@ export function OrdersTab() {
                   </option>
                 ))}
               </select>
-              <button
-                onClick={() => copyOrder(o)}
-                className="rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-cream"
-              >
+              <Button size="sm" variant="secondary" onClick={() => copyOrder(o)}>
                 {copiedId === o.id ? 'تم النسخ ✓' : 'نسخ لبيانات المخزن'}
-              </button>
-              {confirmingId === o.id && (
-                <button
-                  onClick={() => setConfirmingId(null)}
-                  className="rounded-full border border-latte px-3 py-1.5 text-xs font-medium text-coffee"
-                >
-                  تراجع
-                </button>
-              )}
-              <button
-                onClick={() => removeOrder(o.id)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                  confirmingId === o.id
-                    ? 'bg-red-700 text-white'
-                    : 'border border-red-300 text-red-600'
-                }`}
-              >
-                {confirmingId === o.id ? 'تأكيد الحذف؟' : 'حذف'}
-              </button>
+              </Button>
+              <Button size="sm" variant="outline" className="border-red-300 text-red-600 hover:border-red-500 hover:text-red-700" onClick={() => setConfirmingId(o.id)}>
+                حذف
+              </Button>
+              <AlertDialog
+                open={confirmingId === o.id}
+                title="حذف الطلب"
+                description="هل أنت متأكد؟ هذا الإجراء لا يمكن التراجع عنه."
+                confirmLabel="حذف"
+                onConfirm={() => removeOrder(o.id)}
+                onCancel={() => setConfirmingId(null)}
+              />
             </div>
           </div>
 

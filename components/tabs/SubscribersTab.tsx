@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { Badge, type BadgeVariant } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 
 type SubscriberRow = {
   id: string;
@@ -27,11 +30,11 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: 'ملغي',
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  active: 'bg-green-100 text-green-700',
-  expired: 'bg-red-100 text-red-700',
-  paused: 'bg-yellow-100 text-yellow-700',
-  cancelled: 'bg-stone/20 text-mocha',
+const STATUS_BADGE: Record<string, BadgeVariant> = {
+  active: 'success',
+  expired: 'danger',
+  paused: 'warning',
+  cancelled: 'neutral',
 };
 
 export function SubscribersTab() {
@@ -66,56 +69,43 @@ export function SubscribersTab() {
   };
 
   if (!rows) return <p className="text-mocha">تحميل...</p>;
-  if (rows.length === 0) return <p className="text-mocha">ما فيه مشتركين بعد.</p>;
 
-  return (
-    <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
-      <table className="w-full min-w-[900px] text-sm">
-        <thead>
-          <tr className="border-b border-latte bg-sand/40 text-mocha">
-            <th className="p-3 text-right">الاسم</th>
-            <th className="p-3 text-right">الجوال</th>
-            <th className="p-3 text-right">العنوان</th>
-            <th className="p-3 text-right">تاريخ الاشتراك</th>
-            <th className="p-3 text-right">التجديد القادم</th>
-            <th className="p-3 text-right">الحالة</th>
-            <th className="p-3 text-right">إجراء</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const status = computedStatus(r);
-            return (
-              <tr key={r.id} className="border-b border-latte/60">
-                <td className="p-3 font-medium text-ink">{r.customer_name ?? '—'}</td>
-                <td className="p-3 text-mocha" dir="ltr">
-                  {r.customer_phone ?? '—'}
-                </td>
-                <td className="p-3 text-mocha">{r.customer_address ?? '—'}</td>
-                <td className="p-3 text-xs text-stone">{new Date(r.created_at).toLocaleDateString('ar')}</td>
-                <td className="p-3 text-xs text-stone">{r.next_billing ?? '—'}</td>
-                <td className="p-3">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLOR[status]}`}>
-                    {STATUS_LABEL[status]}
-                  </span>
-                </td>
-                <td className="p-3">
-                  {status !== 'cancelled' && (
-                    <div className="flex gap-2">
-                      <button onClick={() => renew(r.id)} className="text-xs text-gold underline">
-                        تجديد شهر
-                      </button>
-                      <button onClick={() => cancel(r.id)} className="text-xs text-red-600 underline">
-                        إلغاء
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
+  const columns: DataTableColumn<SubscriberRow>[] = [
+    { key: 'name', header: 'الاسم', render: (r) => r.customer_name ?? '—', sortValue: (r) => r.customer_name ?? '' },
+    { key: 'phone', header: 'الجوال', render: (r) => <span dir="ltr">{r.customer_phone ?? '—'}</span> },
+    { key: 'address', header: 'العنوان', render: (r) => r.customer_address ?? '—' },
+    {
+      key: 'created',
+      header: 'تاريخ الاشتراك',
+      render: (r) => new Date(r.created_at).toLocaleDateString('ar'),
+      sortValue: (r) => r.created_at,
+    },
+    { key: 'next_billing', header: 'التجديد القادم', render: (r) => r.next_billing ?? '—', sortValue: (r) => r.next_billing ?? '' },
+    {
+      key: 'status',
+      header: 'الحالة',
+      render: (r) => {
+        const status = computedStatus(r);
+        return <Badge variant={STATUS_BADGE[status]}>{STATUS_LABEL[status]}</Badge>;
+      },
+      sortValue: (r) => computedStatus(r),
+    },
+    {
+      key: 'action',
+      header: 'إجراء',
+      render: (r) =>
+        computedStatus(r) !== 'cancelled' && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="link" onClick={() => renew(r.id)}>
+              تجديد شهر
+            </Button>
+            <Button size="sm" variant="link" className="text-red-600" onClick={() => cancel(r.id)}>
+              إلغاء
+            </Button>
+          </div>
+        ),
+    },
+  ];
+
+  return <DataTable columns={columns} data={rows} emptyMessage="ما فيه مشتركين بعد." />;
 }
