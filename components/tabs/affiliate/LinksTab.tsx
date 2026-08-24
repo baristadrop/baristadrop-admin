@@ -48,6 +48,7 @@ export function LinksTab() {
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showNoLinkProducts, setShowNoLinkProducts] = useState(false);
 
   const load = async () => {
     const [linksRes, programsRes, { data: productRows }] = await Promise.all([
@@ -111,6 +112,15 @@ export function LinksTab() {
     });
   };
 
+  const linkedProductIds = new Set(rows?.map((r) => r.product_id).filter(Boolean));
+  const productsWithoutLinks = products.filter((p) => !linkedProductIds.has(p.id));
+
+  const quickCreateFor = (product: ProductOption) => {
+    setForm((f) => ({ ...f, productId: product.id, name: product.name, destinationUrl: product.external_url ?? f.destinationUrl }));
+    setShowNoLinkProducts(false);
+    setShowAdd(true);
+  };
+
   const previewTemplate = form.trackingTemplate.trim()
     ? form.trackingTemplate
         .replaceAll('{token}', form.token.trim() || 'abc123')
@@ -137,9 +147,28 @@ export function LinksTab() {
         </Button>
       </div>
 
-      <p className="rounded-xl border border-dashed border-latte bg-sand/30 px-3 py-2 text-[11px] text-mocha">
-        ملاحظة: الروابط لا تتولد تلقائياً عند إضافة منتج. أنشئ رابط تتبع لكل منتج تريد تتبع إحالاته.
-      </p>
+      <div className="rounded-xl border border-dashed border-latte bg-sand/30 px-3 py-2 text-[11px] text-mocha">
+        <div className="flex items-center justify-between gap-2">
+          <span>ملاحظة: الروابط لا تتولد تلقائياً عند إضافة منتج. أنشئ رابط تتبع لكل منتج تريد تتبع إحالاته.</span>
+          {productsWithoutLinks.length > 0 && (
+            <Button size="sm" variant="link" onClick={() => setShowNoLinkProducts((v) => !v)}>
+              {productsWithoutLinks.length} منتج بدون رابط
+            </Button>
+          )}
+        </div>
+        {showNoLinkProducts && (
+          <div className="mt-2 space-y-1.5 border-t border-latte pt-2">
+            {productsWithoutLinks.map((p) => (
+              <div key={p.id} className="flex items-center justify-between rounded-lg bg-white px-2 py-1.5">
+                <span className="text-coffee">{p.name}</span>
+                <Button size="sm" variant="outline" onClick={() => quickCreateFor(p)}>
+                  إنشاء رابط
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {showAdd && (
         <div className="grid gap-3 rounded-2xl border border-gold/40 bg-sand/40 p-4 sm:grid-cols-2">

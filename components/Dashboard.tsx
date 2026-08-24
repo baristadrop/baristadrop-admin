@@ -31,6 +31,7 @@ import { AccountingTab } from './tabs/affiliate/AccountingTab';
 import { ReconciliationTab } from './tabs/affiliate/ReconciliationTab';
 import { PayoutsTab } from './tabs/affiliate/PayoutsTab';
 import { JobsTab } from './tabs/affiliate/JobsTab';
+import { HelpPanel } from './tabs/affiliate/HelpPanel';
 
 // مؤجّل عمداً (dynamic import) -- مكتبة الرسوم البيانية (recharts) لازم ما
 // تثقّل الحزمة الأساسية لباقي التبويبات اللي ما تحتاجها، تُحمَّل بس أول ما
@@ -204,6 +205,7 @@ export function Dashboard({
 
         <div className="min-w-0 flex-1">
           <PageHeader title={activeLabel}>
+            <HelpPanel />
             <span className="rounded-full bg-white/10 px-3 py-1.5 font-medium text-sand">
               {profile?.full_name || session?.user.email}
             </span>
