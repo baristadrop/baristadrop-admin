@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 type RoasterInfo = {
   name: string;
@@ -63,7 +66,7 @@ export function RecipesTab() {
   }, []);
 
   if (!rows) return <p className="text-mocha">تحميل...</p>;
-  if (rows.length === 0) return <p className="text-mocha">ما فيه وصفات بانتظار المراجعة 🎉</p>;
+  if (rows.length === 0) return <EmptyState title="ما فيه وصفات بانتظار المراجعة 🎉" />;
 
   const selected = rows.find((r) => r.id === selectedId) ?? rows[0];
 
@@ -150,20 +153,12 @@ function RecipeReviewPanel({
           </p>
         </div>
         <div className="flex gap-2">
-          <button
-            disabled={busy}
-            onClick={() => onDecide('approved', buildEdits())}
-            className="rounded-full bg-gold px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-          >
+          <Button disabled={busy} onClick={() => onDecide('approved', buildEdits())}>
             قبول
-          </button>
-          <button
-            disabled={busy}
-            onClick={() => onDecide('rejected')}
-            className="rounded-full border border-latte px-4 py-2 text-sm text-coffee disabled:opacity-50"
-          >
+          </Button>
+          <Button variant="outline" disabled={busy} onClick={() => onDecide('rejected')}>
             رفض
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -205,13 +200,9 @@ function RecipeReviewPanel({
         <EditableField label="كمية الماء" value={water} onChange={setWater} />
       </div>
 
-      <button
-        onClick={() => onSaveEdits(buildEdits())}
-        disabled={saving}
-        className="mt-3 rounded-full border border-gold px-4 py-1.5 text-xs font-bold text-gold disabled:opacity-50"
-      >
+      <Button variant="outline" size="sm" onClick={() => onSaveEdits(buildEdits())} disabled={saving} className="mt-3">
         {saving ? '...' : 'حفظ التعديلات'}
-      </button>
+      </Button>
 
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <Detail label="آلة الطحن (يدوي)" value={selected.grinder} />
@@ -266,11 +257,7 @@ function EditableField({ label, value, onChange }: { label: string; value: strin
   return (
     <div>
       <p className="mb-1 text-xs text-stone">{label}</p>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-sm outline-none focus:border-gold"
-      />
+      <Input value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }

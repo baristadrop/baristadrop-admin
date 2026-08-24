@@ -5,6 +5,11 @@ import { supabase } from '@/lib/supabase';
 import { Toggle } from '@/components/ui/Toggle';
 import { Field, SectionTitle } from '@/components/ui/Field';
 import { InfoTip } from '@/components/ui/InfoTip';
+import { SearchInput } from '@/components/ui/SearchInput';
+import { FilterBar } from '@/components/ui/FilterBar';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 type BusinessType = 'roaster' | 'cafe';
 
@@ -50,10 +55,10 @@ function periodSince(period: 'all' | 'month'): string | undefined {
 
 const WEBHOOK_BASE_URL = 'https://admin.baristadrop.com/api/webhooks/affiliate-purchase';
 
-const STATUS_META: Record<BusinessRow['status'], { label: string; className: string }> = {
-  pending: { label: 'بانتظار المراجعة', className: 'bg-amber-100 text-amber-700' },
-  approved: { label: 'مقبولة', className: 'bg-green-100 text-green-700' },
-  rejected: { label: 'مرفوضة', className: 'bg-red-100 text-red-700' },
+const STATUS_META: Record<BusinessRow['status'], { label: string; badge: 'warning' | 'success' | 'danger' }> = {
+  pending: { label: 'بانتظار المراجعة', badge: 'warning' },
+  approved: { label: 'مقبولة', badge: 'success' },
+  rejected: { label: 'مرفوضة', badge: 'danger' },
 };
 
 const STATUS_FILTERS: { value: 'all' | BusinessRow['status']; label: string }[] = [
@@ -217,56 +222,17 @@ export function BusinessesTab() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="ابحث باسم الشركة..."
-          className="w-56 rounded-lg border border-latte bg-white px-3 py-1.5 text-sm outline-none focus:border-gold"
-        />
-        {TYPE_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setTypeFilter(f.value)}
-            className={`rounded-full border px-3 py-1.5 text-xs ${
-              typeFilter === f.value ? 'border-ink bg-ink text-white' : 'border-latte text-coffee'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+        <SearchInput value={search} onChange={setSearch} placeholder="ابحث باسم الشركة..." className="w-56" />
+        <FilterBar options={TYPE_FILTERS} value={typeFilter} onChange={(v) => setTypeFilter(v as 'all' | BusinessType)} />
         <span className="mx-1 h-4 w-px bg-latte" />
-        {STATUS_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setStatusFilter(f.value)}
-            className={`rounded-full border px-3 py-1.5 text-xs ${
-              statusFilter === f.value ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-        {pendingCount > 0 && (
-          <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
-            {pendingCount} بانتظار المراجعة
-          </span>
-        )}
+        <FilterBar options={STATUS_FILTERS} value={statusFilter} onChange={(v) => setStatusFilter(v as 'all' | BusinessRow['status'])} />
+        {pendingCount > 0 && <Badge variant="danger">{pendingCount} بانتظار المراجعة</Badge>}
         <span className="mx-1 h-4 w-px bg-latte" />
-        {PERIOD_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setPeriod(f.value)}
-            className={`rounded-full border px-3 py-1.5 text-xs ${
-              period === f.value ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+        <FilterBar options={PERIOD_FILTERS} value={period} onChange={(v) => setPeriod(v as 'all' | 'month')} />
       </div>
 
       <div className="space-y-2">
-        {filtered.length === 0 && <p className="p-6 text-center text-mocha">ما فيه نتائج.</p>}
+        {filtered.length === 0 && <EmptyState title="ما فيه نتائج" />}
         {filtered.map((r) => {
           const expanded = expandedId === r.id;
           const meta = STATUS_META[r.status];
@@ -287,13 +253,15 @@ export function BusinessesTab() {
                   <p className="text-xs text-mocha">{r.country}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="rounded-full bg-latte px-2 py-0.5 text-[10px] font-medium text-coffee">
-                    {TYPE_LABEL[r.business_type]}
-                  </span>
-                  {r.is_advertiser && <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] text-white">معلن</span>}
-                  {r.is_sponsor && <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] text-white">Sponsor</span>}
-                  {r.is_verified && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">موثّقة</span>}
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.className}`}>{meta.label}</span>
+                  <Badge variant="neutral">{TYPE_LABEL[r.business_type]}</Badge>
+                  {r.is_advertiser && <Badge variant="accent">معلن</Badge>}
+                  {r.is_sponsor && (
+                    <Badge variant="accent" className="bg-gold text-white border-gold">
+                      Sponsor
+                    </Badge>
+                  )}
+                  {r.is_verified && <Badge variant="info">موثّقة</Badge>}
+                  <Badge variant={meta.badge}>{meta.label}</Badge>
                 </div>
                 <span className={`text-mocha transition-transform ${expanded ? 'rotate-180' : ''}`}>▾</span>
               </button>
@@ -315,28 +283,23 @@ export function BusinessesTab() {
                     <div className="mt-3">
                       {r.status === 'pending' ? (
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => setStatus(r.id, 'approved')}
-                            className="rounded-full bg-gold px-4 py-1.5 text-xs font-bold text-white"
-                          >
+                          <Button size="sm" onClick={() => setStatus(r.id, 'approved')}>
                             قبول الشركة
-                          </button>
-                          <button
-                            onClick={() => setStatus(r.id, 'rejected')}
-                            className="rounded-full border border-latte px-4 py-1.5 text-xs text-coffee"
-                          >
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setStatus(r.id, 'rejected')}>
                             رفض
-                          </button>
+                          </Button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <span className={`rounded-full px-3 py-1 text-xs font-medium ${meta.className}`}>{meta.label}</span>
-                          <button
+                          <Badge variant={meta.badge}>{meta.label}</Badge>
+                          <Button
+                            size="sm"
+                            variant="link"
                             onClick={() => setStatus(r.id, r.status === 'approved' ? 'rejected' : 'approved')}
-                            className="text-xs text-mocha underline"
                           >
                             تغيير
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -455,18 +418,17 @@ export function BusinessesTab() {
                             onFocus={(e) => e.target.select()}
                             className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-[11px] text-coffee outline-none"
                           />
-                          <button
-                            onClick={() => copyWebhookUrl(r.id, r.postback_secret)}
-                            className="shrink-0 rounded-lg border border-latte px-2 py-1.5 text-[11px] text-coffee hover:border-gold"
-                          >
+                          <Button size="sm" variant="outline" className="shrink-0 text-[11px]" onClick={() => copyWebhookUrl(r.id, r.postback_secret)}>
                             {copiedId === r.id ? 'تم النسخ ✓' : 'نسخ'}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="shrink-0 text-[11px] text-stone hover:border-red-400 hover:text-red-600"
                             onClick={() => rotatePostbackSecret(r.id)}
-                            className="shrink-0 rounded-lg border border-latte px-2 py-1.5 text-[11px] text-stone hover:border-red-400 hover:text-red-600"
                           >
                             تجديد
-                          </button>
+                          </Button>
                         </div>
                       </Field>
                     </div>
@@ -545,9 +507,9 @@ export function BusinessesTab() {
                         <span className="text-xs text-gold">
                           {users.find((u) => u.id === r.owner_id)?.email ?? r.owner_id}
                         </span>
-                        <button onClick={() => unlinkOwner(r.id)} className="text-xs text-stone underline">
+                        <Button size="sm" variant="link" onClick={() => unlinkOwner(r.id)}>
                           فك الربط
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-1">
@@ -558,9 +520,9 @@ export function BusinessesTab() {
                           dir="ltr"
                           className="flex-1 rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
-                        <button onClick={() => linkOwner(r.id)} className="rounded-lg bg-ink px-3 py-1.5 text-xs text-cream">
+                        <Button size="sm" variant="secondary" onClick={() => linkOwner(r.id)}>
                           ربط
-                        </button>
+                        </Button>
                       </div>
                     )}
                     {ownerMsg[r.id] && <p className="mt-1 text-[10px] text-mocha">{ownerMsg[r.id]}</p>}

@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { adminFetchJson } from '@/lib/adminApiClient';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
+import { Button } from '@/components/ui/Button';
+import { Badge, type BadgeVariant } from '@/components/ui/Badge';
+import { FilterBar } from '@/components/ui/FilterBar';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Textarea } from '@/components/ui/Textarea';
 
 type ListingStatus = 'pending_payment' | 'pending_review' | 'active' | 'rejected' | 'sold' | 'expired' | 'removed';
 
@@ -27,14 +32,14 @@ type ListingRow = {
   owner: { full_name: string | null } | null;
 };
 
-const STATUS_META: Record<ListingStatus, { label: string; className: string }> = {
-  pending_payment: { label: 'بانتظار الدفع', className: 'bg-stone/20 text-stone' },
-  pending_review: { label: 'قيد المراجعة', className: 'bg-amber-100 text-amber-700' },
-  active: { label: 'نشط', className: 'bg-green-100 text-green-700' },
-  rejected: { label: 'مرفوض', className: 'bg-red-100 text-red-700' },
-  sold: { label: 'مباع', className: 'bg-blue-100 text-blue-700' },
-  expired: { label: 'منتهي', className: 'bg-stone/20 text-stone' },
-  removed: { label: 'محذوف', className: 'bg-stone/20 text-stone' },
+const STATUS_META: Record<ListingStatus, { label: string; badge: BadgeVariant }> = {
+  pending_payment: { label: 'بانتظار الدفع', badge: 'neutral' },
+  pending_review: { label: 'قيد المراجعة', badge: 'warning' },
+  active: { label: 'نشط', badge: 'success' },
+  rejected: { label: 'مرفوض', badge: 'danger' },
+  sold: { label: 'مباع', badge: 'info' },
+  expired: { label: 'منتهي', badge: 'neutral' },
+  removed: { label: 'محذوف', badge: 'neutral' },
 };
 
 const CONDITION_LABEL: Record<ListingRow['condition'], string> = {
@@ -119,20 +124,17 @@ export function MarketplaceListingsTab() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {(['pending_review', 'all', 'active', 'rejected', 'sold', 'expired', 'removed'] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`rounded-full border px-3 py-1.5 text-xs ${statusFilter === s ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'}`}
-          >
-            {s === 'all' ? 'الكل' : STATUS_META[s].label}
-          </button>
-        ))}
-      </div>
+      <FilterBar
+        options={(['pending_review', 'all', 'active', 'rejected', 'sold', 'expired', 'removed'] as const).map((s) => ({
+          value: s,
+          label: s === 'all' ? 'الكل' : STATUS_META[s].label,
+        }))}
+        value={statusFilter}
+        onChange={(v) => setStatusFilter(v as ListingStatus | 'all')}
+      />
 
       {rows.length === 0 ? (
-        <p className="p-6 text-center text-mocha">ما فيه إعلانات بهذي الحالة.</p>
+        <EmptyState title="ما فيه إعلانات بهذي الحالة" />
       ) : (
         <div className="flex gap-6">
           <div className="w-72 shrink-0 rounded-2xl border border-latte bg-white shadow-sm">
@@ -152,7 +154,7 @@ export function MarketplaceListingsTab() {
                   <p className="text-sm font-medium text-ink">{r.title}</p>
                   <p className="text-xs text-mocha">{r.owner?.full_name ?? '—'}</p>
                   <div className="mt-1 flex items-center gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.className}`}>{meta.label}</span>
+                    <Badge variant={meta.badge}>{meta.label}</Badge>
                     <span className="text-[11px] text-stone">{new Date(r.created_at).toLocaleDateString('ar')}</span>
                   </div>
                 </button>
@@ -171,13 +173,9 @@ export function MarketplaceListingsTab() {
                 </div>
                 {selected.status === 'pending_review' && (
                   <div className="flex shrink-0 gap-2">
-                    <button
-                      disabled={busy}
-                      onClick={approve}
-                      className="rounded-full bg-gold px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-                    >
+                    <Button disabled={busy} onClick={approve}>
                       قبول
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -209,20 +207,21 @@ export function MarketplaceListingsTab() {
               {selected.status === 'pending_review' && (
                 <div className="mt-6 rounded-2xl border border-dashed border-stone bg-sand/20 p-4">
                   <p className="mb-2 text-xs text-stone">سبب الرفض (إلزامي لو رفضت) -- يوصل للبائع، ويقدر يصحح ويعيد الإرسال بدون دفع جديد</p>
-                  <textarea
+                  <Textarea
                     value={reasonDraft}
                     onChange={(e) => setReasonDraft(e.target.value)}
                     rows={2}
-                    className="w-full rounded-lg border border-latte bg-white p-2 text-sm outline-none focus:border-gold"
                     placeholder="مثال: الصورة الثانية غير واضحة، رجاءً ارفع صورة أوضح"
                   />
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
                     disabled={busy || !reasonDraft.trim()}
                     onClick={reject}
-                    className="mt-2 rounded-full border border-red-300 px-4 py-1.5 text-xs font-bold text-red-600 disabled:opacity-50"
+                    className="mt-2 border-red-300 text-red-600 hover:border-red-500 hover:text-red-700"
                   >
                     رفض وإرسال السبب
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

@@ -5,6 +5,11 @@ import { supabase } from '@/lib/supabase';
 import { Toggle } from '@/components/ui/Toggle';
 import { Field, SectionTitle } from '@/components/ui/Field';
 import { InfoTip } from '@/components/ui/InfoTip';
+import { SearchInput } from '@/components/ui/SearchInput';
+import { FilterBar } from '@/components/ui/FilterBar';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 type SupplierRow = {
   id: string;
@@ -57,10 +62,10 @@ export const SUPPLIER_CATEGORIES = [
   'كبسولات',
 ] as const;
 
-const STATUS_META: Record<SupplierRow['status'], { label: string; className: string }> = {
-  pending: { label: 'بانتظار المراجعة', className: 'bg-amber-100 text-amber-700' },
-  approved: { label: 'مقبول', className: 'bg-green-100 text-green-700' },
-  rejected: { label: 'مرفوض', className: 'bg-red-100 text-red-700' },
+const STATUS_META: Record<SupplierRow['status'], { label: string; badge: 'warning' | 'success' | 'danger' }> = {
+  pending: { label: 'بانتظار المراجعة', badge: 'warning' },
+  approved: { label: 'مقبول', badge: 'success' },
+  rejected: { label: 'مرفوض', badge: 'danger' },
 };
 
 const STATUS_FILTERS: { value: 'all' | SupplierRow['status']; label: string }[] = [
@@ -211,44 +216,15 @@ export function SuppliersTab() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="ابحث باسم المورّد..."
-          className="w-56 rounded-lg border border-latte bg-white px-3 py-1.5 text-sm outline-none focus:border-gold"
-        />
-        {STATUS_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setStatusFilter(f.value)}
-            className={`rounded-full border px-3 py-1.5 text-xs ${
-              statusFilter === f.value ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-        {pendingCount > 0 && (
-          <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
-            {pendingCount} بانتظار المراجعة
-          </span>
-        )}
+        <SearchInput value={search} onChange={setSearch} placeholder="ابحث باسم المورّد..." className="w-56" />
+        <FilterBar options={STATUS_FILTERS} value={statusFilter} onChange={(v) => setStatusFilter(v as 'all' | SupplierRow['status'])} />
+        {pendingCount > 0 && <Badge variant="danger">{pendingCount} بانتظار المراجعة</Badge>}
         <span className="mx-1 h-4 w-px bg-latte" />
-        {PERIOD_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setPeriod(f.value)}
-            className={`rounded-full border px-3 py-1.5 text-xs ${
-              period === f.value ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+        <FilterBar options={PERIOD_FILTERS} value={period} onChange={(v) => setPeriod(v as 'all' | 'month')} />
       </div>
 
       <div className="space-y-2">
-        {filtered.length === 0 && <p className="p-6 text-center text-mocha">ما فيه نتائج.</p>}
+        {filtered.length === 0 && <EmptyState title="ما فيه نتائج" />}
         {filtered.map((s) => {
           const expanded = expandedId === s.id;
           const meta = STATUS_META[s.status];
@@ -269,10 +245,14 @@ export function SuppliersTab() {
                   <p className="text-xs text-mocha">{s.country}</p>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  {s.is_advertiser && <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] text-white">معلن</span>}
-                  {s.is_sponsor && <span className="rounded-full bg-gold px-2 py-0.5 text-[10px] text-white">Sponsor</span>}
-                  {s.is_verified && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">موثّق</span>}
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.className}`}>{meta.label}</span>
+                  {s.is_advertiser && <Badge variant="accent">معلن</Badge>}
+                  {s.is_sponsor && (
+                    <Badge variant="accent" className="bg-gold text-white border-gold">
+                      Sponsor
+                    </Badge>
+                  )}
+                  {s.is_verified && <Badge variant="info">موثّق</Badge>}
+                  <Badge variant={meta.badge}>{meta.label}</Badge>
                 </div>
                 <span className={`text-mocha transition-transform ${expanded ? 'rotate-180' : ''}`}>▾</span>
               </button>
@@ -283,28 +263,19 @@ export function SuppliersTab() {
                     <SectionTitle>الحالة</SectionTitle>
                     {s.status === 'pending' ? (
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => setStatus(s.id, 'approved')}
-                          className="rounded-full bg-gold px-4 py-1.5 text-xs font-bold text-white"
-                        >
+                        <Button size="sm" onClick={() => setStatus(s.id, 'approved')}>
                           قبول المورّد
-                        </button>
-                        <button
-                          onClick={() => setStatus(s.id, 'rejected')}
-                          className="rounded-full border border-latte px-4 py-1.5 text-xs text-coffee"
-                        >
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setStatus(s.id, 'rejected')}>
                           رفض
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <span className={`rounded-full px-3 py-1 text-xs font-medium ${meta.className}`}>{meta.label}</span>
-                        <button
-                          onClick={() => setStatus(s.id, s.status === 'approved' ? 'rejected' : 'approved')}
-                          className="text-xs text-mocha underline"
-                        >
+                        <Badge variant={meta.badge}>{meta.label}</Badge>
+                        <Button size="sm" variant="link" onClick={() => setStatus(s.id, s.status === 'approved' ? 'rejected' : 'approved')}>
                           تغيير
-                        </button>
+                        </Button>
                       </div>
                     )}
                     <p className="mt-3 text-xs text-mocha">
@@ -427,18 +398,17 @@ export function SuppliersTab() {
                             onFocus={(e) => e.target.select()}
                             className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-[11px] text-coffee outline-none"
                           />
-                          <button
-                            onClick={() => copyWebhookUrl(s.id, s.postback_secret)}
-                            className="shrink-0 rounded-lg border border-latte px-2 py-1.5 text-[11px] text-coffee hover:border-gold"
-                          >
+                          <Button size="sm" variant="outline" className="shrink-0 text-[11px]" onClick={() => copyWebhookUrl(s.id, s.postback_secret)}>
                             {copiedId === s.id ? 'تم النسخ ✓' : 'نسخ'}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="shrink-0 text-[11px] text-stone hover:border-red-400 hover:text-red-600"
                             onClick={() => rotatePostbackSecret(s.id)}
-                            className="shrink-0 rounded-lg border border-latte px-2 py-1.5 text-[11px] text-stone hover:border-red-400 hover:text-red-600"
                           >
                             تجديد
-                          </button>
+                          </Button>
                         </div>
                       </Field>
                     </div>
@@ -485,9 +455,9 @@ export function SuppliersTab() {
                         <span className="text-xs text-gold">
                           {users.find((u) => u.id === s.owner_id)?.email ?? s.owner_id}
                         </span>
-                        <button onClick={() => unlinkOwner(s.id)} className="text-xs text-stone underline">
+                        <Button size="sm" variant="link" onClick={() => unlinkOwner(s.id)}>
                           فك الربط
-                        </button>
+                        </Button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-1">
@@ -498,9 +468,9 @@ export function SuppliersTab() {
                           dir="ltr"
                           className="flex-1 rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
-                        <button onClick={() => linkOwner(s.id)} className="rounded-lg bg-ink px-3 py-1.5 text-xs text-cream">
+                        <Button size="sm" variant="secondary" onClick={() => linkOwner(s.id)}>
                           ربط
-                        </button>
+                        </Button>
                       </div>
                     )}
                     {ownerMsg[s.id] && <p className="mt-1 text-[10px] text-mocha">{ownerMsg[s.id]}</p>}
