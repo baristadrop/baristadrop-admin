@@ -1,5 +1,6 @@
 'use client';
 
+import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
@@ -251,7 +252,7 @@ export function ProgramsTab() {
     }
   };
 
-  if (!rows) return <p className="text-mocha">تحميل...</p>;
+  if (!rows) return <StatCardSkeletonGrid />;
 
   return (
     <div className="space-y-3">

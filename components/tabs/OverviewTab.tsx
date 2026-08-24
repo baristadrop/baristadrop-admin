@@ -1,5 +1,6 @@
 'use client';
 
+import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { TabKey } from '../Dashboard';
@@ -228,7 +229,7 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
     load();
   }, []);
 
-  if (!counts) return <p className="text-mocha">تحميل...</p>;
+  if (!counts) return <StatCardSkeletonGrid />;
 
   const totalPending =
     counts.pendingRecipes +

@@ -1,5 +1,6 @@
 'use client';
 
+import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
@@ -164,7 +165,7 @@ export function ReconciliationTab() {
     }
   };
 
-  if (!runs) return <p className="text-mocha">تحميل...</p>;
+  if (!runs) return <StatCardSkeletonGrid />;
 
   return (
     <div className="space-y-4">

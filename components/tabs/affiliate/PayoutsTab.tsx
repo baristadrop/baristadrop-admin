@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useState } from 'react';
+import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
 import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
@@ -121,7 +122,7 @@ export function PayoutsTab() {
 
   const markReceived = (id: string) => setPayoutStatus(id, 'RECEIVED');
 
-  if (!rows) return <p className="text-mocha">تحميل...</p>;
+  if (!rows) return <StatCardSkeletonGrid />;
 
   return (
     <div className="space-y-3">

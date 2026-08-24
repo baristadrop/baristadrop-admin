@@ -1,5 +1,6 @@
 'use client';
 
+import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
@@ -68,7 +69,7 @@ export function SubscribersTab() {
     load();
   };
 
-  if (!rows) return <p className="text-mocha">تحميل...</p>;
+  if (!rows) return <StatCardSkeletonGrid />;
 
   const columns: DataTableColumn<SubscriberRow>[] = [
     { key: 'name', header: 'الاسم', render: (r) => r.customer_name ?? '—', sortValue: (r) => r.customer_name ?? '' },

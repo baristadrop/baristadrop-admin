@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
 import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { isValidConversionTransition } from '@/lib/affiliate/conversionEngine';
 import type { ConversionStatus } from '@/lib/affiliate/types';
@@ -150,7 +151,7 @@ export function ConversionsTab() {
     return statusFilter === 'all' ? rows : rows.filter((r) => r.conversion_status === statusFilter);
   }, [rows, statusFilter]);
 
-  if (!rows) return <p className="text-mocha">تحميل...</p>;
+  if (!rows) return <StatCardSkeletonGrid />;
 
   return (
     <div className="space-y-3">

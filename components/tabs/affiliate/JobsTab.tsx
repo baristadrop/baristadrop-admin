@@ -1,5 +1,6 @@
 'use client';
 
+import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { adminFetchJson } from '@/lib/adminApiClient';
@@ -84,7 +85,7 @@ export function JobsTab() {
     }
   };
 
-  if (!rows) return <p className="text-mocha">تحميل...</p>;
+  if (!rows) return <StatCardSkeletonGrid />;
 
   const filtered = statusFilter === 'all' ? rows : rows.filter((r) => r.status === statusFilter);
   const pendingCount = rows.filter((r) => r.status === 'pending').length;

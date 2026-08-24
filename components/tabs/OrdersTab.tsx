@@ -1,5 +1,6 @@
 'use client';
 
+import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
@@ -94,7 +95,7 @@ export function OrdersTab() {
     setConfirmingId(null);
   };
 
-  if (!orders) return <p className="text-mocha">تحميل...</p>;
+  if (!orders) return <StatCardSkeletonGrid />;
   if (orders.length === 0) return <p className="text-mocha">ما فيه طلبات بعد.</p>;
 
   return (

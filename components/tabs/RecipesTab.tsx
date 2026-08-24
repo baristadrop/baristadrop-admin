@@ -1,5 +1,6 @@
 'use client';
 
+import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
@@ -65,7 +66,7 @@ export function RecipesTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!rows) return <p className="text-mocha">تحميل...</p>;
+  if (!rows) return <StatCardSkeletonGrid />;
   if (rows.length === 0) return <EmptyState title="ما فيه وصفات بانتظار المراجعة 🎉" />;
 
   const selected = rows.find((r) => r.id === selectedId) ?? rows[0];

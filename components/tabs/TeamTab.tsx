@@ -1,5 +1,6 @@
 'use client';
 
+import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Input } from '@/components/ui/Input';
@@ -82,7 +83,7 @@ export function TeamTab() {
   };
 
   if (error) return <p className="text-danger">{error}</p>;
-  if (!rows) return <p className="text-mocha">تحميل...</p>;
+  if (!rows) return <StatCardSkeletonGrid />;
 
   const columns: DataTableColumn<UserRow>[] = [
     { key: 'name', header: 'الاسم', render: (u) => u.full_name || '—', sortValue: (u) => u.full_name ?? '' },

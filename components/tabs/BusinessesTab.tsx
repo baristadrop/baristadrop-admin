@@ -1,5 +1,6 @@
 'use client';
 
+import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Toggle } from '@/components/ui/Toggle';
@@ -217,7 +218,7 @@ export function BusinessesTab() {
 
   const pendingCount = rows?.filter((r) => r.status === 'pending').length ?? 0;
 
-  if (!rows) return <p className="text-mocha">تحميل...</p>;
+  if (!rows) return <StatCardSkeletonGrid />;
 
   return (
     <div className="space-y-3">
