@@ -4,7 +4,7 @@ import { getAdminClient } from '@/lib/supabaseAdmin';
 import { parsePagination, paginateQuery } from '@/lib/db/pagination';
 import { withErrorHandler } from '@/lib/errorHandler';
 
-const COLUMNS = 'id, name, legal_name, website_url, country, currency, status, roaster_id, supplier_id, created_at';
+const COLUMNS = 'id, name, legal_name, website_url, country, currency, status, external_reference, timezone, roaster_id, supplier_id, created_at';
 
 // GET /api/admin/affiliate/merchants?status=active&search=...
 export const GET = withErrorHandler(async (request: Request) => {
@@ -48,6 +48,8 @@ export const POST = withErrorHandler(async (request: Request) => {
       currency: (body.currency as string) ?? 'AED',
       roaster_id: body.roaster_id ?? null,
       supplier_id: body.supplier_id ?? null,
+      external_reference: (body.external_reference as string) || null,
+      timezone: (body.timezone as string) || 'Asia/Dubai',
     })
     .select(COLUMNS)
     .single();

@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field, SectionTitle } from '@/components/ui/Field';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Badge, type BadgeVariant } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 type MerchantRow = {
   id: string;
@@ -13,19 +17,30 @@ type MerchantRow = {
   country: string | null;
   currency: string;
   status: 'active' | 'suspended' | 'archived';
+  external_reference: string | null;
+  timezone: string;
   roaster_id: string | null;
   supplier_id: string | null;
 };
 
 type BusinessOption = { id: string; name: string };
 
-const STATUS_META: Record<MerchantRow['status'], { label: string; className: string }> = {
-  active: { label: 'نشط', className: 'bg-green-100 text-green-700' },
-  suspended: { label: 'موقوف', className: 'bg-amber-100 text-amber-700' },
-  archived: { label: 'مؤرشف', className: 'bg-stone/20 text-stone' },
+const STATUS_META: Record<MerchantRow['status'], { label: string; badge: BadgeVariant }> = {
+  active: { label: 'نشط', badge: 'success' },
+  suspended: { label: 'موقوف', badge: 'warning' },
+  archived: { label: 'مؤرشف', badge: 'neutral' },
 };
 
-const emptyForm = { name: '', legalName: '', country: '', currency: 'AED', roasterId: '', supplierId: '' };
+const emptyForm = {
+  name: '',
+  legalName: '',
+  country: '',
+  currency: 'AED',
+  roasterId: '',
+  supplierId: '',
+  externalReference: '',
+  timezone: 'Asia/Dubai',
+};
 const API_URL = '/api/admin/affiliate/merchants';
 
 export function MerchantsTab() {
@@ -68,6 +83,8 @@ export function MerchantsTab() {
         currency: form.currency.trim() || 'AED',
         roaster_id: form.roasterId || null,
         supplier_id: form.supplierId || null,
+        external_reference: form.externalReference.trim() || null,
+        timezone: form.timezone.trim() || 'Asia/Dubai',
       }),
     });
     setSaving(false);
@@ -91,7 +108,11 @@ export function MerchantsTab() {
     }
   };
 
-  const saveField = async (id: string, field: 'legal_name' | 'website_url' | 'country' | 'currency', value: string) => {
+  const saveField = async (
+    id: string,
+    field: 'legal_name' | 'website_url' | 'country' | 'currency' | 'external_reference' | 'timezone',
+    value: string
+  ) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, [field]: value.trim() || null } : r)) ?? null);
     const res = await adminFetchJson(`${API_URL}?id=${id}`, { method: 'PATCH', body: JSON.stringify({ [field]: value.trim() || null }) });
     if (!res.ok) {
@@ -115,43 +136,41 @@ export function MerchantsTab() {
       )}
       <div className="flex items-center justify-between">
         <p className="text-xs text-mocha">التاجر هو الجهة اللي تبيع المنتج/الخدمة -- ممكن مربوط بمحمصة/مورّد موجود بالتطبيق، أو مستقل تماماً.</p>
-        <button onClick={() => setShowAdd((v) => !v)} className="rounded-full bg-ink px-4 py-1.5 text-xs font-bold text-cream">
+        <Button size="sm" onClick={() => setShowAdd((v) => !v)}>
           {showAdd ? 'إلغاء' : '+ تاجر جديد'}
-        </button>
+        </Button>
       </div>
 
       {showAdd && (
         <div className="grid gap-3 rounded-2xl border border-gold/40 bg-sand/40 p-4 sm:grid-cols-2">
           <Field label="الاسم *">
-            <input
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
-            />
+            <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="h-8 text-xs" />
           </Field>
           <Field label="الاسم القانوني">
-            <input
-              value={form.legalName}
-              onChange={(e) => setForm((f) => ({ ...f, legalName: e.target.value }))}
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
-            />
+            <Input value={form.legalName} onChange={(e) => setForm((f) => ({ ...f, legalName: e.target.value }))} className="h-8 text-xs" />
           </Field>
           <Field label="الدولة">
-            <input
+            <Input
               value={form.country}
               onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
               placeholder="AE / SA / KW..."
               dir="ltr"
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="h-8 text-xs"
             />
           </Field>
           <Field label="العملة">
-            <input
-              value={form.currency}
-              onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
+            <Input value={form.currency} onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))} dir="ltr" className="h-8 text-xs" />
+          </Field>
+          <Field label="مرجع خارجي (اختياري)" helper="external_reference">
+            <Input
+              value={form.externalReference}
+              onChange={(e) => setForm((f) => ({ ...f, externalReference: e.target.value }))}
               dir="ltr"
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="h-8 text-xs"
             />
+          </Field>
+          <Field label="المنطقة الزمنية">
+            <Input value={form.timezone} onChange={(e) => setForm((f) => ({ ...f, timezone: e.target.value }))} dir="ltr" className="h-8 text-xs" />
           </Field>
           <Field label="ربط بمحمصة موجودة (اختياري)">
             <select
@@ -182,19 +201,15 @@ export function MerchantsTab() {
             </select>
           </Field>
           <div className="sm:col-span-2">
-            <button
-              onClick={createMerchant}
-              disabled={saving || !form.name.trim()}
-              className="rounded-full bg-gold px-5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
-            >
+            <Button size="sm" onClick={createMerchant} disabled={saving || !form.name.trim()}>
               {saving ? 'جاري الحفظ...' : 'إنشاء'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       <div className="space-y-2">
-        {rows.length === 0 && !showAdd && <p className="p-6 text-center text-mocha">ما فيه تجار بعد.</p>}
+        {rows.length === 0 && !showAdd && <EmptyState title="ما فيه تجار بعد" />}
         {rows.map((m) => {
           const expanded = expandedId === m.id;
           const meta = STATUS_META[m.status];
@@ -210,7 +225,7 @@ export function MerchantsTab() {
                   <p className="font-medium text-ink">{m.name}</p>
                   <p className="text-xs text-mocha">{linkedName ? `مربوط بـ ${linkedName}` : m.country ?? '—'}</p>
                 </div>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.className}`}>{meta.label}</span>
+                <Badge variant={meta.badge}>{meta.label}</Badge>
                 <span className={`text-mocha transition-transform ${expanded ? 'rotate-180' : ''}`}>▾</span>
               </button>
 
@@ -234,19 +249,21 @@ export function MerchantsTab() {
                   </div>
                   <div className="grid gap-2">
                     <Field label="الاسم القانوني">
-                      <input
-                        defaultValue={m.legal_name ?? ''}
-                        onBlur={(e) => saveField(m.id, 'legal_name', e.target.value)}
-                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
-                      />
+                      <Input defaultValue={m.legal_name ?? ''} onBlur={(e) => saveField(m.id, 'legal_name', e.target.value)} className="h-8 text-xs" />
                     </Field>
                     <Field label="رابط الموقع">
-                      <input
-                        defaultValue={m.website_url ?? ''}
-                        onBlur={(e) => saveField(m.id, 'website_url', e.target.value)}
+                      <Input defaultValue={m.website_url ?? ''} onBlur={(e) => saveField(m.id, 'website_url', e.target.value)} dir="ltr" className="h-8 text-xs" />
+                    </Field>
+                    <Field label="مرجع خارجي" helper="external_reference">
+                      <Input
+                        defaultValue={m.external_reference ?? ''}
+                        onBlur={(e) => saveField(m.id, 'external_reference', e.target.value)}
                         dir="ltr"
-                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        className="h-8 text-xs"
                       />
+                    </Field>
+                    <Field label="المنطقة الزمنية">
+                      <Input defaultValue={m.timezone} onBlur={(e) => saveField(m.id, 'timezone', e.target.value)} dir="ltr" className="h-8 text-xs" />
                     </Field>
                   </div>
                 </div>
