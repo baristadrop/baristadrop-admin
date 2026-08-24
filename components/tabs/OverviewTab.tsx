@@ -1,10 +1,16 @@
 'use client';
 
-import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
+import { StatCardSkeletonGrid, Skeleton } from '@/components/ui/Skeleton';
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import type { TabKey } from '../Dashboard';
 import { StatCard } from '@/components/ui/StatCard';
+
+const BusinessTypeDonut = dynamic(() => import('./overview/BusinessTypeDonut').then((m) => m.BusinessTypeDonut), {
+  loading: () => <Skeleton className="h-56 w-full" />,
+  ssr: false,
+});
 
 type Counts = {
   pendingRecipes: number;
@@ -266,6 +272,10 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
           <StatCard label="إجمالي الموردين" value={counts.totalSuppliers} onClick={() => onNavigate('suppliers')} />
           <StatCard label="مشتركين نشطين" value={counts.activeSubscribers} onClick={() => onNavigate('subscribers')} />
           <StatCard label="إجمالي الطلبات" value={counts.totalOrders} onClick={() => onNavigate('orders')} />
+        </div>
+        <div className="mt-4 rounded-2xl border border-latte bg-white p-4 shadow-sm">
+          <p className="mb-2 text-xs font-semibold text-stone">توزيع الشركات حسب النوع</p>
+          <BusinessTypeDonut />
         </div>
       </div>
 
