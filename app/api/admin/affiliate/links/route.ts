@@ -4,7 +4,7 @@ import { getAdminClient } from '@/lib/supabaseAdmin';
 import { parsePagination, paginateQuery } from '@/lib/db/pagination';
 import { withErrorHandler } from '@/lib/errorHandler';
 
-const COLUMNS = 'id, affiliate_program_id, product_id, name, destination_url, token, status, created_at';
+const COLUMNS = 'id, affiliate_program_id, product_id, name, destination_url, tracking_template, token, status, created_at';
 
 // GET /api/admin/affiliate/links?affiliate_program_id=...&status=active
 // يرجّع click_count محسوب باستعلام واحد مجمّع بدل استعلام منفصل لكل رابط.
@@ -39,8 +39,9 @@ export const GET = withErrorHandler(async (request: Request) => {
   return NextResponse.json(result);
 });
 
-// POST { affiliate_program_id, name, destination_url, product_id? }
-// token يتولّد تلقائياً من عمود القاعدة الافتراضي -- ما نرسله.
+// POST { affiliate_program_id, name, destination_url, product_id?, tracking_template?, token? }
+// token يتولّد تلقائياً من عمود القاعدة الافتراضي إذا ما أُرسل -- الإرسال
+// اليدوي اختياري (روابط مخصصة/مميّزة)، والقيد الفريد بالقاعدة يرفض التكرار.
 export const POST = withErrorHandler(async (request: Request) => {
   const admin = await requireAdmin(request);
   if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -50,17 +51,22 @@ export const POST = withErrorHandler(async (request: Request) => {
     return NextResponse.json({ error: 'affiliate_program_id, name, and destination_url are required' }, { status: 400 });
   }
 
+  const insertData: Record<string, unknown> = {
+    affiliate_program_id: body.affiliate_program_id,
+    name: body.name,
+    destination_url: body.destination_url,
+    product_id: body.product_id ?? null,
+    tracking_template: (body.tracking_template as string) || null,
+  };
+  if (typeof body.token === 'string' && body.token.trim().length >= 6) {
+    if (!/^[a-zA-Z0-9-]+$/.test(body.token.trim())) {
+      return NextResponse.json({ error: 'token must be alphanumeric with hyphens only' }, { status: 400 });
+    }
+    insertData.token = body.token.trim();
+  }
+
   const supabase = getAdminClient();
-  const { data, error } = await supabase
-    .from('affiliate_links')
-    .insert({
-      affiliate_program_id: body.affiliate_program_id,
-      name: body.name,
-      destination_url: body.destination_url,
-      product_id: body.product_id ?? null,
-    })
-    .select(COLUMNS)
-    .single();
+  const { data, error } = await supabase.from('affiliate_links').insert(insertData).select(COLUMNS).single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ data }, { status: 201 });

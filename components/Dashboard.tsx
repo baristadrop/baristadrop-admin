@@ -30,6 +30,7 @@ import { ConversionsTab } from './tabs/affiliate/ConversionsTab';
 import { AccountingTab } from './tabs/affiliate/AccountingTab';
 import { ReconciliationTab } from './tabs/affiliate/ReconciliationTab';
 import { PayoutsTab } from './tabs/affiliate/PayoutsTab';
+import { JobsTab } from './tabs/affiliate/JobsTab';
 
 // مؤجّل عمداً (dynamic import) -- مكتبة الرسوم البيانية (recharts) لازم ما
 // تثقّل الحزمة الأساسية لباقي التبويبات اللي ما تحتاجها، تُحمَّل بس أول ما
@@ -84,7 +85,8 @@ export type TabKey =
   | 'affiliateConversions'
   | 'affiliateAccounting'
   | 'affiliateReconciliation'
-  | 'affiliatePayouts';
+  | 'affiliatePayouts'
+  | 'affiliateJobs';
 
 type NavGroup = SidebarGroup<TabKey>;
 
@@ -146,6 +148,7 @@ function buildNavGroups(counts: { recipes: number; beans: number; marketplaceLis
       { key: 'affiliateAccounting', label: 'العمولات', Icon: CoinIcon },
       { key: 'affiliateReconciliation', label: 'التسوية', Icon: ScaleIcon },
       { key: 'affiliatePayouts', label: 'المدفوعات', Icon: WalletIcon },
+      { key: 'affiliateJobs', label: 'الوظائف', Icon: PulseIcon },
     ],
   },
   {
@@ -232,6 +235,7 @@ export function Dashboard({
           {active === 'affiliateAccounting' && <AccountingTab />}
           {active === 'affiliateReconciliation' && <ReconciliationTab />}
           {active === 'affiliatePayouts' && <PayoutsTab />}
+          {active === 'affiliateJobs' && <JobsTab />}
           {active === 'team' && <TeamTab />}
           </main>
         </div>

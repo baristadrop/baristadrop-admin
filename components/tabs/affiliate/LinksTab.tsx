@@ -1,36 +1,48 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field } from '@/components/ui/Field';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Button } from '@/components/ui/Button';
+import { Badge, type BadgeVariant } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { useToast } from '@/components/ui/Toast';
 
 type LinkRow = {
   id: string;
   affiliate_program_id: string;
+  product_id: string | null;
   name: string;
   destination_url: string;
+  tracking_template: string | null;
   token: string;
   status: 'active' | 'paused' | 'expired';
   click_count?: number;
 };
 
 type Option = { id: string; name: string };
+type ProductOption = { id: string; name: string; external_url: string | null };
 
 const GO_BASE_URL = 'https://admin.baristadrop.com/api/go';
 const LINKS_API = '/api/admin/affiliate/links';
 const PROGRAMS_API = '/api/admin/affiliate/programs';
 
-const STATUS_META: Record<LinkRow['status'], { label: string; className: string }> = {
-  active: { label: 'نشط', className: 'bg-green-100 text-green-700' },
-  paused: { label: 'موقوف', className: 'bg-amber-100 text-amber-700' },
-  expired: { label: 'منتهي', className: 'bg-red-100 text-red-700' },
+const STATUS_META: Record<LinkRow['status'], { label: string; badge: BadgeVariant }> = {
+  active: { label: 'نشط', badge: 'success' },
+  paused: { label: 'موقوف', badge: 'warning' },
+  expired: { label: 'منتهي', badge: 'danger' },
 };
 
-const emptyForm = { programId: '', name: '', destinationUrl: '' };
+const emptyForm = { programId: '', name: '', destinationUrl: '', productId: '', trackingTemplate: '', token: '' };
 
 export function LinksTab() {
+  const { toast } = useToast();
   const [rows, setRows] = useState<LinkRow[] | null>(null);
   const [programs, setPrograms] = useState<Option[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -38,12 +50,17 @@ export function LinksTab() {
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const [linksRes, programsRes] = await Promise.all([adminFetch(`${LINKS_API}?limit=100`), adminFetch(`${PROGRAMS_API}?limit=100`)]);
+    const [linksRes, programsRes, { data: productRows }] = await Promise.all([
+      adminFetch(`${LINKS_API}?limit=100`),
+      adminFetch(`${PROGRAMS_API}?limit=100`),
+      supabase.from('products').select('id, name, external_url').eq('status', 'approved').eq('is_active', true).order('name').returns<ProductOption[]>(),
+    ]);
     const linksBody = await linksRes.json().catch(() => ({}));
     const programsBody = await programsRes.json().catch(() => ({}));
     if (linksRes.ok) setRows(linksBody.data ?? []);
     else setError(linksBody.error ?? 'فشل تحميل الروابط');
     setPrograms(programsBody.data ?? []);
+    setProducts(productRows ?? []);
   };
 
   useEffect(() => {
@@ -56,12 +73,20 @@ export function LinksTab() {
     setError(null);
     const res = await adminFetchJson(LINKS_API, {
       method: 'POST',
-      body: JSON.stringify({ affiliate_program_id: form.programId, name: form.name.trim(), destination_url: form.destinationUrl.trim() }),
+      body: JSON.stringify({
+        affiliate_program_id: form.programId,
+        name: form.name.trim(),
+        destination_url: form.destinationUrl.trim(),
+        product_id: form.productId || null,
+        tracking_template: form.trackingTemplate.trim() || null,
+        token: form.token.trim() || undefined,
+      }),
     });
     setSaving(false);
     if (res.ok) {
       setForm(emptyForm);
       setShowAdd(false);
+      toast({ title: 'تم إنشاء الرابط', variant: 'success' });
       load();
     } else {
       const body = await res.json().catch(() => ({}));
@@ -86,6 +111,13 @@ export function LinksTab() {
     });
   };
 
+  const previewTemplate = form.trackingTemplate.trim()
+    ? form.trackingTemplate
+        .replaceAll('{token}', form.token.trim() || 'abc123')
+        .replaceAll('{click_id}', 'CLICK_ID')
+        .replaceAll('{program_id}', form.programId || 'PROGRAM_ID')
+    : null;
+
   if (!rows) return <p className="text-mocha">تحميل...</p>;
 
   return (
@@ -100,10 +132,14 @@ export function LinksTab() {
       )}
       <div className="flex items-center justify-between">
         <p className="text-xs text-mocha">كل رابط له توكن فريد -- استخدم رابط /go/{'{token}'} بدل الرابط المباشر عشان يتسجّل الكليك والإحالة.</p>
-        <button onClick={() => setShowAdd((v) => !v)} className="rounded-full bg-ink px-4 py-1.5 text-xs font-bold text-cream">
+        <Button size="sm" onClick={() => setShowAdd((v) => !v)}>
           {showAdd ? 'إلغاء' : '+ رابط جديد'}
-        </button>
+        </Button>
       </div>
+
+      <p className="rounded-xl border border-dashed border-latte bg-sand/30 px-3 py-2 text-[11px] text-mocha">
+        ملاحظة: الروابط لا تتولد تلقائياً عند إضافة منتج. أنشئ رابط تتبع لكل منتج تريد تتبع إحالاته.
+      </p>
 
       {showAdd && (
         <div className="grid gap-3 rounded-2xl border border-gold/40 bg-sand/40 p-4 sm:grid-cols-2">
@@ -122,83 +158,96 @@ export function LinksTab() {
             </select>
           </Field>
           <Field label="الاسم *">
-            <input
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+            <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="h-8 text-xs" />
+          </Field>
+          <Field label="منتج مرتبط (اختياري)">
+            <Select
+              value={form.productId}
+              onChange={(v) => {
+                const p = products.find((pr) => pr.id === v);
+                setForm((f) => ({ ...f, productId: v, destinationUrl: p?.external_url || f.destinationUrl }));
+              }}
+              options={[{ value: '', label: '— بدون منتج —' }, ...products.map((p) => ({ value: p.id, label: p.name }))]}
+              className="h-8 text-xs"
             />
           </Field>
-          <Field label="رابط الوجهة *" helper="الرابط الحقيقي لصفحة المنتج/المتجر">
-            <input
+          <Field label="رابط الوجهة *" helper="الرابط الحقيقي لصفحة المنتج/المتجر -- يُملأ تلقائياً لو اخترت منتج">
+            <Input
               value={form.destinationUrl}
               onChange={(e) => setForm((f) => ({ ...f, destinationUrl: e.target.value }))}
               dir="ltr"
               placeholder="https://..."
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="h-8 text-xs"
             />
           </Field>
+          <Field label="رمز مخصص (اختياري)" helper="16 حرف hex أو نص مخصص (6+ أحرف) -- يُستخدم في /go/{token}، فارغ = يتولّد تلقائياً">
+            <Input value={form.token} onChange={(e) => setForm((f) => ({ ...f, token: e.target.value }))} dir="ltr" placeholder="my-campaign-2026" className="h-8 text-xs" />
+          </Field>
+          <Field label="قالب رابط التتبع (اختياري)" helper="placeholders: {token}, {click_id}, {program_id}">
+            <Input
+              value={form.trackingTemplate}
+              onChange={(e) => setForm((f) => ({ ...f, trackingTemplate: e.target.value }))}
+              dir="ltr"
+              placeholder="https://merchant.com/go?ref={token}&subid={click_id}"
+              className="h-8 text-xs"
+            />
+          </Field>
+          {previewTemplate && (
+            <p dir="ltr" className="break-all rounded-lg bg-white p-2 text-[11px] text-mocha sm:col-span-2">
+              معاينة: {previewTemplate}
+            </p>
+          )}
           <div className="flex items-end">
-            <button
-              onClick={createLink}
-              disabled={saving || !form.programId || !form.name.trim() || !form.destinationUrl.trim()}
-              className="rounded-full bg-gold px-5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
-            >
+            <Button size="sm" onClick={createLink} disabled={saving || !form.programId || !form.name.trim() || !form.destinationUrl.trim()}>
               {saving ? 'جاري الحفظ...' : 'إنشاء'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
-        <table className="w-full min-w-[640px] text-right text-sm">
-          <thead className="bg-sand/60 text-[11px] uppercase tracking-wide text-mocha">
-            <tr>
-              <th className="px-3 py-2">الاسم</th>
-              <th className="px-3 py-2">البرنامج</th>
-              <th className="px-3 py-2">كليكات</th>
-              <th className="px-3 py-2">الحالة</th>
-              <th className="px-3 py-2">رابط /go</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
+      {rows.length === 0 ? (
+        <EmptyState title="ما فيه روابط بعد" />
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
+          <table className="w-full min-w-[720px] text-right text-sm">
+            <thead className="bg-sand/60 text-[11px] uppercase tracking-wide text-mocha">
               <tr>
-                <td colSpan={5} className="p-6 text-center text-mocha">
-                  ما فيه روابط بعد.
-                </td>
+                <th className="px-3 py-2">الاسم</th>
+                <th className="px-3 py-2">البرنامج</th>
+                <th className="px-3 py-2">المنتج</th>
+                <th className="px-3 py-2">كليكات</th>
+                <th className="px-3 py-2">الحالة</th>
+                <th className="px-3 py-2">رابط /go</th>
               </tr>
-            )}
-            {rows.map((l) => {
-              const meta = STATUS_META[l.status];
-              return (
-                <tr key={l.id} className="border-t border-latte">
-                  <td className="px-3 py-2 font-medium text-ink">{l.name}</td>
-                  <td className="px-3 py-2 text-xs text-mocha">{programs.find((p) => p.id === l.affiliate_program_id)?.name ?? '—'}</td>
-                  <td className="px-3 py-2 font-[var(--font-el-messiri)] tabular-nums text-coffee">{l.click_count ?? 0}</td>
-                  <td className="px-3 py-2">
-                    <select
-                      value={l.status}
-                      onChange={(e) => setStatus(l.id, e.target.value as LinkRow['status'])}
-                      className={`rounded-full border-0 px-2 py-0.5 text-[10px] font-medium outline-none ${meta.className}`}
-                    >
-                      {Object.entries(STATUS_META).map(([v, m]) => (
-                        <option key={v} value={v}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-3 py-2">
-                    <button onClick={() => copyGoUrl(l.id, l.token)} className="text-[11px] text-mocha underline">
-                      {copiedId === l.id ? 'تم النسخ ✓' : 'نسخ الرابط'}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rows.map((l) => {
+                return (
+                  <tr key={l.id} className="border-t border-latte">
+                    <td className="px-3 py-2 font-medium text-ink">{l.name}</td>
+                    <td className="px-3 py-2 text-xs text-mocha">{programs.find((p) => p.id === l.affiliate_program_id)?.name ?? '—'}</td>
+                    <td className="px-3 py-2 text-xs text-mocha">{products.find((p) => p.id === l.product_id)?.name ?? '—'}</td>
+                    <td className="px-3 py-2 font-[var(--font-el-messiri)] tabular-nums text-coffee">{l.click_count ?? 0}</td>
+                    <td className="px-3 py-2">
+                      <Select
+                        value={l.status}
+                        onChange={(v) => setStatus(l.id, v as LinkRow['status'])}
+                        options={Object.entries(STATUS_META).map(([v, m]) => ({ value: v, label: m.label }))}
+                        className="h-7 w-28 border-0 bg-transparent px-2 text-[10px] font-medium"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <Button size="sm" variant="link" onClick={() => copyGoUrl(l.id, l.token)}>
+                        {copiedId === l.id ? 'تم النسخ ✓' : 'نسخ الرابط'}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

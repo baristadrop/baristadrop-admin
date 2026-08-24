@@ -9,6 +9,7 @@ import { Badge, type BadgeVariant } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { WebhookVerificationPanel } from './WebhookVerificationPanel';
 
 const CONVERSIONS_API = '/api/admin/affiliate/conversions';
 const PROGRAMS_API = '/api/admin/affiliate/programs';
@@ -76,6 +77,7 @@ export function ConversionsTab() {
   const [error, setError] = useState<string | null>(null);
   const [linkInputs, setLinkInputs] = useState<Record<string, string>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showWebhookPanel, setShowWebhookPanel] = useState(false);
   const [events, setEvents] = useState<Record<string, { conversionEvents: ConversionEventRow[]; postbackEvents: PostbackEventRow[] } | null>>({});
 
   const load = async () => {
@@ -160,6 +162,12 @@ export function ConversionsTab() {
           </button>
         </div>
       )}
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" onClick={() => setShowWebhookPanel((v) => !v)}>
+          {showWebhookPanel ? 'إخفاء التحقق من Webhooks' : 'التحقق من Webhooks'}
+        </Button>
+      </div>
+      {showWebhookPanel && <WebhookVerificationPanel />}
       <FilterBar
         options={[{ value: 'all', label: 'الكل' }, ...ALL_STATUSES.map((s) => ({ value: s, label: STATUS_META[s].label }))]}
         value={statusFilter}
