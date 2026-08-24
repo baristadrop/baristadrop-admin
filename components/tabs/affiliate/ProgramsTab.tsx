@@ -4,6 +4,26 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field, SectionTitle } from '@/components/ui/Field';
+import { Select } from '@/components/ui/Select';
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
+import { Button } from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
+
+const TRACKING_METHODS = [
+  { value: 'redirect', label: 'redirect' },
+  { value: 'pixel', label: 'pixel' },
+  { value: 'coupon', label: 'coupon' },
+  { value: 'api_only', label: 'api_only' },
+];
+const CONVERSION_METHODS = [
+  { value: 'postback', label: 'postback' },
+  { value: 'webhook', label: 'webhook' },
+  { value: 'api', label: 'api' },
+  { value: 'csv', label: 'csv' },
+  { value: 'pixel', label: 'pixel' },
+  { value: 'manual', label: 'manual' },
+];
 
 const PROGRAMS_API = '/api/admin/affiliate/programs';
 const MERCHANTS_API = '/api/admin/affiliate/merchants';
@@ -19,6 +39,13 @@ type ProgramRow = {
   commission_model: string;
   currency: string;
   status: 'active' | 'paused' | 'expired' | 'archived';
+  external_program_id: string | null;
+  affiliate_account_id: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  configuration: Record<string, unknown>;
+  legacy_roaster_id: string | null;
+  legacy_supplier_id: string | null;
 };
 
 type IntegrationRow = {
@@ -27,9 +54,11 @@ type IntegrationRow = {
   provider_code: string;
   status: 'active' | 'degraded' | 'disabled';
   configuration: Record<string, unknown>;
+  last_sync_at: string | null;
+  last_sync_error: string | null;
 };
 
-type CredentialRow = { id: string; credential_type: string; status: string; created_at: string };
+type CredentialRow = { id: string; credential_type: string; status: string; created_at: string; expires_at: string | null };
 
 type Option = { id: string; name: string };
 
@@ -49,28 +78,51 @@ const STATUS_META: Record<ProgramRow['status'], { label: string; className: stri
   archived: { label: 'مؤرشف', className: 'bg-stone/20 text-stone' },
 };
 
-const emptyForm = { name: '', merchantId: '', networkId: '', commissionModel: 'percentage', currency: 'AED' };
+const emptyForm = {
+  name: '',
+  merchantId: '',
+  networkId: '',
+  commissionModel: 'percentage',
+  currency: 'AED',
+  trackingMethod: 'redirect',
+  conversionMethod: 'postback',
+  externalProgramId: '',
+  affiliateAccountId: '',
+  startDate: '',
+  endDate: '',
+};
 
 export function ProgramsTab() {
+  const { toast } = useToast();
   const [rows, setRows] = useState<ProgramRow[] | null>(null);
   const [merchants, setMerchants] = useState<Option[]>([]);
   const [networks, setNetworks] = useState<Option[]>([]);
+  const [roasters, setRoasters] = useState<Option[]>([]);
+  const [suppliers, setSuppliers] = useState<Option[]>([]);
   const [integrations, setIntegrations] = useState<Record<string, IntegrationRow>>({});
   const [credentials, setCredentials] = useState<Record<string, CredentialRow[]>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [detailForm, setDetailForm] = useState<Record<string, Partial<ProgramRow> & { configurationText?: string }>>({});
+  const [configError, setConfigError] = useState<Record<string, string>>({});
+  const [savingDetail, setSavingDetail] = useState<string | null>(null);
   const [credForm, setCredForm] = useState<{ type: string; value: string }>({ type: CREDENTIAL_TYPES[0], value: '' });
   const [saving, setSaving] = useState(false);
   const [credMsg, setCredMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const [programsRes, merchantsRes, networksRes, { data: integ }] = await Promise.all([
+    const [programsRes, merchantsRes, networksRes, { data: integ }, { data: roasterRows }, { data: supplierRows }] = await Promise.all([
       adminFetch(`${PROGRAMS_API}?limit=100`),
       adminFetch(`${MERCHANTS_API}?limit=100`),
       adminFetch(`${NETWORKS_API}?limit=100`),
-      supabase.from('affiliate_provider_integrations').select('id, affiliate_program_id, provider_code, status, configuration').returns<IntegrationRow[]>(),
+      supabase
+        .from('affiliate_provider_integrations')
+        .select('id, affiliate_program_id, provider_code, status, configuration, last_sync_at, last_sync_error')
+        .returns<IntegrationRow[]>(),
+      supabase.from('roasters').select('id, name').order('name').returns<Option[]>(),
+      supabase.from('suppliers').select('id, name').order('name').returns<Option[]>(),
     ]);
     const programsBody = await programsRes.json().catch(() => ({}));
     const merchantsBody = await merchantsRes.json().catch(() => ({}));
@@ -79,6 +131,8 @@ export function ProgramsTab() {
     else setError(programsBody.error ?? 'فشل تحميل البرامج');
     setMerchants(merchantsBody.data ?? []);
     setNetworks(networksBody.data ?? []);
+    setRoasters(roasterRows ?? []);
+    setSuppliers(supplierRows ?? []);
     const byProgram: Record<string, IntegrationRow> = {};
     for (const i of integ ?? []) byProgram[i.affiliate_program_id] = i;
     setIntegrations(byProgram);
@@ -86,7 +140,7 @@ export function ProgramsTab() {
     if (integ && integ.length > 0) {
       const { data: creds } = await supabase
         .from('affiliate_provider_credentials')
-        .select('id, integration_id, credential_type, status, created_at')
+        .select('id, integration_id, credential_type, status, created_at, expires_at')
         .in('integration_id', integ.map((i) => i.id));
       const byIntegration: Record<string, CredentialRow[]> = {};
       for (const c of creds ?? []) {
@@ -112,16 +166,50 @@ export function ProgramsTab() {
         network_id: form.networkId || null,
         commission_model: form.commissionModel,
         currency: form.currency.trim() || 'AED',
+        tracking_method: form.trackingMethod,
+        conversion_method: form.conversionMethod,
+        external_program_id: form.externalProgramId.trim() || null,
+        affiliate_account_id: form.affiliateAccountId.trim() || null,
+        start_date: form.startDate || null,
+        end_date: form.endDate || null,
       }),
     });
     setSaving(false);
     if (res.ok) {
       setForm(emptyForm);
       setShowAdd(false);
+      toast({ title: 'تم إنشاء البرنامج', variant: 'success' });
       load();
     } else {
       const body = await res.json().catch(() => ({}));
       setError(body.error ?? 'فشل إنشاء البرنامج');
+    }
+  };
+
+  const saveDetail = async (id: string) => {
+    const patch = detailForm[id];
+    if (!patch) return;
+    const { configurationText, ...rest } = patch;
+    const body: Record<string, unknown> = { ...rest };
+    if (configurationText !== undefined) {
+      try {
+        body.configuration = configurationText.trim() ? JSON.parse(configurationText) : {};
+        setConfigError((prev) => ({ ...prev, [id]: '' }));
+      } catch {
+        setConfigError((prev) => ({ ...prev, [id]: 'صيغة JSON غير صحيحة' }));
+        return;
+      }
+    }
+    setSavingDetail(id);
+    const res = await adminFetchJson(`${PROGRAMS_API}?id=${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+    setSavingDetail(null);
+    if (res.ok) {
+      toast({ title: 'تم الحفظ', variant: 'success' });
+      setDetailForm((prev) => ({ ...prev, [id]: {} }));
+      load();
+    } else {
+      const resBody = await res.json().catch(() => ({}));
+      toast({ title: 'فشل الحفظ', description: resBody.error, variant: 'destructive' });
     }
   };
 
@@ -232,14 +320,42 @@ export function ProgramsTab() {
               ))}
             </select>
           </Field>
+          <Field label="طريقة التتبّع">
+            <Select value={form.trackingMethod} onChange={(v) => setForm((f) => ({ ...f, trackingMethod: v }))} options={TRACKING_METHODS} />
+          </Field>
+          <Field label="طريقة التحويل">
+            <Select value={form.conversionMethod} onChange={(v) => setForm((f) => ({ ...f, conversionMethod: v }))} options={CONVERSION_METHODS} />
+          </Field>
+          {form.networkId && (
+            <>
+              <Field label="معرّف البرنامج عند الشبكة" helper="external_program_id">
+                <Input
+                  dir="ltr"
+                  value={form.externalProgramId}
+                  onChange={(e) => setForm((f) => ({ ...f, externalProgramId: e.target.value }))}
+                  className="h-8 text-xs"
+                />
+              </Field>
+              <Field label="معرّف حسابنا لدى الشبكة" helper="affiliate_account_id">
+                <Input
+                  dir="ltr"
+                  value={form.affiliateAccountId}
+                  onChange={(e) => setForm((f) => ({ ...f, affiliateAccountId: e.target.value }))}
+                  className="h-8 text-xs"
+                />
+              </Field>
+            </>
+          )}
+          <Field label="تاريخ البداية (اختياري)">
+            <Input type="date" value={form.startDate} onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))} className="h-8 text-xs" />
+          </Field>
+          <Field label="تاريخ النهاية (اختياري)">
+            <Input type="date" value={form.endDate} onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))} className="h-8 text-xs" />
+          </Field>
           <div className="sm:col-span-2">
-            <button
-              onClick={createProgram}
-              disabled={saving || !form.name.trim() || !form.merchantId}
-              className="rounded-full bg-gold px-5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
-            >
+            <Button onClick={createProgram} disabled={saving || !form.name.trim() || !form.merchantId} size="sm">
               {saving ? 'جاري الحفظ...' : 'إنشاء'}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -288,12 +404,122 @@ export function ProgramsTab() {
                   </div>
 
                   <div className="sm:col-span-2">
+                    <SectionTitle>حقول إضافية</SectionTitle>
+                    <div className="grid gap-3 rounded-xl border border-latte bg-white p-3 sm:grid-cols-2">
+                      <Field label="معرّف البرنامج عند الشبكة">
+                        <Input
+                          dir="ltr"
+                          className="h-8 text-xs"
+                          defaultValue={p.external_program_id ?? ''}
+                          onChange={(e) => setDetailForm((f) => ({ ...f, [p.id]: { ...f[p.id], external_program_id: e.target.value || null } }))}
+                        />
+                      </Field>
+                      <Field label="معرّف حسابنا لدى الشبكة">
+                        <Input
+                          dir="ltr"
+                          className="h-8 text-xs"
+                          defaultValue={p.affiliate_account_id ?? ''}
+                          onChange={(e) => setDetailForm((f) => ({ ...f, [p.id]: { ...f[p.id], affiliate_account_id: e.target.value || null } }))}
+                        />
+                      </Field>
+                      <Field label="تاريخ البداية">
+                        <Input
+                          type="date"
+                          className="h-8 text-xs"
+                          defaultValue={p.start_date ?? ''}
+                          onChange={(e) => setDetailForm((f) => ({ ...f, [p.id]: { ...f[p.id], start_date: e.target.value || null } }))}
+                        />
+                      </Field>
+                      <Field label="تاريخ النهاية">
+                        <Input
+                          type="date"
+                          className="h-8 text-xs"
+                          defaultValue={p.end_date ?? ''}
+                          onChange={(e) => setDetailForm((f) => ({ ...f, [p.id]: { ...f[p.id], end_date: e.target.value || null } }))}
+                        />
+                      </Field>
+                      <Field label="محمصة قديمة مرتبطة (legacy)">
+                        <select
+                          defaultValue={p.legacy_roaster_id ?? ''}
+                          onChange={(e) => setDetailForm((f) => ({ ...f, [p.id]: { ...f[p.id], legacy_roaster_id: e.target.value || null } }))}
+                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        >
+                          <option value="">بدون</option>
+                          {roasters.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <Field label="مورد قديم مرتبط (legacy)">
+                        <select
+                          defaultValue={p.legacy_supplier_id ?? ''}
+                          onChange={(e) => setDetailForm((f) => ({ ...f, [p.id]: { ...f[p.id], legacy_supplier_id: e.target.value || null } }))}
+                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        >
+                          <option value="">بدون</option>
+                          {suppliers.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                      </Field>
+                      <div className="sm:col-span-2">
+                        <Field label="الإعدادات (configuration JSON)" helper={configError[p.id] || undefined}>
+                          <Textarea
+                            dir="ltr"
+                            rows={4}
+                            className="font-mono text-xs"
+                            error={configError[p.id]}
+                            defaultValue={JSON.stringify(p.configuration ?? {}, null, 2)}
+                            onChange={(e) => setDetailForm((f) => ({ ...f, [p.id]: { ...f[p.id], configurationText: e.target.value } }))}
+                          />
+                        </Field>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Button size="sm" onClick={() => saveDetail(p.id)} disabled={savingDetail === p.id || !detailForm[p.id]}>
+                          {savingDetail === p.id ? 'جاري الحفظ...' : 'حفظ الحقول الإضافية'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2">
                     <SectionTitle>ربط أدابتر المزوّد</SectionTitle>
                     {integration ? (
                       <div className="space-y-3 rounded-xl border border-latte bg-white p-3">
-                        <p className="text-xs text-coffee">
-                          مربوط بأدابتر <strong>{integration.provider_code}</strong>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-xs text-coffee">
+                            مربوط بأدابتر <strong>{integration.provider_code}</strong>
+                          </p>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                              integration.status === 'active'
+                                ? 'bg-success-bg text-success'
+                                : integration.status === 'degraded'
+                                  ? 'bg-warning-bg text-warning'
+                                  : 'bg-danger-bg text-danger'
+                            }`}
+                          >
+                            {integration.status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-mocha">
+                          {integration.last_sync_at ? `آخر مزامنة: ${new Date(integration.last_sync_at).toLocaleString('ar')}` : 'لم تتم مزامنة بعد'}
                         </p>
+                        {integration.last_sync_error && (
+                          <p className="rounded-lg bg-danger-bg px-2 py-1 text-[11px] text-danger">{integration.last_sync_error}</p>
+                        )}
+                        {integration.configuration && Object.keys(integration.configuration).length > 0 && (
+                          <details className="text-[11px] text-mocha">
+                            <summary className="cursor-pointer font-semibold text-stone">الإعدادات (configuration)</summary>
+                            <pre dir="ltr" className="mt-1 overflow-x-auto rounded-lg bg-sand/50 p-2 text-[10px]">
+                              {JSON.stringify(integration.configuration, null, 2)}
+                            </pre>
+                          </details>
+                        )}
                         {integration.provider_code !== 'direct' && (
                           <div className="space-y-2 border-t border-latte pt-3">
                             <p className="text-[11px] font-semibold text-stone">بيانات الاعتماد (مشفّرة)</p>
@@ -326,11 +552,27 @@ export function ProgramsTab() {
                             </div>
                             {credMsg && <p className="text-[11px] text-mocha">{credMsg}</p>}
                             <div className="flex flex-wrap gap-1.5">
-                              {(credentials[integration.id] ?? []).map((c) => (
-                                <span key={c.id} className="rounded-full bg-sand px-2 py-0.5 text-[10px] text-coffee">
-                                  {c.credential_type} ✓
-                                </span>
-                              ))}
+                              {(credentials[integration.id] ?? []).map((c) => {
+                                const expiresAt = c.expires_at ? new Date(c.expires_at) : null;
+                                const daysLeft = expiresAt ? (expiresAt.getTime() - Date.now()) / 86400000 : null;
+                                const expiryBadge =
+                                  daysLeft === null ? null : daysLeft < 0 ? (
+                                    <span className="rounded-full bg-danger-bg px-1.5 py-0.5 text-[9px] text-danger">
+                                      منتهي {expiresAt!.toLocaleDateString('ar')}
+                                    </span>
+                                  ) : daysLeft <= 30 ? (
+                                    <span className="rounded-full bg-warning-bg px-1.5 py-0.5 text-[9px] text-warning">
+                                      ينتهي {expiresAt!.toLocaleDateString('ar')}
+                                    </span>
+                                  ) : (
+                                    <span className="rounded-full bg-success-bg px-1.5 py-0.5 text-[9px] text-success">✓</span>
+                                  );
+                                return (
+                                  <span key={c.id} className="inline-flex items-center gap-1 rounded-full bg-sand px-2 py-0.5 text-[10px] text-coffee">
+                                    {c.credential_type} ✓ {expiryBadge}
+                                  </span>
+                                );
+                              })}
                               {(credentials[integration.id] ?? []).length === 0 && (
                                 <span className="text-[11px] text-stone">ما فيه بيانات اعتماد محفوظة بعد</span>
                               )}

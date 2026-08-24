@@ -5,7 +5,8 @@ import { parsePagination, paginateQuery } from '@/lib/db/pagination';
 import { markPayoutReceived } from '@/lib/affiliate/commissionService';
 import { withErrorHandler } from '@/lib/errorHandler';
 
-const COLUMNS = 'id, affiliate_program_id, amount, currency, status, payout_date, period_start, period_end, payment_reference, created_at';
+const COLUMNS =
+  'id, affiliate_program_id, amount, currency, status, payout_date, period_start, period_end, payment_reference, exchange_rate, base_amount, base_currency, created_at';
 
 // GET /api/admin/affiliate/payouts?affiliate_program_id=...&status=...
 export const GET = withErrorHandler(async (request: Request) => {
@@ -49,6 +50,9 @@ export const POST = withErrorHandler(async (request: Request) => {
       period_start: body.period_start ?? null,
       period_end: body.period_end ?? null,
       payment_reference: body.payment_reference ?? null,
+      exchange_rate: body.exchange_rate ?? null,
+      base_amount: body.base_amount ?? null,
+      base_currency: body.base_currency ?? null,
     })
     .select(COLUMNS)
     .single();

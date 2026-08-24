@@ -24,6 +24,35 @@ export const GET = withErrorHandler(async (request: Request) => {
   return NextResponse.json(result);
 });
 
+// POST { name, code, integration_type?, api_base_url?, website_url? }
+export const POST = withErrorHandler(async (request: Request) => {
+  const admin = await requireAdmin(request);
+  if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const code = typeof body.code === 'string' ? body.code.trim().toLowerCase() : '';
+  if (!name || !code) {
+    return NextResponse.json({ error: 'name and code are required' }, { status: 400 });
+  }
+
+  const supabase = getAdminClient();
+  const { data, error } = await supabase
+    .from('affiliate_networks')
+    .insert({
+      name,
+      code,
+      integration_type: (body.integration_type as string) || null,
+      api_base_url: (body.api_base_url as string) || null,
+      website_url: (body.website_url as string) || null,
+    })
+    .select(COLUMNS)
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ data }, { status: 201 });
+});
+
 // PATCH ?id=... { status?, website_url?, api_base_url? }
 // الشبكات بيانات مرجعية -- ما فيه DELETE حقيقي، الحالة 'deprecated' بدلها.
 export const PATCH = withErrorHandler(async (request: Request) => {

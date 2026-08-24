@@ -33,12 +33,12 @@ const MonetizationTab = dynamic(() => import('./tabs/MonetizationTab').then((m) 
   loading: () => <p className="text-mocha">تحميل...</p>,
   ssr: false,
 });
+import { BeanIcon } from './icons/NavIcons';
 import {
   OverviewIcon,
   PulseIcon,
   TrophyIcon,
   CupIcon,
-  BeanIcon,
   StorefrontIcon,
   TruckIcon,
   BagIcon,
@@ -54,7 +54,7 @@ import {
   ScaleIcon,
   WalletIcon,
   TagIcon,
-} from './icons/NavIcons';
+} from './icons/LucideNavIcons';
 
 export type TabKey =
   | 'overview'
@@ -220,7 +220,7 @@ export function Dashboard({
           </div>
         </header>
 
-        <main className="min-h-screen bg-canvas px-6 py-8">
+        <main id="main-content" className="min-h-screen bg-canvas px-6 py-8">
           {active === 'overview' && <OverviewTab onNavigate={setActive} />}
           {active === 'tracking' && <TrackingTab />}
           {active === 'productClicks' && <ProductClicksTab />}

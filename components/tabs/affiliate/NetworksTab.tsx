@@ -3,8 +3,21 @@
 import { useEffect, useState } from 'react';
 import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field, SectionTitle } from '@/components/ui/Field';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Button } from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
 
 const API_URL = '/api/admin/affiliate/networks';
+
+const INTEGRATION_TYPES = [
+  { value: 'api', label: 'api' },
+  { value: 'postback', label: 'postback' },
+  { value: 'api+postback', label: 'api+postback' },
+  { value: 'csv', label: 'csv' },
+];
+
+const emptyForm = { name: '', code: '', integrationType: 'postback', apiBaseUrl: '', websiteUrl: '' };
 
 type NetworkRow = {
   id: string;
@@ -23,8 +36,12 @@ const STATUS_META: Record<NetworkRow['status'], { label: string; className: stri
 };
 
 export function NetworksTab() {
+  const { toast } = useToast();
   const [rows, setRows] = useState<NetworkRow[] | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
@@ -48,7 +65,33 @@ export function NetworksTab() {
     }
   };
 
-  const saveField = async (id: string, field: 'website_url' | 'api_base_url', value: string) => {
+  const createNetwork = async () => {
+    if (!form.name.trim() || !form.code.trim()) return;
+    setSaving(true);
+    const res = await adminFetchJson(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        name: form.name.trim(),
+        code: form.code.trim().toLowerCase(),
+        integration_type: form.integrationType,
+        api_base_url: form.apiBaseUrl.trim() || null,
+        website_url: form.websiteUrl.trim() || null,
+      }),
+    });
+    setSaving(false);
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setForm(emptyForm);
+      setShowAdd(false);
+      toast({ title: 'تم إنشاء الشبكة', variant: 'success' });
+      setExpandedId(body.data?.id ?? null);
+      load();
+    } else {
+      toast({ title: 'فشل إنشاء الشبكة', description: body.error, variant: 'destructive' });
+    }
+  };
+
+  const saveField = async (id: string, field: 'website_url' | 'api_base_url' | 'integration_type', value: string) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, [field]: value.trim() || null } : r)) ?? null);
     const res = await adminFetchJson(`${API_URL}?id=${id}`, { method: 'PATCH', body: JSON.stringify({ [field]: value.trim() || null }) });
     if (!res.ok) {
@@ -70,11 +113,55 @@ export function NetworksTab() {
           </button>
         </div>
       )}
-      <p className="text-xs text-mocha">
-        الشبكات الوسيطة اللي ممكن برامج الأفيليت تُربط معها (Awin/CJ/Amazon/...) -- كودها (`code`) هو نفسه
-        provider_code المستخدم بأدابتر المزوّد المطابق. 6 شبكات قياسية مزروعة مسبقاً؛ "تاجر مباشر" هو الافتراضي
-        لأي برنامج بدون شبكة وسيطة (نفس نظام الأفيليت البسيط الحالي).
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-mocha">
+          الشبكات الوسيطة اللي ممكن برامج الأفيليت تُربط معها (Awin/CJ/Amazon/...) -- كودها (`code`) هو نفسه
+          provider_code المستخدم بأدابتر المزوّد المطابق. "تاجر مباشر" هو الافتراضي لأي برنامج بدون شبكة وسيطة.
+        </p>
+        <Button size="sm" onClick={() => setShowAdd((v) => !v)}>
+          {showAdd ? 'إلغاء' : '+ شبكة جديدة'}
+        </Button>
+      </div>
+
+      {showAdd && (
+        <div className="grid gap-3 rounded-2xl border border-gold/40 bg-sand/40 p-4 sm:grid-cols-2">
+          <Field label="الاسم *">
+            <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="h-8 text-xs" />
+          </Field>
+          <Field label="الكود *" helper="حروف صغيرة بدون مسافات، زي shareasale">
+            <Input
+              dir="ltr"
+              value={form.code}
+              onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+              className="h-8 text-xs"
+            />
+          </Field>
+          <Field label="نوع التكامل">
+            <Select value={form.integrationType} onChange={(v) => setForm((f) => ({ ...f, integrationType: v }))} options={INTEGRATION_TYPES} />
+          </Field>
+          <Field label="رابط API الأساسي (اختياري)">
+            <Input
+              dir="ltr"
+              value={form.apiBaseUrl}
+              onChange={(e) => setForm((f) => ({ ...f, apiBaseUrl: e.target.value }))}
+              className="h-8 text-xs"
+            />
+          </Field>
+          <Field label="رابط الموقع (اختياري)">
+            <Input
+              dir="ltr"
+              value={form.websiteUrl}
+              onChange={(e) => setForm((f) => ({ ...f, websiteUrl: e.target.value }))}
+              className="h-8 text-xs"
+            />
+          </Field>
+          <div className="sm:col-span-2">
+            <Button size="sm" onClick={createNetwork} disabled={saving || !form.name.trim() || !form.code.trim()}>
+              {saving ? 'جاري الحفظ...' : 'إنشاء'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         {rows.map((n) => {
@@ -113,6 +200,13 @@ export function NetworksTab() {
                     </div>
                   </div>
                   <div className="grid gap-2">
+                    <Field label="نوع التكامل">
+                      <Select
+                        value={n.integration_type ?? ''}
+                        onChange={(v) => saveField(n.id, 'integration_type', v)}
+                        options={INTEGRATION_TYPES}
+                      />
+                    </Field>
                     <Field label="رابط الموقع">
                       <input
                         defaultValue={n.website_url ?? ''}

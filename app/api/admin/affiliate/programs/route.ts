@@ -5,7 +5,7 @@ import { parsePagination, paginateQuery } from '@/lib/db/pagination';
 import { withErrorHandler } from '@/lib/errorHandler';
 
 const COLUMNS =
-  'id, name, merchant_id, network_id, tracking_method, conversion_method, commission_model, currency, status, legacy_roaster_id, legacy_supplier_id, created_at';
+  'id, name, merchant_id, network_id, tracking_method, conversion_method, commission_model, currency, status, external_program_id, affiliate_account_id, start_date, end_date, configuration, legacy_roaster_id, legacy_supplier_id, created_at';
 
 // GET /api/admin/affiliate/programs?merchant_id=...&network_id=...&status=active
 export const GET = withErrorHandler(async (request: Request) => {
@@ -50,6 +50,12 @@ export const POST = withErrorHandler(async (request: Request) => {
       network_id: body.network_id ?? null,
       commission_model: (body.commission_model as string) ?? 'percentage',
       currency: (body.currency as string) ?? 'AED',
+      tracking_method: (body.tracking_method as string) ?? 'redirect',
+      conversion_method: (body.conversion_method as string) ?? 'postback',
+      external_program_id: (body.external_program_id as string) || null,
+      affiliate_account_id: (body.affiliate_account_id as string) || null,
+      start_date: (body.start_date as string) || null,
+      end_date: (body.end_date as string) || null,
     })
     .select(COLUMNS)
     .single();

@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field } from '@/components/ui/Field';
+import { Button } from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
 
 const PROGRAMS_API = '/api/admin/affiliate/programs';
+const RECON_ITEMS_API = '/api/admin/affiliate/reconciliation/items';
 
 type RunRow = {
   id: string;
@@ -24,7 +27,14 @@ type RunRow = {
   duplicates: number;
 };
 
-type ItemRow = { id: string; recon_status: string; internal_amount: number | null; provider_amount: number | null; discrepancy_notes: string | null };
+type ItemRow = {
+  id: string;
+  recon_status: string;
+  internal_amount: number | null;
+  provider_amount: number | null;
+  discrepancy_notes: string | null;
+  resolved_at: string | null;
+};
 type Option = { id: string; name: string };
 
 const RUN_STATUS_META: Record<RunRow['status'], { label: string; className: string }> = {
@@ -38,7 +48,10 @@ const today = () => new Date().toISOString().slice(0, 10);
 const monthAgo = () => new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 export function ReconciliationTab() {
+  const { toast } = useToast();
   const [runs, setRuns] = useState<RunRow[] | null>(null);
+  const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [programs, setPrograms] = useState<Option[]>([]);
   const [selectedProgram, setSelectedProgram] = useState('');
   const [periodStart, setPeriodStart] = useState(monthAgo());
@@ -126,12 +139,28 @@ export function ReconciliationTab() {
     if (!items[runId]) {
       const { data } = await supabase
         .from('affiliate_reconciliation_items')
-        .select('id, recon_status, internal_amount, provider_amount, discrepancy_notes')
+        .select('id, recon_status, internal_amount, provider_amount, discrepancy_notes, resolved_at')
         .eq('run_id', runId)
         .neq('recon_status', 'MATCHED')
         .limit(100)
         .returns<ItemRow[]>();
       setItems((prev) => ({ ...prev, [runId]: data ?? [] }));
+    }
+  };
+
+  const resolveItem = async (runId: string, itemId: string, patch: { recon_status?: string; discrepancy_notes?: string }) => {
+    setResolvingId(itemId);
+    const res = await adminFetchJson(`${RECON_ITEMS_API}?id=${itemId}`, { method: 'PATCH', body: JSON.stringify(patch) });
+    setResolvingId(null);
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setItems((prev) => ({
+        ...prev,
+        [runId]: prev[runId]?.map((it) => (it.id === itemId ? (body.data as ItemRow) : it)) ?? [],
+      }));
+      toast({ title: 'تم الحفظ', variant: 'success' });
+    } else {
+      toast({ title: 'فشل الحفظ', description: body.error, variant: 'destructive' });
     }
   };
 
@@ -242,13 +271,69 @@ export function ReconciliationTab() {
                   {(items[run.id]?.length ?? 0) === 0 ? (
                     <p className="text-xs text-mocha">ما فيه اختلافات -- كل شي مطابق.</p>
                   ) : (
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {items[run.id]!.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-latte bg-white px-3 py-2 text-xs">
-                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] text-red-700">{item.recon_status}</span>
-                          <span className="text-mocha">
-                            داخلي: {item.internal_amount ?? '—'} · مزوّد: {item.provider_amount ?? '—'}
-                          </span>
+                        <div key={item.id} className="space-y-2 rounded-lg border border-latte bg-white p-3 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] text-red-700">{item.recon_status}</span>
+                            <span className="text-mocha">
+                              داخلي: {item.internal_amount ?? '—'} · مزوّد: {item.provider_amount ?? '—'}
+                            </span>
+                          </div>
+                          {item.discrepancy_notes && <p className="text-[11px] text-stone">ملاحظة سابقة: {item.discrepancy_notes}</p>}
+                          {item.resolved_at ? (
+                            <p className="text-[11px] text-success">تم الحل بتاريخ {new Date(item.resolved_at).toLocaleDateString('ar')}</p>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-2">
+                              {item.recon_status === 'AMOUNT_MISMATCH' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={resolvingId === item.id}
+                                  onClick={() => resolveItem(run.id, item.id, { recon_status: 'MATCHED', discrepancy_notes: 'قُبل مبلغ المزوّد يدوياً' })}
+                                >
+                                  قبول مبلغ المزوّد
+                                </Button>
+                              )}
+                              {item.recon_status === 'STATUS_MISMATCH' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={resolvingId === item.id}
+                                  onClick={() => resolveItem(run.id, item.id, { recon_status: 'MATCHED', discrepancy_notes: 'حُدّثت الحالة يدوياً لمطابقة المزوّد' })}
+                                >
+                                  تحديث الحالة لمطابقة المزوّد
+                                </Button>
+                              )}
+                              {item.recon_status === 'MANUAL_REVIEW' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={resolvingId === item.id}
+                                  onClick={() => resolveItem(run.id, item.id, { recon_status: 'MATCHED' })}
+                                >
+                                  تعيين كمطابق (بعد المراجعة)
+                                </Button>
+                              )}
+                              <input
+                                value={noteDraft[item.id] ?? ''}
+                                onChange={(e) => setNoteDraft((d) => ({ ...d, [item.id]: e.target.value }))}
+                                placeholder="أضف ملاحظة..."
+                                className="min-w-[160px] flex-1 rounded-lg border border-latte bg-white px-2 py-1 text-[11px] outline-none focus:border-gold"
+                              />
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={resolvingId === item.id || !noteDraft[item.id]?.trim()}
+                                onClick={() => {
+                                  resolveItem(run.id, item.id, { discrepancy_notes: noteDraft[item.id].trim() });
+                                  setNoteDraft((d) => ({ ...d, [item.id]: '' }));
+                                }}
+                              >
+                                حفظ الملاحظة
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
