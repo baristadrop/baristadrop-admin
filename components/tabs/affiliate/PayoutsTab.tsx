@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, memo, useEffect, useState } from 'react';
 import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
 import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field } from '@/components/ui/Field';
@@ -51,7 +51,7 @@ const emptyForm = {
   baseCurrency: '',
 };
 
-export function PayoutsTab() {
+function PayoutsTabImpl() {
   const { toast } = useToast();
   const [rows, setRows] = useState<PayoutRow[] | null>(null);
   const [programs, setPrograms] = useState<Option[]>([]);
@@ -358,3 +358,5 @@ export function PayoutsTab() {
     </div>
   );
 }
+
+export const PayoutsTab = memo(PayoutsTabImpl);

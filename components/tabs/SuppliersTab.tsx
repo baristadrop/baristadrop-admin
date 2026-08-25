@@ -1,7 +1,7 @@
 'use client';
 
 import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Toggle } from '@/components/ui/Toggle';
 import { Field, SectionTitle } from '@/components/ui/Field';
@@ -76,7 +76,7 @@ const STATUS_FILTERS: { value: 'all' | SupplierRow['status']; label: string }[] 
   { value: 'rejected', label: 'مرفوض' },
 ];
 
-export function SuppliersTab() {
+function SuppliersTabImpl() {
   const [rows, setRows] = useState<SupplierRow[] | null>(null);
   const [stats, setStats] = useState<Record<string, SupplierStats>>({});
   const [period, setPeriod] = useState<'all' | 'month'>('all');
@@ -485,3 +485,5 @@ export function SuppliersTab() {
     </div>
   );
 }
+
+export const SuppliersTab = memo(SuppliersTabImpl);

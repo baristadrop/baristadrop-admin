@@ -13,18 +13,18 @@ export function BusinessTypeDonut() {
 
   useEffect(() => {
     let cancelled = false;
-    supabase
-      .from('roasters')
-      .select('business_type')
-      .then(({ data: rows }) => {
-        if (cancelled) return;
-        const counts: Record<string, number> = { roaster: 0, cafe: 0 };
-        for (const r of rows ?? []) {
-          const t = (r as { business_type: string }).business_type;
-          counts[t] = (counts[t] ?? 0) + 1;
-        }
-        setData(Object.entries(counts).map(([type, count]) => ({ type, count })));
-      });
+    // عدّين خفيفين (head: true) بدل سحب جدول roasters كامل والعدّ في
+    // الجافاسكربت -- نفس النتيجة بحمولة شبه معدومة.
+    Promise.all([
+      supabase.from('roasters').select('id', { count: 'exact', head: true }).eq('business_type', 'roaster'),
+      supabase.from('roasters').select('id', { count: 'exact', head: true }).eq('business_type', 'cafe'),
+    ]).then(([roasterRes, cafeRes]) => {
+      if (cancelled) return;
+      setData([
+        { type: 'roaster', count: roasterRes.count ?? 0 },
+        { type: 'cafe', count: cafeRes.count ?? 0 },
+      ]);
+    });
     return () => {
       cancelled = true;
     };

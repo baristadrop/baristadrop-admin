@@ -78,7 +78,13 @@ function timeAgo(iso: string) {
   return `قبل ${days} يوم`;
 }
 
-export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void }) {
+export function OverviewTab({
+  onNavigate,
+  onCountsUpdate,
+}: {
+  onNavigate: (tab: TabKey) => void;
+  onCountsUpdate?: (counts: { recipes: number; beans: number; marketplaceListings: number }) => void;
+}) {
   const [counts, setCounts] = useState<Counts | null>(null);
   const [engagement, setEngagement] = useState<Engagement | null>(null);
   const [ph, setPh] = useState<PostHogStats | null>(null);
@@ -88,12 +94,41 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
 
   useEffect(() => {
     const load = async () => {
-      // طلب واحد بدل 12 طلب متزامن -- كانت تسبب أحياناً أخطاء 503 من تجاوز
-      // حد اتصالات Supabase، بجانب إبطاء التحميل بدون داعٍ.
-      const [{ data: statsRows }, sessionRes] = await Promise.all([
+      // كل الطلبات اللي ما تعتمد على بعض تنطلق دفعة وحدة (بدل مراحل متتالية)
+      // لتقليل زمن التحميل الكلي. get_overview_stats نفسه يبقى طلب واحد
+      // (بديل عن 12 طلب منفصل) لتفادي تجاوز حد اتصالات Supabase.
+      const [{ data: statsRows }, sessionRes, { count: listingsCount }, latestActivity, topBeansRes] = await Promise.all([
         supabase.rpc('get_overview_stats'),
         supabase.auth.getSession(),
+        supabase.from('marketplace_listings').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
+        Promise.all([
+          supabase.from('recipes').select('id, xbloom_link, created_at').order('created_at', { ascending: false }).limit(5),
+          supabase.from('beans').select('id, name, created_at').order('created_at', { ascending: false }).limit(5),
+          supabase.from('roasters').select('id, name, business_type, created_at').order('created_at', { ascending: false }).limit(5),
+          supabase.from('suppliers').select('id, name, created_at').order('created_at', { ascending: false }).limit(5),
+          supabase.from('products').select('id, name, created_at').order('created_at', { ascending: false }).limit(5),
+          supabase
+            .from('orders')
+            .select('id, order_number, customer_name, total, created_at')
+            .order('created_at', { ascending: false })
+            .limit(5),
+          supabase
+            .from('subscriptions')
+            .select('id, customer_name, created_at')
+            .order('created_at', { ascending: false })
+            .limit(5),
+        ]),
+        supabase
+          .from('beans')
+          .select('id, name, avg_rating, reviews_count, roasters!beans_roaster_id_fkey(name)')
+          .eq('status', 'approved')
+          .gt('reviews_count', 0)
+          .order('avg_rating', { ascending: false })
+          .order('reviews_count', { ascending: false })
+          .limit(3)
+          .returns<TopBean[]>(),
       ]);
+
       const stats = (
         statsRows as
           | {
@@ -131,33 +166,38 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
         subscriptionInterests: stats?.subscription_interests ?? 0,
       });
 
+      onCountsUpdate?.({
+        recipes: stats?.pending_recipes ?? 0,
+        beans: stats?.pending_beans ?? 0,
+        marketplaceListings: listingsCount ?? 0,
+      });
+
+      setTopBeans(topBeansRes.data ?? []);
+
+      // PostHog يبقى بعد الباقي لأنه محتاج session token من نفس الدفعة أعلاه؛
+      // مؤجّل عن أي شي ثاني، ومحمي بمهلة (timeout) عشان بطئه أو تعطّله ما
+      // يعلّق الصفحة (كان يوصل ~9.7 ثانية أحياناً).
       const token = sessionRes.data.session?.access_token;
       if (token) {
-        const phRes = await fetch('/api/admin/posthog-stats', { headers: { Authorization: `Bearer ${token}` } });
-        if (phRes.ok) setPh(await phRes.json());
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 6000);
+          const phRes = await fetch('/api/admin/posthog-stats', {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+          if (phRes.ok) setPh(await phRes.json());
+        } catch {
+          // مهلة أو خطأ شبكة -- تُعرض حالة "غير متاحة" بدل التعليق
+        }
       }
       setLoadingPh(false);
 
       // آخر التحديثات — مصادر متعددة تندمج بقائمة واحدة مرتبة بالوقت، عشان
       // يشوف الأدمن كل جديد بنظرة وحدة بدون ما يفتح كل تبويب لحاله.
       const [latestRecipes, latestBeans, latestBusinesses, latestSuppliers, latestProducts, latestOrders, latestSubs] =
-        await Promise.all([
-          supabase.from('recipes').select('id, xbloom_link, created_at').order('created_at', { ascending: false }).limit(5),
-          supabase.from('beans').select('id, name, created_at').order('created_at', { ascending: false }).limit(5),
-          supabase.from('roasters').select('id, name, business_type, created_at').order('created_at', { ascending: false }).limit(5),
-          supabase.from('suppliers').select('id, name, created_at').order('created_at', { ascending: false }).limit(5),
-          supabase.from('products').select('id, name, created_at').order('created_at', { ascending: false }).limit(5),
-          supabase
-            .from('orders')
-            .select('id, order_number, customer_name, total, created_at')
-            .order('created_at', { ascending: false })
-            .limit(5),
-          supabase
-            .from('subscriptions')
-            .select('id, customer_name, created_at')
-            .order('created_at', { ascending: false })
-            .limit(5),
-        ]);
+        latestActivity;
 
       const items: ActivityItem[] = [
         ...(latestRecipes.data ?? []).map((r) => ({
@@ -220,17 +260,6 @@ export function OverviewTab({ onNavigate }: { onNavigate: (tab: TabKey) => void 
 
       items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setActivity(items.slice(0, 10));
-
-      const { data: topData } = await supabase
-        .from('beans')
-        .select('id, name, avg_rating, reviews_count, roasters!beans_roaster_id_fkey(name)')
-        .eq('status', 'approved')
-        .gt('reviews_count', 0)
-        .order('avg_rating', { ascending: false })
-        .order('reviews_count', { ascending: false })
-        .limit(3)
-        .returns<TopBean[]>();
-      setTopBeans(topData ?? []);
     };
     load();
   }, []);

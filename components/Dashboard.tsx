@@ -1,45 +1,117 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
 import { Sidebar, type SidebarGroup } from '@/components/ui/Sidebar';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { ToastProvider } from '@/components/ui/Toast';
-import { OverviewTab } from './tabs/OverviewTab';
-import { TrackingTab } from './tabs/TrackingTab';
-import { ProductClicksTab } from './tabs/ProductClicksTab';
-import { RecipesTab } from './tabs/RecipesTab';
-import { BeansTab } from './tabs/BeansTab';
-import { MarketplaceListingsTab } from './tabs/MarketplaceListingsTab';
-import { BusinessesTab } from './tabs/BusinessesTab';
-import { SuppliersTab } from './tabs/SuppliersTab';
-import { TeamTab } from './tabs/TeamTab';
-import { TopBeansTab } from './tabs/TopBeansTab';
-import { ProductsTab } from './tabs/ProductsTab';
-import { OrdersTab } from './tabs/OrdersTab';
-import { SubscribersTab } from './tabs/SubscribersTab';
-import { NotificationsTab } from './tabs/NotificationsTab';
-import { MerchantsTab } from './tabs/affiliate/MerchantsTab';
-import { NetworksTab } from './tabs/affiliate/NetworksTab';
-import { ProgramsTab } from './tabs/affiliate/ProgramsTab';
-import { LinksTab } from './tabs/affiliate/LinksTab';
-import { ConversionsTab } from './tabs/affiliate/ConversionsTab';
-import { AccountingTab } from './tabs/affiliate/AccountingTab';
-import { ReconciliationTab } from './tabs/affiliate/ReconciliationTab';
-import { PayoutsTab } from './tabs/affiliate/PayoutsTab';
-import { JobsTab } from './tabs/affiliate/JobsTab';
-import { HelpPanel } from './tabs/affiliate/HelpPanel';
+import { StatCardSkeletonGrid, TableSkeleton, Skeleton } from '@/components/ui/Skeleton';
 
-// مؤجّل عمداً (dynamic import) -- مكتبة الرسوم البيانية (recharts) لازم ما
-// تثقّل الحزمة الأساسية لباقي التبويبات اللي ما تحتاجها، تُحمَّل بس أول ما
-// حد يفتح هذا التبويب فعلياً.
-const MonetizationTab = dynamic(() => import('./tabs/MonetizationTab').then((m) => m.MonetizationTab), {
-  loading: () => <p className="text-mocha">تحميل...</p>,
+// كل التبويبات محمّلة ديناميكياً (dynamic import) -- كل واحد يتحمّل بس أول
+// ما الأدمن يفتحه فعلياً، بدل ما تتحمّل كلها الـ23 مع أول طلب وتخنق سيرفر
+// التطوير (RAM/CPU) بلا داعٍ. ملاحظة: Turbopack يحتاج الـ options object
+// مكتوب inline بكل نداء (ما يقبل مرجع لمتغيّر مشترك).
+const OverviewTab = dynamic(() => import('./tabs/OverviewTab').then((m) => m.OverviewTab), {
+  loading: () => <StatCardSkeletonGrid />,
   ssr: false,
 });
+const TrackingTab = dynamic(() => import('./tabs/TrackingTab').then((m) => m.TrackingTab), {
+  loading: () => <StatCardSkeletonGrid />,
+  ssr: false,
+});
+const ProductClicksTab = dynamic(() => import('./tabs/ProductClicksTab').then((m) => m.ProductClicksTab), {
+  loading: () => <StatCardSkeletonGrid />,
+  ssr: false,
+});
+const TopBeansTab = dynamic(() => import('./tabs/TopBeansTab').then((m) => m.TopBeansTab), {
+  loading: () => <StatCardSkeletonGrid />,
+  ssr: false,
+});
+const RecipesTab = dynamic(() => import('./tabs/RecipesTab').then((m) => m.RecipesTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const BeansTab = dynamic(() => import('./tabs/BeansTab').then((m) => m.BeansTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const MarketplaceListingsTab = dynamic(() => import('./tabs/MarketplaceListingsTab').then((m) => m.MarketplaceListingsTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const BusinessesTab = dynamic(() => import('./tabs/BusinessesTab').then((m) => m.BusinessesTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const SuppliersTab = dynamic(() => import('./tabs/SuppliersTab').then((m) => m.SuppliersTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const ProductsTab = dynamic(() => import('./tabs/ProductsTab').then((m) => m.ProductsTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const OrdersTab = dynamic(() => import('./tabs/OrdersTab').then((m) => m.OrdersTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const SubscribersTab = dynamic(() => import('./tabs/SubscribersTab').then((m) => m.SubscribersTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const MerchantsTab = dynamic(() => import('./tabs/affiliate/MerchantsTab').then((m) => m.MerchantsTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const NetworksTab = dynamic(() => import('./tabs/affiliate/NetworksTab').then((m) => m.NetworksTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const ProgramsTab = dynamic(() => import('./tabs/affiliate/ProgramsTab').then((m) => m.ProgramsTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const LinksTab = dynamic(() => import('./tabs/affiliate/LinksTab').then((m) => m.LinksTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const ConversionsTab = dynamic(() => import('./tabs/affiliate/ConversionsTab').then((m) => m.ConversionsTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const AccountingTab = dynamic(() => import('./tabs/affiliate/AccountingTab').then((m) => m.AccountingTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const ReconciliationTab = dynamic(() => import('./tabs/affiliate/ReconciliationTab').then((m) => m.ReconciliationTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const PayoutsTab = dynamic(() => import('./tabs/affiliate/PayoutsTab').then((m) => m.PayoutsTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const JobsTab = dynamic(() => import('./tabs/affiliate/JobsTab').then((m) => m.JobsTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+const TeamTab = dynamic(() => import('./tabs/TeamTab').then((m) => m.TeamTab), {
+  loading: () => <Skeleton className="h-64 w-full" />,
+  ssr: false,
+});
+const NotificationsTab = dynamic(() => import('./tabs/NotificationsTab').then((m) => m.NotificationsTab), {
+  loading: () => <Skeleton className="h-64 w-full" />,
+  ssr: false,
+});
+const MonetizationTab = dynamic(() => import('./tabs/MonetizationTab').then((m) => m.MonetizationTab), {
+  loading: () => <StatCardSkeletonGrid />,
+  ssr: false,
+});
+
+// خفيف ويُستخدم فوراً في الهيدر -- يبقى static.
+import { HelpPanel } from './tabs/affiliate/HelpPanel';
 import { BeanIcon } from './icons/NavIcons';
 import {
   OverviewIcon,
@@ -171,31 +243,24 @@ export function Dashboard({
   signOut: () => void;
 }) {
   const [active, setActive] = useState<TabKey>('overview');
+  // بيانات هذه الأعداد تجيها OverviewTab (نفس الـ RPC اللي محتاجته أصلاً
+  // لبطاقاتها) بدل ما نناديها مرة ثانية هنا -- كانت تتكرر مرتين بنفس الطلب.
   const [counts, setCounts] = useState({ recipes: 0, beans: 0, marketplaceListings: 0 });
 
-  useEffect(() => {
-    (async () => {
-      const [{ data: stats }, { count: listingsCount }] = await Promise.all([
-        supabase.rpc('get_overview_stats').single<{ pending_recipes: number; pending_beans: number }>(),
-        supabase.from('marketplace_listings').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
-      ]);
-      setCounts({
-        recipes: stats?.pending_recipes ?? 0,
-        beans: stats?.pending_beans ?? 0,
-        marketplaceListings: listingsCount ?? 0,
-      });
-    })();
-  }, []);
-
-  const navGroups = buildNavGroups(counts);
+  const navGroups = useMemo(() => buildNavGroups(counts), [counts]);
   const allTabs = navGroups.flatMap((g) => g.tabs);
   const activeLabel = allTabs.find((t) => t.key === active)?.label ?? '';
 
-  const headerBrand = (
-    <div>
-      <h1 className="font-[var(--font-cormorant)] text-xl font-bold tracking-wide text-gold">BARISTA DROP</h1>
-      <p className="text-xs text-sand/80">لوحة التحكم</p>
-    </div>
+  // مرجع ثابت (نفس الـ reference) عبر إعادات الرندر -- ضروري عشان مقارنة
+  // React.memo المخصّصة بالـ Sidebar فعلاً تشتغل وما تعيد الرندر بلا داعي.
+  const headerBrand = useMemo(
+    () => (
+      <div>
+        <h1 className="font-[var(--font-cormorant)] text-xl font-bold tracking-wide text-gold">BARISTA DROP</h1>
+        <p className="text-xs text-sand/80">لوحة التحكم</p>
+      </div>
+    ),
+    []
   );
 
   return (
@@ -215,7 +280,7 @@ export function Dashboard({
           </PageHeader>
 
           <main id="main-content" className="min-h-screen bg-canvas px-6 py-8">
-          {active === 'overview' && <OverviewTab onNavigate={setActive} />}
+          {active === 'overview' && <OverviewTab onNavigate={setActive} onCountsUpdate={setCounts} />}
           {active === 'tracking' && <TrackingTab />}
           {active === 'productClicks' && <ProductClicksTab />}
           {active === 'top' && <TopBeansTab />}

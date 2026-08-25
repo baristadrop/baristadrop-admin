@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { DirhamIcon } from '@/components/icons/DirhamIcon';
 import { ICON_OPTIONS, iconGlyph } from '@/lib/categoryIcons';
@@ -497,7 +497,7 @@ function ProductCard({
   );
 }
 
-export function ProductsTab() {
+function ProductsTabImpl() {
   const [products, setProducts] = useState<ProductRow[] | null>(null);
   const [categories, setCategories] = useState<ProductCategoryRow[]>([]);
   const [ownerFilter, setOwnerFilter] = useState<'all' | 'platform' | 'vendor'>('all');
@@ -581,3 +581,5 @@ export function ProductsTab() {
     </div>
   );
 }
+
+export const ProductsTab = memo(ProductsTabImpl);

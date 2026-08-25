@@ -1,7 +1,7 @@
 'use client';
 
 import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field, SectionTitle } from '@/components/ui/Field';
@@ -93,7 +93,7 @@ const emptyForm = {
   endDate: '',
 };
 
-export function ProgramsTab() {
+function ProgramsTabImpl() {
   const { toast } = useToast();
   const [rows, setRows] = useState<ProgramRow[] | null>(null);
   const [merchants, setMerchants] = useState<Option[]>([]);
@@ -604,3 +604,5 @@ export function ProgramsTab() {
     </div>
   );
 }
+
+export const ProgramsTab = memo(ProgramsTabImpl);

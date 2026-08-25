@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { ChevronDown, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -42,7 +42,7 @@ function useCollapsedGroups() {
   return { collapsed, toggle };
 }
 
-function SidebarNav<K extends string>({
+function SidebarNavInner<K extends string>({
   groups,
   active,
   onSelect,
@@ -100,7 +100,9 @@ function SidebarNav<K extends string>({
   );
 }
 
-export function Sidebar<K extends string>({
+const SidebarNav = memo(SidebarNavInner) as typeof SidebarNavInner;
+
+function SidebarInner<K extends string>({
   groups,
   active,
   onSelect,
@@ -161,3 +163,10 @@ export function Sidebar<K extends string>({
     </>
   );
 }
+
+// مقارنة مخصّصة عشان الشريط الجانبي ما يعيد رندر إلا لما شي فعلاً يتغيّر
+// (تبويب فعّال، أو مجموعات التنقّل، أو الهيدر) -- بدل كل مرة الأب يعيد
+// الرندر (مثلاً بسبب state ثانية بالداشبورد).
+export const Sidebar = memo(SidebarInner, (prev, next) => {
+  return prev.active === next.active && prev.groups === next.groups && prev.header === next.header;
+}) as typeof SidebarInner;

@@ -3,17 +3,27 @@ import { requireAdmin } from '@/lib/adminAuth';
 const POSTHOG_PROJECT_ID = '514557';
 
 async function hogql(query: string) {
-  const res = await fetch(`https://us.posthog.com/api/projects/${POSTHOG_PROJECT_ID}/query/`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.POSTHOG_PERSONAL_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ query: { kind: 'HogQLQuery', query } }),
-  });
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data.results?.[0] ?? null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(`https://us.posthog.com/api/projects/${POSTHOG_PROJECT_ID}/query/`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.POSTHOG_PERSONAL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query: { kind: 'HogQLQuery', query } }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.results?.[0] ?? null;
+  } catch {
+    // مهلة (5 ثواني) أو تعطّل الشبكة -- نرجّع null بدل ما نعلّق الطلب
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function GET(request: Request) {

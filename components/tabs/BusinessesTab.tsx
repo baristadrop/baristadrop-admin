@@ -1,7 +1,7 @@
 'use client';
 
 import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Toggle } from '@/components/ui/Toggle';
 import { Field, SectionTitle } from '@/components/ui/Field';
@@ -77,7 +77,7 @@ const TYPE_FILTERS: { value: 'all' | BusinessType; label: string }[] = [
 
 const TYPE_LABEL: Record<BusinessType, string> = { roaster: 'محمصة', cafe: 'كوفي شوب' };
 
-export function BusinessesTab() {
+function BusinessesTabImpl() {
   const [rows, setRows] = useState<BusinessRow[] | null>(null);
   const [stats, setStats] = useState<Record<string, BusinessStats>>({});
   const [period, setPeriod] = useState<'all' | 'month'>('all');
@@ -537,3 +537,5 @@ export function BusinessesTab() {
     </div>
   );
 }
+
+export const BusinessesTab = memo(BusinessesTabImpl);
