@@ -24,7 +24,8 @@ type ListingRow = {
   country: string;
   city: string;
   photo_urls: string[];
-  contact_phone: string;
+  contact_phone: string | null;
+  contact_whatsapp: string | null;
   listing_fee_aed: number | null;
   paid_at: string | null;
   status: ListingStatus;
@@ -51,7 +52,7 @@ const CONDITION_LABEL: Record<ListingRow['condition'], string> = {
 };
 
 const COLUMNS =
-  'id, owner_id, title, description, category, condition, price_aed, country, city, photo_urls, contact_phone, listing_fee_aed, paid_at, status, rejection_reason, created_at, owner:profiles!marketplace_listings_owner_id_fkey(full_name)';
+  'id, owner_id, title, description, category, condition, price_aed, country, city, photo_urls, contact_phone, contact_whatsapp, listing_fee_aed, paid_at, status, rejection_reason, created_at, owner:profiles!marketplace_listings_owner_id_fkey(full_name)';
 
 export function MarketplaceListingsTab() {
   const [rows, setRows] = useState<ListingRow[] | null>(null);
@@ -199,7 +200,8 @@ export function MarketplaceListingsTab() {
               <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <Detail label="السعر" value={`${Number(selected.price_aed).toFixed(2)} د.إ`} />
                 <Detail label="رسم الإعلان" value={selected.listing_fee_aed ? `${Number(selected.listing_fee_aed).toFixed(2)} د.إ` : '—'} />
-                <Detail label="رقم التواصل" value={selected.contact_phone} />
+                <Detail label="واتساب" value={selected.contact_whatsapp ?? '—'} />
+                <Detail label="رقم الاتصال" value={selected.contact_phone ?? '—'} />
               </div>
 
               {selected.status === 'rejected' && selected.rejection_reason && (
