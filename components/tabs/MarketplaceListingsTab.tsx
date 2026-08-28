@@ -96,6 +96,10 @@ export function MarketplaceListingsTab() {
       .from('marketplace_listings')
       .update({ status: 'active', published_at: publishedAt.toISOString(), expires_at: expiresAt.toISOString() })
       .eq('id', selected.id);
+    await adminFetchJson('/api/admin/marketplace/notify-approval', {
+      method: 'POST',
+      body: JSON.stringify({ listingId: selected.id }),
+    }).catch(() => null); // best-effort -- نفس منطق notify-rejection
     setBusy(false);
     load();
     loadRevenue();
