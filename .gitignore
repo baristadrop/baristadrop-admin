@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+# test scaffolding (Claude Code E2E)
+/test-e2e/
+/.env.test.local
