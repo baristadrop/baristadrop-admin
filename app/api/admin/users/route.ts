@@ -3,7 +3,7 @@ import { getAdminClient } from '@/lib/supabaseAdmin';
 
 export async function GET(request: Request) {
   const caller = await requireAdmin(request);
-  if (!caller) return Response.json({ error: 'unauthorized' }, { status: 403 });
+  if (!caller) return Response.json({ error: 'unauthorized' }, { status: 401 });
 
   const admin = getAdminClient();
   const [{ data: authUsers }, { data: profiles }] = await Promise.all([
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const caller = await requireAdmin(request);
-  if (!caller) return Response.json({ error: 'unauthorized' }, { status: 403 });
+  if (!caller) return Response.json({ error: 'unauthorized' }, { status: 401 });
 
   const body = await request.json();
   const { email, password, fullName, role } = body as {
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   const caller = await requireAdmin(request);
-  if (!caller) return Response.json({ error: 'unauthorized' }, { status: 403 });
+  if (!caller) return Response.json({ error: 'unauthorized' }, { status: 401 });
 
   const body = await request.json();
   const { userId, role } = body as { userId: string; role: string };

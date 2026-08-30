@@ -28,7 +28,7 @@ async function hogql(query: string) {
 
 export async function GET(request: Request) {
   const caller = await requireAdmin(request);
-  if (!caller) return Response.json({ error: 'unauthorized' }, { status: 403 });
+  if (!caller) return Response.json({ error: 'unauthorized' }, { status: 401 });
 
   const [visitors, opens, installs] = await Promise.all([
     hogql("SELECT count(DISTINCT person_id) FROM events WHERE timestamp > now() - INTERVAL 30 DAY"),

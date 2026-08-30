@@ -18,7 +18,7 @@ function chunk<T>(items: T[], size: number): T[][] {
 
 export async function POST(request: Request) {
   const caller = await requireAdmin(request);
-  if (!caller) return Response.json({ error: 'unauthorized' }, { status: 403 });
+  if (!caller) return Response.json({ error: 'unauthorized' }, { status: 401 });
 
   const body = await request.json();
   const { title, body: messageBody, audience } = body as { title: string; body: string; audience: string };
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   const caller = await requireAdmin(request);
-  if (!caller) return Response.json({ error: 'unauthorized' }, { status: 403 });
+  if (!caller) return Response.json({ error: 'unauthorized' }, { status: 401 });
 
   const admin = getAdminClient();
   const { data, error } = await admin
