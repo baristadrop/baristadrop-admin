@@ -72,8 +72,14 @@ export function MarketplaceListingsTab() {
   };
 
   const loadRevenue = async () => {
-    const { data } = await supabase.from('marketplace_listings').select('listing_fee_aed').not('paid_at', 'is', null);
-    const total = (data ?? []).reduce((sum, r) => sum + Number(r.listing_fee_aed ?? 0), 0);
+    // الإيراد الفعلي = دفعات Stripe نجحت فعلاً (المبلغ اتستلم)، مو حقل paid_at
+    // على الإعلان (اللي ممكن يكون متعبّى بإعلانات تجريبية/بذور بدون دفع حقيقي).
+    const { data } = await supabase
+      .from('stripe_payments')
+      .select('amount')
+      .eq('purpose', 'marketplace_listing')
+      .eq('status', 'succeeded');
+    const total = (data ?? []).reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
     setRevenue({ total, count: (data ?? []).length });
   };
 
