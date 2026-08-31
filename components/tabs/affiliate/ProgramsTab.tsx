@@ -62,6 +62,11 @@ type IntegrationRow = {
 
 type CredentialRow = { id: string; credential_type: string; status: string; created_at: string; expires_at: string | null };
 
+// صف شريحة عمولة في الواجهة (نصوص للإدخال) -- min/max/rate
+type TierRow = { min: string; max: string; rate: string };
+const EMPTY_TIER: TierRow = { min: '', max: '', rate: '' };
+const DEFAULT_TIER_ROWS = 5;
+
 // status اختياري -- الشبكات/المحمصات/المورّدين ما لهم status نعرضه هنا،
 // لكن التجّار (merchants) يرجعون status ونستبعد المؤرشفين من قوائم الاختيار (G-03).
 type Option = { id: string; name: string; status?: string };
@@ -124,6 +129,10 @@ function ProgramsTabImpl() {
   const [archiveProgramId, setArchiveProgramId] = useState<string | null>(null);
   // G-06: تأكيد نقل البرنامج لتاجر ثاني
   const [merchantChange, setMerchantChange] = useState<{ programId: string; newMerchantId: string; convCount: number; linkCount: number } | null>(null);
+  // شرائح العمولة السعرية لكل برنامج
+  const [tiersByProgram, setTiersByProgram] = useState<Record<string, TierRow[]>>({});
+  const [tiersLoaded, setTiersLoaded] = useState<Record<string, boolean>>({});
+  const [tiersBusy, setTiersBusy] = useState<string | null>(null);
 
   const load = async () => {
     const [programsRes, merchantsRes, networksRes, { data: integ }, { data: roasterRows }, { data: supplierRows }] = await Promise.all([
@@ -326,6 +335,57 @@ function ProgramsTabImpl() {
     }
   };
 
+  // شرائح العمولة -- تُحمّل أول ما يُفتح البرنامج
+  const loadTiers = async (programId: string) => {
+    const res = await adminFetchJson(`/api/admin/affiliate/commission-rules?affiliate_program_id=${programId}`);
+    const body = await res.json().catch(() => ({}));
+    const saved: Array<{ min: number; max: number | null; rate: number }> = res.ok ? body.tiers ?? [] : [];
+    const rows: TierRow[] = saved.map((t) => ({
+      min: String(t.min),
+      max: t.max === null || t.max === undefined ? '' : String(t.max),
+      rate: String(t.rate),
+    }));
+    // نكمّل لـ5 صفوف افتراضياً لو أقل
+    while (rows.length < DEFAULT_TIER_ROWS) rows.push({ ...EMPTY_TIER });
+    setTiersByProgram((prev) => ({ ...prev, [programId]: rows }));
+    setTiersLoaded((prev) => ({ ...prev, [programId]: true }));
+  };
+
+  const setTierField = (programId: string, index: number, field: keyof TierRow, value: string) => {
+    setTiersByProgram((prev) => {
+      const rows = [...(prev[programId] ?? [])];
+      rows[index] = { ...rows[index], [field]: value };
+      return { ...prev, [programId]: rows };
+    });
+  };
+
+  const addTierRow = (programId: string) => {
+    setTiersByProgram((prev) => ({ ...prev, [programId]: [...(prev[programId] ?? []), { ...EMPTY_TIER }] }));
+  };
+
+  const removeTierRow = (programId: string, index: number) => {
+    setTiersByProgram((prev) => ({ ...prev, [programId]: (prev[programId] ?? []).filter((_, i) => i !== index) }));
+  };
+
+  const saveTiers = async (programId: string) => {
+    setTiersBusy(programId);
+    // نرسل كل الصفوف -- الراوت يتجاهل الفاضية تماماً ويحفظ الباقي كلها (ما فيه حد)
+    const rows = tiersByProgram[programId] ?? [];
+    const res = await adminFetchJson(`/api/admin/affiliate/commission-rules?affiliate_program_id=${programId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ tiers: rows.map((r) => ({ min: r.min, max: r.max, rate: r.rate })) }),
+    });
+    setTiersBusy(null);
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) {
+      toast({ title: `تم حفظ ${body.tiers?.length ?? 0} شريحة`, variant: 'success' });
+      loadTiers(programId);
+      load();
+    } else {
+      toast({ title: 'فشل حفظ الشرائح', description: body.error, variant: 'destructive' });
+    }
+  };
+
   if (!rows) return <StatCardSkeletonGrid />;
 
   return (
@@ -444,7 +504,14 @@ function ProgramsTabImpl() {
           const merchantName = merchants.find((m) => m.id === p.merchant_id)?.name ?? '—';
           return (
             <div key={p.id} className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
-              <button onClick={() => setExpandedId(expanded ? null : p.id)} className="flex w-full items-center gap-3 p-3 text-right">
+              <button
+                onClick={() => {
+                  const next = expanded ? null : p.id;
+                  setExpandedId(next);
+                  if (next && !tiersLoaded[p.id]) loadTiers(p.id);
+                }}
+                className="flex w-full items-center gap-3 p-3 text-right"
+              >
                 <div className="flex-1">
                   <p className="font-medium text-ink">{p.name}</p>
                   <p className="text-xs text-mocha">{merchantName}</p>
@@ -573,6 +640,77 @@ function ProgramsTabImpl() {
                           {savingDetail === p.id ? 'جاري الحفظ...' : 'حفظ الحقول الإضافية'}
                         </Button>
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <SectionTitle>شرائح العمولة حسب السعر</SectionTitle>
+                    <div className="space-y-2 rounded-xl border border-latte bg-white p-3">
+                      <p className="text-[11px] text-mocha">
+                        النسبة اللي تاخذها من هذه الشركة حسب قيمة المنتج. مثال: من 0 إلى 200 → 6% · من 201 إلى 500 → 5%. آخر شريحة اترك
+                        «إلى» فارغة = «وما فوق». أي عدد شرائح مسموح — استخدم «+ شريحة».
+                      </p>
+                      {!tiersLoaded[p.id] ? (
+                        <p className="text-[11px] text-stone">جاري التحميل...</p>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 text-[10px] font-semibold uppercase tracking-wide text-stone">
+                            <span>من (د.إ)</span>
+                            <span>إلى (د.إ)</span>
+                            <span>النسبة %</span>
+                            <span />
+                          </div>
+                          {(tiersByProgram[p.id] ?? []).map((row, i) => (
+                            <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
+                              <Input
+                                dir="ltr"
+                                type="number"
+                                min="0"
+                                className="h-8 text-xs"
+                                value={row.min}
+                                onChange={(e) => setTierField(p.id, i, 'min', e.target.value)}
+                                placeholder="0"
+                              />
+                              <Input
+                                dir="ltr"
+                                type="number"
+                                min="0"
+                                className="h-8 text-xs"
+                                value={row.max}
+                                onChange={(e) => setTierField(p.id, i, 'max', e.target.value)}
+                                placeholder="وما فوق"
+                              />
+                              <Input
+                                dir="ltr"
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                className="h-8 text-xs"
+                                value={row.rate}
+                                onChange={(e) => setTierField(p.id, i, 'rate', e.target.value)}
+                                placeholder="%"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeTierRow(p.id, i)}
+                                className="px-2 text-sm text-danger hover:opacity-70"
+                                aria-label="حذف الشريحة"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <Button size="sm" variant="ghost" className="text-[11px]" onClick={() => addTierRow(p.id)}>
+                              + شريحة
+                            </Button>
+                            <Button size="sm" onClick={() => saveTiers(p.id)} disabled={tiersBusy === p.id}>
+                              {tiersBusy === p.id ? 'جاري الحفظ...' : 'حفظ الشرائح'}
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
