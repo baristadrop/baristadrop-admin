@@ -115,7 +115,6 @@ function ProgramsTabImpl() {
   const [form, setForm] = useState(emptyForm);
   const [detailForm, setDetailForm] = useState<Record<string, Partial<ProgramRow> & { configurationText?: string }>>({});
   const [configError, setConfigError] = useState<Record<string, string>>({});
-  const [savingDetail, setSavingDetail] = useState<string | null>(null);
   const [credForm, setCredForm] = useState<{ type: string; value: string }>({ type: CREDENTIAL_TYPES[0], value: '' });
   const [saving, setSaving] = useState(false);
   const [credMsg, setCredMsg] = useState<string | null>(null);
@@ -205,33 +204,6 @@ function ProgramsTabImpl() {
     } else {
       const body = await res.json().catch(() => ({}));
       setError(body.error ?? 'فشل إنشاء البرنامج');
-    }
-  };
-
-  const saveDetail = async (id: string) => {
-    const patch = detailForm[id];
-    if (!patch) return;
-    const { configurationText, ...rest } = patch;
-    const body: Record<string, unknown> = { ...rest };
-    if (configurationText !== undefined) {
-      try {
-        body.configuration = configurationText.trim() ? JSON.parse(configurationText) : {};
-        setConfigError((prev) => ({ ...prev, [id]: '' }));
-      } catch {
-        setConfigError((prev) => ({ ...prev, [id]: 'صيغة JSON غير صحيحة' }));
-        return;
-      }
-    }
-    setSavingDetail(id);
-    const res = await adminFetchJson(`${PROGRAMS_API}?id=${id}`, { method: 'PATCH', body: JSON.stringify(body) });
-    setSavingDetail(null);
-    if (res.ok) {
-      toast({ title: 'تم الحفظ', variant: 'success' });
-      setDetailForm((prev) => ({ ...prev, [id]: {} }));
-      load();
-    } else {
-      const resBody = await res.json().catch(() => ({}));
-      toast({ title: 'فشل الحفظ', description: resBody.error, variant: 'destructive' });
     }
   };
 
@@ -367,23 +339,54 @@ function ProgramsTabImpl() {
     setTiersByProgram((prev) => ({ ...prev, [programId]: (prev[programId] ?? []).filter((_, i) => i !== index) }));
   };
 
-  const saveTiers = async (programId: string) => {
-    setTiersBusy(programId);
-    // نرسل كل الصفوف -- الراوت يتجاهل الفاضية تماماً ويحفظ الباقي كلها (ما فيه حد)
-    const rows = tiersByProgram[programId] ?? [];
-    const res = await adminFetchJson(`/api/admin/affiliate/commission-rules?affiliate_program_id=${programId}`, {
+  // حفظ موحّد لكل الشركة: الحقول الإضافية + الإعدادات (JSON) + شرائح العمولة
+  // دفعة واحدة من زر واحد أعلى بطاقة الشركة. (تغيير التاجر يبقى منفصل لأنه
+  // يحتاج تأكيد بعدد التحويلات المتأثرة.)
+  const saveProgram = async (id: string) => {
+    setTiersBusy(id);
+
+    // 1) الحقول الإضافية + configuration JSON
+    const patch = detailForm[id];
+    if (patch && Object.keys(patch).length > 0) {
+      const { configurationText, ...rest } = patch;
+      const body: Record<string, unknown> = { ...rest };
+      if (configurationText !== undefined) {
+        try {
+          body.configuration = configurationText.trim() ? JSON.parse(configurationText) : {};
+          setConfigError((prev) => ({ ...prev, [id]: '' }));
+        } catch {
+          setConfigError((prev) => ({ ...prev, [id]: 'صيغة JSON غير صحيحة' }));
+          setTiersBusy(null);
+          toast({ title: 'صيغة JSON غير صحيحة -- ما تم الحفظ', variant: 'destructive' });
+          return;
+        }
+      }
+      const res = await adminFetchJson(`${PROGRAMS_API}?id=${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      if (!res.ok) {
+        const rb = await res.json().catch(() => ({}));
+        setTiersBusy(null);
+        toast({ title: 'فشل حفظ الحقول', description: rb.error, variant: 'destructive' });
+        return;
+      }
+      setDetailForm((prev) => ({ ...prev, [id]: {} }));
+    }
+
+    // 2) شرائح العمولة -- كل الصفوف تُرسَل، الراوت يتجاهل الفاضية ويحفظ الباقي (ما فيه حد)
+    const rows = tiersByProgram[id] ?? [];
+    const tierRes = await adminFetchJson(`/api/admin/affiliate/commission-rules?affiliate_program_id=${id}`, {
       method: 'PUT',
       body: JSON.stringify({ tiers: rows.map((r) => ({ min: r.min, max: r.max, rate: r.rate })) }),
     });
     setTiersBusy(null);
-    const body = await res.json().catch(() => ({}));
-    if (res.ok) {
-      toast({ title: `تم حفظ ${body.tiers?.length ?? 0} شريحة`, variant: 'success' });
-      loadTiers(programId);
-      load();
-    } else {
-      toast({ title: 'فشل حفظ الشرائح', description: body.error, variant: 'destructive' });
+    const tierBody = await tierRes.json().catch(() => ({}));
+    if (!tierRes.ok) {
+      toast({ title: 'فشل حفظ الشرائح', description: tierBody.error, variant: 'destructive' });
+      return;
     }
+
+    toast({ title: `تم حفظ التغييرات (${tierBody.tiers?.length ?? 0} شريحة)`, variant: 'success' });
+    loadTiers(id);
+    load();
   };
 
   if (!rows) return <StatCardSkeletonGrid />;
@@ -525,6 +528,12 @@ function ProgramsTabImpl() {
 
               {expanded && (
                 <div className="grid gap-4 border-t border-latte bg-paper/50 p-4 sm:grid-cols-2">
+                  <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-1 flex items-center justify-between gap-2 border-b border-latte bg-paper/95 px-4 py-2 backdrop-blur sm:col-span-2">
+                    <span className="text-[11px] text-mocha">أي تعديل على هذه الشركة (الحقول + الشرائح + الإعدادات) — احفظه من هنا</span>
+                    <Button size="sm" onClick={() => saveProgram(p.id)} disabled={tiersBusy === p.id}>
+                      {tiersBusy === p.id ? 'جاري الحفظ...' : 'حفظ كل التغييرات'}
+                    </Button>
+                  </div>
                   <div>
                     <SectionTitle>الحالة</SectionTitle>
                     <div className="flex flex-wrap gap-2">
@@ -635,11 +644,6 @@ function ProgramsTabImpl() {
                           />
                         </Field>
                       </div>
-                      <div className="sm:col-span-2">
-                        <Button size="sm" onClick={() => saveDetail(p.id)} disabled={savingDetail === p.id || !detailForm[p.id]}>
-                          {savingDetail === p.id ? 'جاري الحفظ...' : 'حفظ الحقول الإضافية'}
-                        </Button>
-                      </div>
                     </div>
                   </div>
 
@@ -704,9 +708,6 @@ function ProgramsTabImpl() {
                           <div className="flex flex-wrap gap-2 pt-1">
                             <Button size="sm" variant="ghost" className="text-[11px]" onClick={() => addTierRow(p.id)}>
                               + شريحة
-                            </Button>
-                            <Button size="sm" onClick={() => saveTiers(p.id)} disabled={tiersBusy === p.id}>
-                              {tiersBusy === p.id ? 'جاري الحفظ...' : 'حفظ الشرائح'}
                             </Button>
                           </div>
                         </>
