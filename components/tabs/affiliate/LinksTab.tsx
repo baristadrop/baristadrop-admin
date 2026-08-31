@@ -1,7 +1,7 @@
 'use client';
 
 import { StatCardSkeletonGrid } from '@/components/ui/Skeleton';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
 import { Field } from '@/components/ui/Field';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { Badge, type BadgeVariant } from '@/components/ui/Badge';
+import { AlertDialog } from '@/components/ui/AlertDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useToast } from '@/components/ui/Toast';
 
@@ -24,7 +25,8 @@ type LinkRow = {
   click_count?: number;
 };
 
-type Option = { id: string; name: string };
+// status اختياري -- البرامج ترجعه ونستبعد المؤرشفة من قائمة الاختيار (G-03).
+type Option = { id: string; name: string; status?: string };
 type ProductOption = { id: string; name: string; external_url: string | null };
 
 const GO_BASE_URL = 'https://admin.baristadrop.com/api/go';
@@ -39,6 +41,8 @@ const STATUS_META: Record<LinkRow['status'], { label: string; badge: BadgeVarian
 
 const emptyForm = { programId: '', name: '', destinationUrl: '', productId: '', trackingTemplate: '', token: '' };
 
+type EditForm = { name: string; destination_url: string; product_id: string; tracking_template: string };
+
 export function LinksTab() {
   const { toast } = useToast();
   const [rows, setRows] = useState<LinkRow[] | null>(null);
@@ -50,6 +54,12 @@ export function LinksTab() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showNoLinkProducts, setShowNoLinkProducts] = useState(false);
+  // G-02: تعديل صف كامل
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  // G-04: حذف رابط
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const load = async () => {
     const [linksRes, programsRes, { data: productRows }] = await Promise.all([
@@ -106,6 +116,68 @@ export function LinksTab() {
     }
   };
 
+  // G-02: فتح وضع التعديل لصف
+  const startEdit = (l: LinkRow) => {
+    setEditingId(l.id);
+    setEditForm({
+      name: l.name,
+      destination_url: l.destination_url,
+      product_id: l.product_id ?? '',
+      tracking_template: l.tracking_template ?? '',
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editForm) return;
+    const dest = editForm.destination_url.trim();
+    if (!editForm.name.trim() || !dest) {
+      setError('الاسم ورابط الوجهة مطلوبان');
+      return;
+    }
+    if (!/^https?:\/\//i.test(dest)) {
+      setError('رابط الوجهة لازم يبدأ بـ http:// أو https://');
+      return;
+    }
+    setSavingEdit(true);
+    setError(null);
+    const res = await adminFetchJson(`${LINKS_API}?id=${editingId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: editForm.name.trim(),
+        destination_url: dest,
+        product_id: editForm.product_id || null,
+        tracking_template: editForm.tracking_template.trim() || null,
+      }),
+    });
+    setSavingEdit(false);
+    if (res.ok) {
+      cancelEdit();
+      toast({ title: 'تم حفظ التغييرات', variant: 'success' });
+      load();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error ?? 'فشل الحفظ');
+    }
+  };
+
+  // G-04: حذف رابط نهائياً
+  const deleteLink = async (id: string) => {
+    setDeleteId(null);
+    const res = await adminFetchJson(`${LINKS_API}?id=${id}`, { method: 'DELETE' });
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) {
+      toast({ title: `تم حذف الرابط${body.clicksDeleted ? ` و${body.clicksDeleted} حدث نقر` : ''}`, variant: 'success' });
+      load();
+    } else {
+      toast({ title: 'فشل حذف الرابط', description: body.error, variant: 'destructive' });
+    }
+  };
+
   const copyGoUrl = (id: string, token: string) => {
     navigator.clipboard.writeText(`${GO_BASE_URL}/${token}`).then(() => {
       setCopiedId(id);
@@ -115,6 +187,7 @@ export function LinksTab() {
 
   const linkedProductIds = new Set(rows?.map((r) => r.product_id).filter(Boolean));
   const productsWithoutLinks = products.filter((p) => !linkedProductIds.has(p.id));
+  const activePrograms = programs.filter((p) => p.status !== 'archived'); // G-03
 
   const quickCreateFor = (product: ProductOption) => {
     setForm((f) => ({ ...f, productId: product.id, name: product.name, destinationUrl: product.external_url ?? f.destinationUrl }));
@@ -180,7 +253,7 @@ export function LinksTab() {
               className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
             >
               <option value="">اختر...</option>
-              {programs.map((p) => (
+              {activePrograms.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
@@ -239,7 +312,7 @@ export function LinksTab() {
         <EmptyState title="ما فيه روابط بعد" />
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
-          <table className="w-full min-w-[720px] text-right text-sm">
+          <table className="w-full min-w-[820px] text-right text-sm">
             <thead className="bg-sand/60 text-[11px] uppercase tracking-wide text-mocha">
               <tr>
                 <th className="px-3 py-2">الاسم</th>
@@ -248,36 +321,113 @@ export function LinksTab() {
                 <th className="px-3 py-2">كليكات</th>
                 <th className="px-3 py-2">الحالة</th>
                 <th className="px-3 py-2">رابط /go</th>
+                <th className="px-3 py-2">إجراءات</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((l) => {
+                const isEditing = editingId === l.id;
                 return (
-                  <tr key={l.id} className="border-t border-latte">
-                    <td className="px-3 py-2 font-medium text-ink">{l.name}</td>
-                    <td className="px-3 py-2 text-xs text-mocha">{programs.find((p) => p.id === l.affiliate_program_id)?.name ?? '—'}</td>
-                    <td className="px-3 py-2 text-xs text-mocha">{products.find((p) => p.id === l.product_id)?.name ?? '—'}</td>
-                    <td className="px-3 py-2 font-[var(--font-el-messiri)] tabular-nums text-coffee">{l.click_count ?? 0}</td>
-                    <td className="px-3 py-2">
-                      <Select
-                        value={l.status}
-                        onChange={(v) => setStatus(l.id, v as LinkRow['status'])}
-                        options={Object.entries(STATUS_META).map(([v, m]) => ({ value: v, label: m.label }))}
-                        className="h-7 w-28 border-0 bg-transparent px-2 text-[10px] font-medium"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <Button size="sm" variant="link" onClick={() => copyGoUrl(l.id, l.token)}>
-                        {copiedId === l.id ? 'تم النسخ ✓' : 'نسخ الرابط'}
-                      </Button>
-                    </td>
-                  </tr>
+                  <Fragment key={l.id}>
+                    <tr className="border-t border-latte">
+                      <td className="px-3 py-2 font-medium text-ink">{l.name}</td>
+                      <td className="px-3 py-2 text-xs text-mocha">{programs.find((p) => p.id === l.affiliate_program_id)?.name ?? '—'}</td>
+                      <td className="px-3 py-2 text-xs text-mocha">{products.find((p) => p.id === l.product_id)?.name ?? '—'}</td>
+                      <td className="px-3 py-2 font-[var(--font-el-messiri)] tabular-nums text-coffee">{l.click_count ?? 0}</td>
+                      <td className="px-3 py-2">
+                        <Select
+                          value={l.status}
+                          onChange={(v) => setStatus(l.id, v as LinkRow['status'])}
+                          options={Object.entries(STATUS_META).map(([v, m]) => ({ value: v, label: m.label }))}
+                          className="h-7 w-28 border-0 bg-transparent px-2 text-[10px] font-medium"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Button size="sm" variant="link" onClick={() => copyGoUrl(l.id, l.token)}>
+                          {copiedId === l.id ? 'تم النسخ ✓' : 'نسخ الرابط'}
+                        </Button>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px]" onClick={() => (isEditing ? cancelEdit() : startEdit(l))}>
+                            {isEditing ? 'إغلاق' : 'تعديل'}
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] text-danger" onClick={() => setDeleteId(l.id)}>
+                            حذف
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                    {isEditing && editForm && (
+                      <tr className="border-t border-latte bg-paper/50">
+                        <td colSpan={7} className="px-4 py-4">
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <Field label="الاسم *">
+                              <Input value={editForm.name} onChange={(e) => setEditForm((f) => f && { ...f, name: e.target.value })} className="h-8 text-xs" />
+                            </Field>
+                            <Field label="منتج مرتبط">
+                              <select
+                                value={editForm.product_id}
+                                onChange={(e) => {
+                                  const p = products.find((pr) => pr.id === e.target.value);
+                                  setEditForm((f) => f && { ...f, product_id: e.target.value, destination_url: p?.external_url || f.destination_url });
+                                }}
+                                className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                              >
+                                <option value="">— بدون منتج —</option>
+                                {products.map((p) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </Field>
+                            <Field label="رابط الوجهة *" helper="يبدأ بـ http:// أو https:// -- يُملأ تلقائياً لو غيّرت المنتج">
+                              <Input
+                                value={editForm.destination_url}
+                                onChange={(e) => setEditForm((f) => f && { ...f, destination_url: e.target.value })}
+                                dir="ltr"
+                                className="h-8 text-xs"
+                              />
+                            </Field>
+                            <Field label="قالب رابط التتبع" helper="placeholders: {token}, {click_id}, {program_id}">
+                              <Input
+                                value={editForm.tracking_template}
+                                onChange={(e) => setEditForm((f) => f && { ...f, tracking_template: e.target.value })}
+                                dir="ltr"
+                                className="h-8 text-xs"
+                              />
+                            </Field>
+                            <p className="text-[11px] text-stone sm:col-span-2">التوكن في /go/{'{token}'} لا يتغيّر عند التعديل.</p>
+                            <div className="flex gap-2 sm:col-span-2">
+                              <Button size="sm" onClick={saveEdit} disabled={savingEdit}>
+                                {savingEdit ? 'جاري الحفظ...' : 'حفظ'}
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                                إلغاء
+                              </Button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
             </tbody>
           </table>
         </div>
       )}
+
+      <AlertDialog
+        open={deleteId !== null}
+        title="حذف الرابط"
+        description="سيتم حذف الرابط وجميع أحداث النقر المرتبطة. لا يمكن التراجع."
+        confirmLabel="حذف"
+        destructive
+        onConfirm={() => deleteId && deleteLink(deleteId)}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

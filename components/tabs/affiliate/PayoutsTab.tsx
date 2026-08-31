@@ -27,7 +27,8 @@ type PayoutRow = {
   base_currency: string | null;
 };
 
-type Option = { id: string; name: string };
+// status اختياري -- نستبعد البرامج المؤرشفة من قائمة إنشاء دفعة (G-03).
+type Option = { id: string; name: string; status?: string };
 
 const STATUS_META: Record<PayoutRow['status'], { label: string; className: string; badge: 'warning' | 'success' | 'info' | 'danger' }> = {
   EXPECTED: { label: 'متوقّعة', className: 'bg-amber-100 text-amber-700', badge: 'warning' },
@@ -122,6 +123,21 @@ function PayoutsTabImpl() {
 
   const markReceived = (id: string) => setPayoutStatus(id, 'RECEIVED');
 
+  // G-07: تعديل حقول آمنة فقط (مرجع الدفعة + نافذة الفترة). المبلغ وسعر الصرف
+  // غير قابلين للتعديل هنا -- تصحيحهما عبر قيد يدوي بتبويب المحاسبة.
+  const savePayoutField = async (id: string, field: 'payment_reference' | 'period_start' | 'period_end', value: string) => {
+    const res = await adminFetchJson(`${PAYOUTS_API}?id=${id}`, { method: 'PATCH', body: JSON.stringify({ [field]: value || null }) });
+    if (res.ok) {
+      toast({ title: 'تم الحفظ', variant: 'success' });
+      setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, [field]: value || null } : r)) ?? null);
+    } else {
+      const body = await res.json().catch(() => ({}));
+      toast({ title: 'فشل الحفظ', description: body.error, variant: 'destructive' });
+    }
+  };
+
+  const activePrograms = programs.filter((p) => p.status !== 'archived'); // G-03
+
   if (!rows) return <StatCardSkeletonGrid />;
 
   return (
@@ -150,7 +166,7 @@ function PayoutsTabImpl() {
               className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
             >
               <option value="">اختر...</option>
-              {programs.map((p) => (
+              {activePrograms.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
@@ -346,6 +362,35 @@ function PayoutsTabImpl() {
                             {p.base_amount?.toFixed(2)} {p.base_currency} @ {p.exchange_rate}
                           </p>
                         )}
+                        <div className="mt-3 grid gap-2 border-t border-latte pt-3 sm:grid-cols-3">
+                          <Field label="مرجع الدفعة">
+                            <Input
+                              defaultValue={p.payment_reference ?? ''}
+                              dir="ltr"
+                              onBlur={(e) => e.target.value !== (p.payment_reference ?? '') && savePayoutField(p.id, 'payment_reference', e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </Field>
+                          <Field label="بداية النافذة">
+                            <Input
+                              type="date"
+                              defaultValue={p.period_start ?? ''}
+                              dir="ltr"
+                              onBlur={(e) => e.target.value !== (p.period_start ?? '') && savePayoutField(p.id, 'period_start', e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </Field>
+                          <Field label="نهاية النافذة">
+                            <Input
+                              type="date"
+                              defaultValue={p.period_end ?? ''}
+                              dir="ltr"
+                              onBlur={(e) => e.target.value !== (p.period_end ?? '') && savePayoutField(p.id, 'period_end', e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </Field>
+                          <p className="text-[11px] text-stone sm:col-span-3">المبلغ وسعر الصرف غير قابلين للتعديل هنا -- صحّحهما عبر قيد يدوي بتبويب المحاسبة.</p>
+                        </div>
                       </td>
                     </tr>
                   )}

@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
+import { AlertDialog } from '@/components/ui/AlertDialog';
 import { useToast } from '@/components/ui/Toast';
 
 const TRACKING_METHODS = [
@@ -61,7 +62,9 @@ type IntegrationRow = {
 
 type CredentialRow = { id: string; credential_type: string; status: string; created_at: string; expires_at: string | null };
 
-type Option = { id: string; name: string };
+// status اختياري -- الشبكات/المحمصات/المورّدين ما لهم status نعرضه هنا،
+// لكن التجّار (merchants) يرجعون status ونستبعد المؤرشفين من قوائم الاختيار (G-03).
+type Option = { id: string; name: string; status?: string };
 
 const PROVIDER_CODES = [
   { code: 'direct', label: 'تاجر مباشر (بدون شبكة وسيطة)' },
@@ -112,6 +115,15 @@ function ProgramsTabImpl() {
   const [saving, setSaving] = useState(false);
   const [credMsg, setCredMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // G-01: تدوير/حذف بيانات الاعتماد
+  const [rotatingCredId, setRotatingCredId] = useState<string | null>(null);
+  const [rotateValue, setRotateValue] = useState('');
+  const [credBusyId, setCredBusyId] = useState<string | null>(null);
+  const [deleteCredId, setDeleteCredId] = useState<string | null>(null);
+  // G-03: أرشفة البرنامج
+  const [archiveProgramId, setArchiveProgramId] = useState<string | null>(null);
+  // G-06: تأكيد نقل البرنامج لتاجر ثاني
+  const [merchantChange, setMerchantChange] = useState<{ programId: string; newMerchantId: string; convCount: number; linkCount: number } | null>(null);
 
   const load = async () => {
     const [programsRes, merchantsRes, networksRes, { data: integ }, { data: roasterRows }, { data: supplierRows }] = await Promise.all([
@@ -249,6 +261,68 @@ function ProgramsTabImpl() {
     } else {
       const body = await res.json().catch(() => ({}));
       setCredMsg(body.error ?? 'فشل الحفظ');
+    }
+  };
+
+  // G-01: تدوير بيانة اعتماد -- تحذف القديمة وتدرج الجديدة (سيرفر).
+  const rotateCredential = async (credId: string) => {
+    if (!rotateValue.trim()) return;
+    setCredBusyId(credId);
+    const res = await adminFetchJson(`/api/admin/affiliate/credentials?id=${credId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ value: rotateValue.trim() }),
+    });
+    setCredBusyId(null);
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setRotatingCredId(null);
+      setRotateValue('');
+      toast({ title: 'تم تدوير البيانات', variant: 'success' });
+      load();
+    } else {
+      toast({ title: 'فشل التدوير', description: body.error, variant: 'destructive' });
+    }
+  };
+
+  // G-01: حذف (إلغاء) بيانة اعتماد.
+  const deleteCredential = async (credId: string) => {
+    setCredBusyId(credId);
+    const res = await adminFetchJson(`/api/admin/affiliate/credentials?id=${credId}`, { method: 'DELETE' });
+    setCredBusyId(null);
+    setDeleteCredId(null);
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) {
+      toast({ title: 'تم حذف البيانات', variant: 'success' });
+      if (body.remaining === 0) {
+        toast({ title: 'تحذير: لا توجد بيانات اعتماد متبقية لهذا التكامل', variant: 'destructive' });
+      }
+      load();
+    } else {
+      toast({ title: 'فشل الحذف', description: body.error, variant: 'destructive' });
+    }
+  };
+
+  // G-06: عند تغيير التاجر بقائمة التفاصيل، نجيب عدد التحويلات/الروابط المتأثرة
+  // ونطلب تأكيد قبل الحفظ.
+  const requestMerchantChange = async (programId: string, newMerchantId: string) => {
+    const [{ count: convCount }, { count: linkCount }] = await Promise.all([
+      supabase.from('affiliate_conversions').select('id', { count: 'exact', head: true }).eq('affiliate_program_id', programId),
+      supabase.from('affiliate_links').select('id', { count: 'exact', head: true }).eq('affiliate_program_id', programId),
+    ]);
+    setMerchantChange({ programId, newMerchantId, convCount: convCount ?? 0, linkCount: linkCount ?? 0 });
+  };
+
+  const confirmMerchantChange = async () => {
+    if (!merchantChange) return;
+    const { programId, newMerchantId } = merchantChange;
+    setMerchantChange(null);
+    const res = await adminFetchJson(`${PROGRAMS_API}?id=${programId}`, { method: 'PATCH', body: JSON.stringify({ merchant_id: newMerchantId }) });
+    if (res.ok) {
+      toast({ title: 'تم نقل البرنامج للتاجر الجديد', variant: 'success' });
+      load();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      toast({ title: 'فشل النقل', description: body.error, variant: 'destructive' });
     }
   };
 
@@ -390,7 +464,7 @@ function ProgramsTabImpl() {
                       {(['active', 'paused', 'expired', 'archived'] as const).map((s) => (
                         <button
                           key={s}
-                          onClick={() => setStatus(p.id, s)}
+                          onClick={() => (s === 'archived' ? setArchiveProgramId(p.id) : setStatus(p.id, s))}
                           className={`rounded-full border px-3 py-1.5 text-xs ${
                             p.status === s ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
                           }`}
@@ -407,6 +481,21 @@ function ProgramsTabImpl() {
                   <div className="sm:col-span-2">
                     <SectionTitle>حقول إضافية</SectionTitle>
                     <div className="grid gap-3 rounded-xl border border-latte bg-white p-3 sm:grid-cols-2">
+                      <Field label="التاجر" helper="تغيير التاجر يؤثر على التحويلات والروابط المرتبطة">
+                        <select
+                          value={p.merchant_id}
+                          onChange={(e) => e.target.value !== p.merchant_id && requestMerchantChange(p.id, e.target.value)}
+                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        >
+                          {merchants
+                            .filter((m) => m.status !== 'archived' || m.id === p.merchant_id) // G-03: استبعاد المؤرشفين (إلا الحالي)
+                            .map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.name}
+                              </option>
+                            ))}
+                        </select>
+                      </Field>
                       <Field label="معرّف البرنامج عند الشبكة">
                         <Input
                           dir="ltr"
@@ -552,7 +641,7 @@ function ProgramsTabImpl() {
                               </button>
                             </div>
                             {credMsg && <p className="text-[11px] text-mocha">{credMsg}</p>}
-                            <div className="flex flex-wrap gap-1.5">
+                            <div className="flex flex-col gap-1.5">
                               {(credentials[integration.id] ?? []).map((c) => {
                                 const expiresAt = c.expires_at ? new Date(c.expires_at) : null;
                                 const daysLeft = expiresAt ? (expiresAt.getTime() - Date.now()) / 86400000 : null;
@@ -568,10 +657,71 @@ function ProgramsTabImpl() {
                                   ) : (
                                     <span className="rounded-full bg-success-bg px-1.5 py-0.5 text-[9px] text-success">✓</span>
                                   );
+
+                                if (rotatingCredId === c.id) {
+                                  return (
+                                    <div key={c.id} className="flex flex-wrap items-center gap-1.5">
+                                      <span className="text-[10px] text-mocha">{c.credential_type}:</span>
+                                      <input
+                                        value={rotateValue}
+                                        onChange={(e) => setRotateValue(e.target.value)}
+                                        type="password"
+                                        dir="ltr"
+                                        placeholder="القيمة الجديدة"
+                                        className="min-w-[160px] flex-1 rounded-lg border border-latte bg-white px-2 py-1 text-[11px] outline-none focus:border-gold"
+                                      />
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 px-2 text-[9px]"
+                                        disabled={credBusyId === c.id || !rotateValue.trim()}
+                                        onClick={() => rotateCredential(c.id)}
+                                      >
+                                        {credBusyId === c.id ? '...' : 'حفظ'}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 px-2 text-[9px]"
+                                        onClick={() => {
+                                          setRotatingCredId(null);
+                                          setRotateValue('');
+                                        }}
+                                      >
+                                        إلغاء
+                                      </Button>
+                                    </div>
+                                  );
+                                }
+
                                 return (
-                                  <span key={c.id} className="inline-flex items-center gap-1 rounded-full bg-sand px-2 py-0.5 text-[10px] text-coffee">
-                                    {c.credential_type} ✓ {expiryBadge}
-                                  </span>
+                                  <div key={c.id} className="flex items-center gap-1.5">
+                                    <span
+                                      title={`أضيف: ${new Date(c.created_at).toLocaleDateString('ar')}`}
+                                      className="inline-flex items-center gap-1 rounded-full bg-sand px-2 py-0.5 text-[10px] text-coffee"
+                                    >
+                                      {c.credential_type} ✓ {expiryBadge}
+                                    </span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 px-2 text-[9px]"
+                                      onClick={() => {
+                                        setRotatingCredId(c.id);
+                                        setRotateValue('');
+                                      }}
+                                    >
+                                      تدوير
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 px-2 text-[9px] text-danger"
+                                      onClick={() => setDeleteCredId(c.id)}
+                                    >
+                                      حذف
+                                    </Button>
+                                  </div>
                                 );
                               })}
                               {(credentials[integration.id] ?? []).length === 0 && (
@@ -601,6 +751,43 @@ function ProgramsTabImpl() {
           );
         })}
       </div>
+
+      <AlertDialog
+        open={deleteCredId !== null}
+        title="حذف بيانات الاعتماد"
+        description="هل أنت متأكد؟ سيتم حذف بيانة الاعتماد نهائياً. لن يتمكن النظام من مزامنة التحويلات حتى إضافة بديل."
+        confirmLabel="حذف"
+        destructive
+        onConfirm={() => deleteCredId && deleteCredential(deleteCredId)}
+        onCancel={() => setDeleteCredId(null)}
+      />
+
+      <AlertDialog
+        open={archiveProgramId !== null}
+        title="أرشفة البرنامج"
+        description={`سيتم أرشفة البرنامج "${rows.find((r) => r.id === archiveProgramId)?.name ?? ''}". لن يظهر في القوائم المنسدلة، والتحويلات والروابط المرتبطة ستتأثر. البيانات محفوظة.`}
+        confirmLabel="أرشفة"
+        destructive={false}
+        onConfirm={() => {
+          if (archiveProgramId) setStatus(archiveProgramId, 'archived');
+          setArchiveProgramId(null);
+        }}
+        onCancel={() => setArchiveProgramId(null)}
+      />
+
+      <AlertDialog
+        open={merchantChange !== null}
+        title="تغيير تاجر البرنامج"
+        description={
+          merchantChange
+            ? `تغيير التاجر سيؤثر على ${merchantChange.convCount} تحويل و${merchantChange.linkCount} رابط مرتبط. هل أنت متأكد؟`
+            : ''
+        }
+        confirmLabel="تأكيد النقل"
+        destructive={false}
+        onConfirm={confirmMerchantChange}
+        onCancel={() => setMerchantChange(null)}
+      />
     </div>
   );
 }

@@ -72,3 +72,42 @@ export const POST = withErrorHandler(async (request: Request) => {
   });
   return NextResponse.json(summary);
 });
+
+// PATCH ?id=... { status: 'cancelled' } -- إلغاء تشغيل تسوية عالق في
+// 'running' (مثلاً بسبب انقطاع API المزوّد) عشان يُعاد تشغيل نفس الفترة.
+// يُسمح فقط لو الحالة الحالية 'running'.
+export const PATCH = withErrorHandler(async (request: Request) => {
+  const admin = await requireAdmin(request);
+  if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+  if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+
+  const body = (await request.json().catch(() => ({}))) as { status?: string };
+  if (body.status !== 'cancelled') {
+    return NextResponse.json({ error: "only { status: 'cancelled' } is supported" }, { status: 400 });
+  }
+
+  const supabase = getAdminClient();
+  const { data: run, error: fetchError } = await supabase
+    .from('affiliate_reconciliation_runs')
+    .select('status')
+    .eq('id', id)
+    .single();
+
+  if (fetchError || !run) return NextResponse.json({ error: 'reconciliation run not found' }, { status: 404 });
+  if (run.status !== 'running') {
+    return NextResponse.json({ error: `can only cancel a running reconciliation (current: ${run.status})` }, { status: 400 });
+  }
+
+  const { data, error } = await supabase
+    .from('affiliate_reconciliation_runs')
+    .update({ status: 'cancelled' })
+    .eq('id', id)
+    .select('id, status')
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ data });
+});

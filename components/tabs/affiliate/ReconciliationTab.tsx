@@ -53,6 +53,7 @@ export function ReconciliationTab() {
   const [runs, setRuns] = useState<RunRow[] | null>(null);
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
   const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null); // G-10
   const [programs, setPrograms] = useState<Option[]>([]);
   const [selectedProgram, setSelectedProgram] = useState('');
   const [periodStart, setPeriodStart] = useState(monthAgo());
@@ -165,6 +166,23 @@ export function ReconciliationTab() {
     }
   };
 
+  // G-10: إلغاء تشغيل تسوية عالق في 'running'
+  const cancelRun = async (runId: string) => {
+    setCancellingId(runId);
+    const res = await adminFetchJson(`/api/admin/affiliate/reconciliation?id=${runId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'cancelled' }),
+    });
+    setCancellingId(null);
+    if (res.ok) {
+      toast({ title: 'تم إلغاء التسوية', variant: 'success' });
+      load();
+    } else {
+      const body = await res.json().catch(() => ({}));
+      toast({ title: 'فشل الإلغاء', description: body.error, variant: 'destructive' });
+    }
+  };
+
   if (!runs) return <StatCardSkeletonGrid />;
 
   return (
@@ -266,6 +284,14 @@ export function ReconciliationTab() {
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.className}`}>{meta.label}</span>
                 <span className={`text-mocha transition-transform ${expanded ? 'rotate-180' : ''}`}>▾</span>
               </button>
+
+              {run.status === 'running' && (
+                <div className="flex justify-end border-t border-latte px-3 py-1.5">
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px] text-danger" disabled={cancellingId === run.id} onClick={() => cancelRun(run.id)}>
+                    {cancellingId === run.id ? 'جاري الإلغاء...' : 'إلغاء التشغيل'}
+                  </Button>
+                </div>
+              )}
 
               {expanded && (
                 <div className="border-t border-latte bg-paper/50 p-4">

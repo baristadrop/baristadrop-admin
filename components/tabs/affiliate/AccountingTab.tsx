@@ -1,7 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { adminFetch } from '@/lib/adminApiClient';
+import { useCallback, useEffect, useState } from 'react';
+import { adminFetch, adminFetchJson } from '@/lib/adminApiClient';
+import { Field } from '@/components/ui/Field';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
 import type { CommissionBalance } from '@/lib/affiliate/types';
 
 const PROGRAMS_API = '/api/admin/affiliate/programs';
@@ -30,13 +34,22 @@ function BalanceCard({ label, value, currency, tone }: { label: string; value: n
   );
 }
 
+const emptyAdj = { direction: 'credit' as 'credit' | 'debit', amount: '', reference: '' };
+
 export function AccountingTab() {
+  const { toast } = useToast();
   const [programs, setPrograms] = useState<Program[]>([]);
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [balance, setBalance] = useState<CommissionBalance | null>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // G-08: قيد يدوي
+  const [showAdd, setShowAdd] = useState(false);
+  const [adj, setAdj] = useState(emptyAdj);
+  const [savingAdj, setSavingAdj] = useState(false);
+
+  const program = programs.find((p) => p.id === selectedProgram);
 
   useEffect(() => {
     adminFetch(`${PROGRAMS_API}?limit=100`)
@@ -47,21 +60,51 @@ export function AccountingTab() {
       });
   }, []);
 
-  useEffect(() => {
+  const loadLedger = useCallback(() => {
     if (!selectedProgram) return;
     setLoadingBalance(true);
-    adminFetch(`${LEDGER_API}?affiliate_program_id=${selectedProgram}&limit=50`)
-      .then(async (res) => {
-        const body = await res.json().catch(() => ({}));
-        if (res.ok) {
-          setBalance(body.balance ?? null);
-          setLedger(body.data ?? []);
-        } else {
-          setError(body.error ?? 'فشل تحميل دفتر الأستاذ');
-        }
-        setLoadingBalance(false);
-      });
+    adminFetch(`${LEDGER_API}?affiliate_program_id=${selectedProgram}&limit=50`).then(async (res) => {
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setBalance(body.balance ?? null);
+        setLedger(body.data ?? []);
+      } else {
+        setError(body.error ?? 'فشل تحميل دفتر الأستاذ');
+      }
+      setLoadingBalance(false);
+    });
   }, [selectedProgram]);
+
+  useEffect(() => {
+    loadLedger();
+  }, [loadLedger]);
+
+  const addEntry = async () => {
+    const amount = Number(adj.amount);
+    if (!selectedProgram || !Number.isFinite(amount) || amount <= 0) return;
+    setSavingAdj(true);
+    setError(null);
+    const res = await adminFetchJson(LEDGER_API, {
+      method: 'POST',
+      body: JSON.stringify({
+        affiliate_program_id: selectedProgram,
+        direction: adj.direction,
+        amount,
+        currency: program?.currency ?? 'AED',
+        reference: adj.reference.trim() || null,
+      }),
+    });
+    setSavingAdj(false);
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setAdj(emptyAdj);
+      setShowAdd(false);
+      toast({ title: 'تم إضافة القيد', variant: 'success' });
+      loadLedger();
+    } else {
+      toast({ title: 'فشل إضافة القيد', description: body.error, variant: 'destructive' });
+    }
+  };
 
   if (programs.length === 0) {
     return <p className="text-mocha">ما فيه برامج أفيليت بعد -- أنشئ برنامج من تبويب "البرامج" أول.</p>;
@@ -77,17 +120,55 @@ export function AccountingTab() {
           </button>
         </div>
       )}
-      <select
-        value={selectedProgram}
-        onChange={(e) => setSelectedProgram(e.target.value)}
-        className="rounded-lg border border-latte bg-white px-3 py-1.5 text-sm outline-none focus:border-gold"
-      >
-        {programs.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </select>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={selectedProgram}
+          onChange={(e) => setSelectedProgram(e.target.value)}
+          className="rounded-lg border border-latte bg-white px-3 py-1.5 text-sm outline-none focus:border-gold"
+        >
+          {programs.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <Button size="sm" variant="outline" onClick={() => setShowAdd((v) => !v)}>
+          {showAdd ? 'إلغاء' : 'إضافة قيد يدوي'}
+        </Button>
+      </div>
+
+      {showAdd && (
+        <div className="grid gap-3 rounded-2xl border border-gold/40 bg-sand/40 p-4 sm:grid-cols-3">
+          <Field label="اتجاه القيد">
+            <select
+              value={adj.direction}
+              onChange={(e) => setAdj((f) => ({ ...f, direction: e.target.value as 'credit' | 'debit' }))}
+              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+            >
+              <option value="credit">رصيد (إضافة +)</option>
+              <option value="debit">خصم (سحب −)</option>
+            </select>
+          </Field>
+          <Field label="المبلغ" helper={`بعملة البرنامج (${program?.currency ?? 'AED'})`}>
+            <Input
+              type="number"
+              step="0.01"
+              dir="ltr"
+              value={adj.amount}
+              onChange={(e) => setAdj((f) => ({ ...f, amount: e.target.value }))}
+              className="h-8 text-xs"
+            />
+          </Field>
+          <Field label="الوصف">
+            <Input value={adj.reference} onChange={(e) => setAdj((f) => ({ ...f, reference: e.target.value }))} className="h-8 text-xs" placeholder="تسوية / مكافأة / خصم..." />
+          </Field>
+          <div className="sm:col-span-3">
+            <Button size="sm" onClick={addEntry} disabled={savingAdj || !adj.amount || Number(adj.amount) <= 0}>
+              {savingAdj ? 'جاري الحفظ...' : 'إضافة القيد'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {loadingBalance ? (
         <p className="text-mocha">تحميل...</p>

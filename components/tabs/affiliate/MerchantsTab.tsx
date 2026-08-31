@@ -8,7 +8,9 @@ import { Field, SectionTitle } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Badge, type BadgeVariant } from '@/components/ui/Badge';
+import { AlertDialog } from '@/components/ui/AlertDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useToast } from '@/components/ui/Toast';
 
 type MerchantRow = {
   id: string;
@@ -45,6 +47,7 @@ const emptyForm = {
 const API_URL = '/api/admin/affiliate/merchants';
 
 export function MerchantsTab() {
+  const { toast } = useToast();
   const [rows, setRows] = useState<MerchantRow[] | null>(null);
   const [roasters, setRoasters] = useState<BusinessOption[]>([]);
   const [suppliers, setSuppliers] = useState<BusinessOption[]>([]);
@@ -53,6 +56,7 @@ export function MerchantsTab() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [archiveId, setArchiveId] = useState<string | null>(null); // G-03
 
   const load = async () => {
     const [res, { data: r }, { data: s }] = await Promise.all([
@@ -111,7 +115,7 @@ export function MerchantsTab() {
 
   const saveField = async (
     id: string,
-    field: 'legal_name' | 'website_url' | 'country' | 'currency' | 'external_reference' | 'timezone',
+    field: 'legal_name' | 'website_url' | 'country' | 'currency' | 'external_reference' | 'timezone' | 'roaster_id' | 'supplier_id',
     value: string
   ) => {
     setRows((prev) => prev?.map((r) => (r.id === id ? { ...r, [field]: value.trim() || null } : r)) ?? null);
@@ -120,6 +124,17 @@ export function MerchantsTab() {
       const body = await res.json().catch(() => ({}));
       setError(body.error ?? 'فشل الحفظ');
       load();
+    }
+  };
+
+  // G-05: ربط التاجر بمحمصة أو مورّد -- اختيار أحدهما يمسح الآخر.
+  const relink = async (id: string, kind: 'roaster' | 'supplier', value: string) => {
+    if (kind === 'roaster') {
+      await saveField(id, 'roaster_id', value);
+      if (value) await saveField(id, 'supplier_id', '');
+    } else {
+      await saveField(id, 'supplier_id', value);
+      if (value) await saveField(id, 'roaster_id', '');
     }
   };
 
@@ -238,7 +253,7 @@ export function MerchantsTab() {
                       {(['active', 'suspended', 'archived'] as const).map((s) => (
                         <button
                           key={s}
-                          onClick={() => setStatus(m.id, s)}
+                          onClick={() => (s === 'archived' ? setArchiveId(m.id) : setStatus(m.id, s))}
                           className={`rounded-full border px-3 py-1.5 text-xs ${
                             m.status === s ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
                           }`}
@@ -266,6 +281,34 @@ export function MerchantsTab() {
                     <Field label="المنطقة الزمنية">
                       <Input defaultValue={m.timezone} onBlur={(e) => saveField(m.id, 'timezone', e.target.value)} dir="ltr" className="h-8 text-xs" />
                     </Field>
+                    <Field label="ربط بمحمصة">
+                      <select
+                        value={m.roaster_id ?? ''}
+                        onChange={(e) => relink(m.id, 'roaster', e.target.value)}
+                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                      >
+                        <option value="">بدون</option>
+                        {roasters.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="ربط بمورّد" helper="اختيار محمصة يمسح المورّد والعكس">
+                      <select
+                        value={m.supplier_id ?? ''}
+                        onChange={(e) => relink(m.id, 'supplier', e.target.value)}
+                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                      >
+                        <option value="">بدون</option>
+                        {suppliers.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
                   </div>
                 </div>
               )}
@@ -273,6 +316,22 @@ export function MerchantsTab() {
           );
         })}
       </div>
+
+      <AlertDialog
+        open={archiveId !== null}
+        title="أرشفة التاجر"
+        description={`سيتم أرشفة التاجر "${rows.find((r) => r.id === archiveId)?.name ?? ''}". لن يظهر في القوائم المنسدلة ولكن البيانات محفوظة.`}
+        confirmLabel="أرشفة"
+        destructive={false}
+        onConfirm={() => {
+          if (archiveId) {
+            setStatus(archiveId, 'archived');
+            toast({ title: 'تم أرشفة التاجر', variant: 'success' });
+          }
+          setArchiveId(null);
+        }}
+        onCancel={() => setArchiveId(null)}
+      />
     </div>
   );
 }

@@ -71,8 +71,18 @@ export const PATCH = withErrorHandler(async (request: Request) => {
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
 
-  const body = (await request.json().catch(() => ({}))) as { status?: string; period_start?: string; period_end?: string };
+  const body = (await request.json().catch(() => ({}))) as {
+    status?: string;
+    period_start?: string;
+    period_end?: string;
+    payment_reference?: string;
+  };
   const supabase = getAdminClient();
+
+  // amount/exchange_rate عمداً غير قابلين للتعديل هنا -- تغييرهما بعد
+  // PAYOUT_RECEIVED يخلّي قيد دفتر الأستاذ غلط. التصحيحات المالية تمر عبر
+  // قيد يدوي بتبويب المحاسبة (MANUAL_ADJUSTMENT).
+  const SAFE_FIELDS = ['period_start', 'period_end', 'payment_reference'] as const;
 
   if (body.status === 'RECEIVED') {
     try {
@@ -83,12 +93,15 @@ export const PATCH = withErrorHandler(async (request: Request) => {
   } else if (body.status) {
     const { error } = await supabase.from('affiliate_payouts').update({ status: body.status }).eq('id', id);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  } else if (body.period_start !== undefined || body.period_end !== undefined) {
-    const { error } = await supabase
-      .from('affiliate_payouts')
-      .update({ period_start: body.period_start ?? null, period_end: body.period_end ?? null })
-      .eq('id', id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  } else {
+    const updateBody: Record<string, unknown> = {};
+    for (const key of SAFE_FIELDS) {
+      if (body[key] !== undefined) updateBody[key] = body[key] || null;
+    }
+    if (Object.keys(updateBody).length > 0) {
+      const { error } = await supabase.from('affiliate_payouts').update(updateBody).eq('id', id);
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    }
   }
 
   const { data } = await supabase.from('affiliate_payouts').select(COLUMNS).eq('id', id).single();

@@ -46,6 +46,7 @@ export function JobsTab() {
   const [statusFilter, setStatusFilter] = useState<'all' | JobStatus>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [runningAll, setRunningAll] = useState(false);
+  const [selectedJobType, setSelectedJobType] = useState(''); // G-09: '' = كل المستحق
 
   const load = async () => {
     const { data } = await supabase
@@ -74,7 +75,10 @@ export function JobsTab() {
 
   const runNow = async () => {
     setRunningAll(true);
-    const res = await adminFetchJson('/api/admin/affiliate/jobs/run', { method: 'POST' });
+    const res = await adminFetchJson('/api/admin/affiliate/jobs/run', {
+      method: 'POST',
+      body: JSON.stringify(selectedJobType ? { job_type: selectedJobType } : {}),
+    });
     const body = await res.json().catch(() => ({}));
     setRunningAll(false);
     if (res.ok) {
@@ -97,8 +101,20 @@ export function JobsTab() {
         <StatCard label="إجمالي المهام (آخر 200)" value={rows.length} />
         <StatCard label="بانتظار التنفيذ" value={pendingCount} urgent />
         <StatCard label="فاشلة" value={failedCount} urgent />
-        <div className="flex items-center">
-          <Button onClick={runNow} disabled={runningAll} className="w-full">
+        <div className="flex items-center gap-1.5">
+          <select
+            value={selectedJobType}
+            onChange={(e) => setSelectedJobType(e.target.value)}
+            className="h-10 rounded-xl border border-latte bg-white px-2 text-xs outline-none focus:border-gold"
+          >
+            <option value="">كل المستحق</option>
+            {CRON_SCHEDULE.map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <Button onClick={runNow} disabled={runningAll} className="flex-1">
             {runningAll ? 'جاري التشغيل...' : 'تشغيل الآن'}
           </Button>
         </div>

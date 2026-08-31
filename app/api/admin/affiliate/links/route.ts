@@ -88,3 +88,28 @@ export const PATCH = withErrorHandler(async (request: Request) => {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ data });
 });
+
+// DELETE ?id=... -- حذف رابط نهائياً + أحداث النقر المرتبطة. القاعدة عندها
+// on delete cascade من affiliate_click_events.affiliate_link_id، فحذف الرابط
+// يكفي، بس نحذف الأحداث صراحةً أولاً عشان نبلّغ العدد ونتفادى الاعتماد
+// الصامت على الـcascade. بعد الحذف /api/go/{token} يرجّع 404.
+export const DELETE = withErrorHandler(async (request: Request) => {
+  const admin = await requireAdmin(request);
+  if (!admin) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+  if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+
+  const supabase = getAdminClient();
+
+  const { count: clicksDeleted } = await supabase
+    .from('affiliate_click_events')
+    .delete({ count: 'exact' })
+    .eq('affiliate_link_id', id);
+
+  const { error } = await supabase.from('affiliate_links').delete().eq('id', id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  return NextResponse.json({ ok: true, clicksDeleted: clicksDeleted ?? 0 });
+});
