@@ -16,7 +16,7 @@
   --color-ink: #f4e7d2;           /* نص أساسي فاتح */
   --color-coffee: #c7b394;        /* نص ثانوي */
   --color-mocha: #a89070;         /* نص خافت (148 استخدام -- رُفع للتباين) */
-  --color-stone: #8a6a42;         /* أيقونات/placeholder/حدود خافتة */
+  --color-stone: #a0855f;         /* أيقونات/placeholder/حدود خافتة (رُفع للتباين كنص) */
   --color-gold: #e8a84c;          /* الجمرة -- لون التمييز */
   --color-gold-soft: #c0862f;
   --color-gold-bright: #f0bc6b;
@@ -99,6 +99,19 @@ body {
   input::placeholder,
   textarea::placeholder {
     color: var(--color-stone);
+  }
+
+  /* كروم يفرض خلفية زرقاء فاتحة على الحقول المعبّأة تلقائياً -- نكسرها
+     بظل داخلي بلون الخلفية الغامقة ونثبّت لون النص فاتح. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px var(--color-paper) inset;
+    box-shadow: 0 0 0 1000px var(--color-paper) inset;
+    -webkit-text-fill-color: var(--color-ink);
+    caret-color: var(--color-ink);
+    transition: background-color 9999s ease-out 0s;
   }
 
   *:focus-visible {
