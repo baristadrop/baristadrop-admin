@@ -24,11 +24,12 @@ type DayRow = {
 };
 
 const COLORS = {
-  users: '#171a2b', // coffee
-  premium: '#5b5fc7', // gold (indigo)
-  revenue: '#6165c9', // gold-soft
-  grid: '#dcdce6', // latte -- خط شبكة خفيف، ما يزاحم البيانات
+  users: '#e8a84c', // جمرة
+  premium: '#6ba8d8', // أزرق (info)
+  revenue: '#7fb77a', // أخضر (good)
+  grid: '#3a2c1e', // sand -- خط شبكة خافت على الغامق
 };
+const AXIS_TICK = '#a89070'; // mocha
 
 function shortDate(iso: string) {
   const d = new Date(iso);
@@ -41,8 +42,9 @@ function ChartSkeleton() {
 
 const tooltipStyle = {
   borderRadius: 12,
-  border: '1px solid #dcdce6',
-  background: '#ffffff',
+  border: '1px solid #5c4634',
+  background: '#241a13',
+  color: '#f4e7d2',
   fontSize: 12,
   direction: 'rtl' as const,
 };
@@ -77,7 +79,7 @@ export function GrowthChart() {
     return (
       <g key="endpoint">
         <circle cx={props.cx} cy={props.cy} r={7} fill={color} fillOpacity={0.16} />
-        <circle cx={props.cx} cy={props.cy} r={3.5} fill={color} stroke="#fff" strokeWidth={1.5} />
+        <circle cx={props.cx} cy={props.cy} r={3.5} fill={color} stroke="#241a13" strokeWidth={1.5} />
       </g>
     );
   };
@@ -95,8 +97,8 @@ export function GrowthChart() {
               </linearGradient>
             </defs>
             <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="day" tickFormatter={shortDate} tick={{ fontSize: 11, fill: '#6b6f85' }} minTickGap={24} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b6f85' }} width={28} />
+            <XAxis dataKey="day" tickFormatter={shortDate} tick={{ fontSize: 11, fill: AXIS_TICK }} minTickGap={24} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: AXIS_TICK }} width={28} />
             <Tooltip
               contentStyle={tooltipStyle}
               cursor={{ stroke: COLORS.grid, strokeWidth: 1 }}
@@ -137,8 +139,8 @@ export function GrowthChart() {
               </linearGradient>
             </defs>
             <CartesianGrid stroke={COLORS.grid} strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="day" tickFormatter={shortDate} tick={{ fontSize: 11, fill: '#6b6f85' }} minTickGap={24} />
-            <YAxis tick={{ fontSize: 11, fill: '#6b6f85' }} width={28} />
+            <XAxis dataKey="day" tickFormatter={shortDate} tick={{ fontSize: 11, fill: AXIS_TICK }} minTickGap={24} />
+            <YAxis tick={{ fontSize: 11, fill: AXIS_TICK }} width={28} />
             <Tooltip
               contentStyle={tooltipStyle}
               cursor={{ fill: COLORS.grid, fillOpacity: 0.3 }}

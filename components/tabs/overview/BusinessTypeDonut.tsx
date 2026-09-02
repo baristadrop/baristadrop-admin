@@ -5,7 +5,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recha
 import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/Skeleton';
 
-const COLORS = { roaster: '#9c5f28', cafe: '#b8763b' };
+const COLORS = { roaster: '#e8a84c', cafe: '#6ba8d8' };
 const LABEL: Record<string, string> = { roaster: 'محامص', cafe: 'كوفي شوبات' };
 
 export function BusinessTypeDonut() {
@@ -40,11 +40,11 @@ export function BusinessTypeDonut() {
       <PieChart>
         <Pie data={data} dataKey="count" nameKey="type" innerRadius={55} outerRadius={80} paddingAngle={2}>
           {data.map((d) => (
-            <Cell key={d.type} fill={COLORS[d.type as keyof typeof COLORS] ?? '#8a7d68'} />
+            <Cell key={d.type} fill={COLORS[d.type as keyof typeof COLORS] ?? '#a89070'} />
           ))}
         </Pie>
         <Tooltip
-          contentStyle={{ borderRadius: 12, border: '1px solid #d9cdb8', background: '#fff', fontSize: 12, direction: 'rtl' }}
+          contentStyle={{ borderRadius: 12, border: '1px solid #5c4634', background: '#241a13', color: '#f4e7d2', fontSize: 12, direction: 'rtl' }}
           formatter={(value, name) => [value, LABEL[name as string] ?? name]}
         />
         <Legend formatter={(name) => LABEL[name] ?? name} wrapperStyle={{ fontSize: 12 }} />
