@@ -28,7 +28,7 @@ export function Toggle({
       >
         {/* dir="rtl" على الصفحة: نقطة البداية يمين، التفعيل يحرّك النقطة يسار (اتجاه القراءة) */}
         <span
-          className={`absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+          className={`absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-paper shadow transition-transform ${
             checked ? '-translate-x-5' : 'translate-x-0'
           }`}
         />

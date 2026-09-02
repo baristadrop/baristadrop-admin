@@ -46,7 +46,7 @@ export function TopBeansTab() {
           description="القائمة بتتعبّى تلقائياً أول ما المستخدمين يبدأون يقيّمون الوصفات بالتطبيق."
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-latte bg-paper shadow-sm">
           {rows.map((b, i) => (
             <div
               key={b.id}

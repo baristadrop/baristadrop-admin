@@ -52,7 +52,7 @@ export function WebhookVerificationPanel() {
   const filtered = statusFilter === 'all' ? rows : rows.filter((r) => r.status === statusFilter);
 
   return (
-    <div className="space-y-3 rounded-2xl border border-latte bg-white p-4">
+    <div className="space-y-3 rounded-2xl border border-latte bg-paper p-4">
       <p className="text-xs font-semibold tracking-wide text-stone">التحقق من Webhooks (آخر 24 ساعة)</p>
       <div className="grid grid-cols-3 gap-3">
         <StatCard label="مستلمة" value={received} />

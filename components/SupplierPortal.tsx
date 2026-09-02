@@ -98,7 +98,7 @@ export function SupplierPortal() {
         {supplier && (
           <>
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-stone">الملف الشخصي</p>
-            <div className="mb-6 flex items-center gap-4 rounded-2xl border border-latte bg-white p-5 shadow-sm">
+            <div className="mb-6 flex items-center gap-4 rounded-2xl border border-latte bg-paper p-5 shadow-sm">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-latte bg-sand">
                 {supplier.logo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -120,7 +120,7 @@ export function SupplierPortal() {
               </div>
             </div>
 
-            <div className="mb-6 rounded-2xl border border-latte bg-white p-5 shadow-sm">
+            <div className="mb-6 rounded-2xl border border-latte bg-paper p-5 shadow-sm">
               <p className="mb-1 font-[var(--font-el-messiri)] text-base text-ink">فئات منتجاتك</p>
               <p className="mb-3 text-xs text-mocha">اختر كل الفئات اللي تنطبق عليك -- تحدد صورة الخلفية اللي تظهر خلف بطاقتك بالتطبيق</p>
               <div className="flex flex-wrap gap-2">
@@ -132,7 +132,7 @@ export function SupplierPortal() {
                       type="button"
                       onClick={() => toggleCategory(c)}
                       className={`rounded-full border px-3 py-1.5 text-xs ${
-                        active ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
+                        active ? 'border-gold bg-gold text-on-gold' : 'border-latte text-coffee'
                       }`}
                     >
                       {c}
@@ -142,7 +142,7 @@ export function SupplierPortal() {
               </div>
             </div>
 
-            <form onSubmit={handleSave} className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
+            <form onSubmit={handleSave} className="rounded-2xl border border-latte bg-paper p-5 shadow-sm">
               <p className="mb-3 font-[var(--font-el-messiri)] text-base text-ink">تعديل رابط المتجر</p>
               {message && <p className="mb-3 rounded-lg bg-sand px-3 py-2 text-sm text-coffee">{message}</p>}
               <input
@@ -155,7 +155,7 @@ export function SupplierPortal() {
               <button
                 type="submit"
                 disabled={saving}
-                className="mt-3 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-cream disabled:opacity-50"
+                className="mt-3 rounded-full bg-gold px-5 py-2.5 text-sm font-bold text-on-gold disabled:opacity-50"
               >
                 {saving ? '...' : 'حفظ'}
               </button>

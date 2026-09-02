@@ -62,7 +62,7 @@ function SidebarNavInner<K extends string>({
             <button
               type="button"
               onClick={() => toggle(group.label)}
-              className="mb-1.5 flex w-full items-center justify-between px-2 text-[11px] font-semibold tracking-wide text-sand/70 hover:text-sand"
+              className="mb-1.5 flex w-full items-center justify-between px-2 text-[11px] font-semibold tracking-wide text-coffee/70 hover:text-coffee"
             >
               {group.label}
               <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', isCollapsed && '-rotate-90')} />
@@ -78,10 +78,10 @@ function SidebarNavInner<K extends string>({
                       onClick={() => onSelect(tab.key)}
                       className={cn(
                         'flex items-center gap-2.5 rounded-xl border-s-2 px-3 py-2 text-sm font-medium transition',
-                        isActive ? 'border-gold bg-gold text-cream shadow-sm' : 'border-transparent text-sand hover:bg-white/5'
+                        isActive ? 'border-gold bg-gold text-on-gold shadow-sm' : 'border-transparent text-coffee hover:bg-white/5'
                       )}
                     >
-                      <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-cream' : 'text-sand')} />
+                      <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-on-gold' : 'text-coffee')} />
                       <span className="flex-1 text-right">{tab.label}</span>
                       {typeof tab.badge === 'number' && tab.badge > 0 && (
                         <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold text-cream">
@@ -118,19 +118,19 @@ function SidebarInner<K extends string>({
   return (
     <>
       {/* سطح المكتب/التابلت: شريط جانبي ثابت */}
-      <aside className="hidden border-s border-mocha/30 bg-coffee lg:block lg:h-screen lg:w-64 lg:shrink-0 lg:overflow-y-auto">
+      <aside className="hidden border-s border-mocha/30 bg-espresso lg:block lg:h-screen lg:w-64 lg:shrink-0 lg:overflow-y-auto">
         <div className="px-5 py-5">{header}</div>
         <SidebarNav groups={groups} active={active} onSelect={onSelect} />
       </aside>
 
       {/* الموبايل: زر الهامبرغر + درج منزلق */}
-      <div className="border-b border-mocha/30 bg-coffee px-4 py-3 lg:hidden">
+      <div className="border-b border-mocha/30 bg-espresso px-4 py-3 lg:hidden">
         <div className="flex items-center justify-between">
           {header}
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="rounded-lg p-2 text-sand hover:bg-white/10"
+            className="rounded-lg p-2 text-coffee hover:bg-white/10"
             aria-label="فتح القائمة"
           >
             <Menu className="h-5 w-5" />
@@ -140,12 +140,12 @@ function SidebarInner<K extends string>({
 
       <RadixDialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
         <RadixDialog.Portal>
-          <RadixDialog.Overlay className="fixed inset-0 z-40 bg-ink/60 lg:hidden" />
-          <RadixDialog.Content className="fixed inset-y-0 start-0 z-50 w-72 overflow-y-auto bg-coffee shadow-lg lg:hidden">
+          <RadixDialog.Overlay className="fixed inset-0 z-40 bg-espresso/60 lg:hidden" />
+          <RadixDialog.Content className="fixed inset-y-0 start-0 z-50 w-72 overflow-y-auto bg-espresso shadow-lg lg:hidden">
             <RadixDialog.Title className="sr-only">القائمة</RadixDialog.Title>
             <div className="flex items-center justify-between px-5 py-5">
               {header}
-              <RadixDialog.Close className="rounded-lg p-2 text-sand hover:bg-white/10">
+              <RadixDialog.Close className="rounded-lg p-2 text-coffee hover:bg-white/10">
                 <X className="h-5 w-5" />
               </RadixDialog.Close>
             </div>

@@ -89,7 +89,7 @@ export function RecipesTab() {
 
   return (
     <div className="flex gap-6">
-      <div className="w-72 shrink-0 rounded-2xl border border-latte bg-white shadow-sm">
+      <div className="w-72 shrink-0 rounded-2xl border border-latte bg-paper shadow-sm">
         {rows.map((r) => (
           <button
             key={r.id}
@@ -145,7 +145,7 @@ function RecipeReviewPanel({
   });
 
   return (
-    <div className="flex-1 rounded-2xl border border-latte bg-white p-6 shadow-sm">
+    <div className="flex-1 rounded-2xl border border-latte bg-paper p-6 shadow-sm">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="font-[var(--font-el-messiri)] text-xl text-ink">{selected.beans?.name}</h2>
@@ -179,13 +179,13 @@ function RecipeReviewPanel({
         <div className="flex gap-2">
           <button
             onClick={() => setCold(false)}
-            className={`rounded-full border px-4 py-1.5 text-sm ${!cold ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'}`}
+            className={`rounded-full border px-4 py-1.5 text-sm ${!cold ? 'border-gold bg-gold text-on-gold' : 'border-latte text-coffee'}`}
           >
             حار
           </button>
           <button
             onClick={() => setCold(true)}
-            className={`rounded-full border px-4 py-1.5 text-sm ${cold ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'}`}
+            className={`rounded-full border px-4 py-1.5 text-sm ${cold ? 'border-gold bg-gold text-on-gold' : 'border-latte text-coffee'}`}
           >
             بارد
           </button>

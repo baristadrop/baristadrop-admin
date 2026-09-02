@@ -84,7 +84,7 @@ export function GrowthChart() {
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-latte bg-paper p-5 shadow-sm">
         <p className="mb-4 text-sm font-semibold text-coffee">نمو المستخدمين (آخر 30 يوم)</p>
         <ResponsiveContainer width="100%" height={240}>
           <ComposedChart data={rows} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -126,7 +126,7 @@ export function GrowthChart() {
         </ResponsiveContainer>
       </div>
 
-      <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-latte bg-paper p-5 shadow-sm">
         <p className="mb-4 text-sm font-semibold text-coffee">إيراد الكريدت اليومي (آخر 30 يوم)</p>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={rows} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>

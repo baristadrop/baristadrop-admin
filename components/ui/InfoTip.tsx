@@ -18,7 +18,7 @@ export function InfoTip({ text }: { text: string }) {
         ؟
       </button>
       {open && (
-        <span className="absolute right-0 top-5 z-20 w-56 rounded-lg border border-latte bg-white p-2.5 text-[11px] leading-relaxed text-coffee shadow-lg">
+        <span className="absolute right-0 top-5 z-20 w-56 rounded-lg border border-latte bg-paper p-2.5 text-[11px] leading-relaxed text-coffee shadow-lg">
           {text}
         </span>
       )}

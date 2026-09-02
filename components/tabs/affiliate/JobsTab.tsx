@@ -105,7 +105,7 @@ export function JobsTab() {
           <select
             value={selectedJobType}
             onChange={(e) => setSelectedJobType(e.target.value)}
-            className="h-10 rounded-xl border border-latte bg-white px-2 text-xs outline-none focus:border-gold"
+            className="h-10 rounded-xl border border-latte bg-paper px-2 text-xs outline-none focus:border-gold"
           >
             <option value="">كل المستحق</option>
             {CRON_SCHEDULE.map((c) => (
@@ -120,7 +120,7 @@ export function JobsTab() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-latte bg-white p-4">
+      <div className="rounded-2xl border border-latte bg-paper p-4">
         <p className="mb-3 text-xs font-semibold tracking-wide text-stone">جدول المهام الدورية</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {CRON_SCHEDULE.map((c) => {
@@ -156,7 +156,7 @@ export function JobsTab() {
       {filtered.length === 0 ? (
         <EmptyState title="ما فيه مهام بهذي الحالة" />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-2xl border border-latte bg-paper shadow-sm">
           <table className="w-full min-w-[720px] text-right text-sm">
             <thead className="bg-sand/60 text-[11px] uppercase tracking-wide text-mocha">
               <tr>

@@ -39,9 +39,9 @@ type ItemRow = {
 type Option = { id: string; name: string };
 
 const RUN_STATUS_META: Record<RunRow['status'], { label: string; className: string }> = {
-  running: { label: 'جارية', className: 'bg-amber-100 text-amber-700' },
-  completed: { label: 'مكتملة', className: 'bg-green-100 text-green-700' },
-  failed: { label: 'فشلت', className: 'bg-red-100 text-red-700' },
+  running: { label: 'جارية', className: 'bg-warning-bg text-warning' },
+  completed: { label: 'مكتملة', className: 'bg-success-bg text-success' },
+  failed: { label: 'فشلت', className: 'bg-danger-bg text-danger' },
   cancelled: { label: 'ملغاة', className: 'bg-stone/20 text-stone' },
 };
 
@@ -188,19 +188,19 @@ export function ReconciliationTab() {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+        <div className="flex items-center justify-between rounded-lg border border-danger/40 bg-danger-bg px-3 py-2 text-xs text-danger">
           {error}
           <button onClick={() => setError(null)} className="mr-2 font-bold">
             ×
           </button>
         </div>
       )}
-      <div className="grid gap-3 rounded-2xl border border-latte bg-white p-4 shadow-sm sm:grid-cols-4">
+      <div className="grid gap-3 rounded-2xl border border-latte bg-paper p-4 shadow-sm sm:grid-cols-4">
         <Field label="البرنامج">
           <select
             value={selectedProgram}
             onChange={(e) => setSelectedProgram(e.target.value)}
-            className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+            className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
           >
             {programs.length === 0 && <option value="">ما فيه برامج بعد</option>}
             {programs.map((p) => (
@@ -216,7 +216,7 @@ export function ReconciliationTab() {
             onChange={(e) => setPeriodStart(e.target.value)}
             type="date"
             dir="ltr"
-            className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+            className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
           />
         </Field>
         <Field label="إلى">
@@ -225,14 +225,14 @@ export function ReconciliationTab() {
             onChange={(e) => setPeriodEnd(e.target.value)}
             type="date"
             dir="ltr"
-            className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+            className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
           />
         </Field>
         <div className="flex items-end">
           <button
             onClick={triggerRun}
             disabled={triggering || !selectedProgram}
-            className="w-full rounded-full bg-gold px-4 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+            className="w-full rounded-full bg-gold px-4 py-1.5 text-xs font-bold text-on-gold disabled:opacity-50"
           >
             {triggering ? 'جاري التشغيل...' : 'تشغيل تسوية'}
           </button>
@@ -254,7 +254,7 @@ export function ReconciliationTab() {
               if (file) uploadCsv(file);
               e.target.value = '';
             }}
-            className="text-xs text-coffee file:ml-2 file:rounded-full file:border file:border-latte file:bg-white file:px-3 file:py-1.5 file:text-xs file:text-coffee disabled:opacity-50"
+            className="text-xs text-coffee file:ml-2 file:rounded-full file:border file:border-latte file:bg-paper file:px-3 file:py-1.5 file:text-xs file:text-coffee disabled:opacity-50"
           />
           {uploading && <p className="mt-1 text-[11px] text-mocha">جاري الاستيراد...</p>}
           {uploadMsg && <p className="mt-1 text-[11px] text-mocha">{uploadMsg}</p>}
@@ -267,7 +267,7 @@ export function ReconciliationTab() {
           const meta = RUN_STATUS_META[run.status];
           const expanded = expandedRunId === run.id;
           return (
-            <div key={run.id} className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
+            <div key={run.id} className="overflow-hidden rounded-2xl border border-latte bg-paper shadow-sm">
               <button onClick={() => toggleRun(run.id)} className="flex w-full items-center gap-3 p-3 text-right">
                 <div className="flex-1">
                   <p className="font-medium text-ink">{programs.find((p) => p.id === run.affiliate_program_id)?.name ?? '—'}</p>
@@ -277,7 +277,7 @@ export function ReconciliationTab() {
                 </div>
                 <span className="text-xs text-coffee">{run.matched} مطابقة</span>
                 {run.amount_mismatch + run.status_mismatch + run.missing_from_provider + run.missing_from_internal > 0 && (
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] text-red-700">
+                  <span className="rounded-full bg-danger-bg px-2 py-0.5 text-[10px] text-danger">
                     {run.amount_mismatch + run.status_mismatch + run.missing_from_provider + run.missing_from_internal} اختلاف
                   </span>
                 )}
@@ -300,9 +300,9 @@ export function ReconciliationTab() {
                   ) : (
                     <div className="space-y-2">
                       {items[run.id]!.map((item) => (
-                        <div key={item.id} className="space-y-2 rounded-lg border border-latte bg-white p-3 text-xs">
+                        <div key={item.id} className="space-y-2 rounded-lg border border-latte bg-paper p-3 text-xs">
                           <div className="flex items-center justify-between">
-                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] text-red-700">{item.recon_status}</span>
+                            <span className="rounded-full bg-danger-bg px-2 py-0.5 text-[10px] text-danger">{item.recon_status}</span>
                             <span className="text-mocha">
                               داخلي: {item.internal_amount ?? '—'} · مزوّد: {item.provider_amount ?? '—'}
                             </span>
@@ -346,7 +346,7 @@ export function ReconciliationTab() {
                                 value={noteDraft[item.id] ?? ''}
                                 onChange={(e) => setNoteDraft((d) => ({ ...d, [item.id]: e.target.value }))}
                                 placeholder="أضف ملاحظة..."
-                                className="min-w-[160px] flex-1 rounded-lg border border-latte bg-white px-2 py-1 text-[11px] outline-none focus:border-gold"
+                                className="min-w-[160px] flex-1 rounded-lg border border-latte bg-paper px-2 py-1 text-[11px] outline-none focus:border-gold"
                               />
                               <Button
                                 size="sm"

@@ -51,7 +51,7 @@ export function HelpPanel() {
       <Button
         variant="outline"
         size="sm"
-        className="border-mocha/40 bg-transparent text-sand hover:border-gold hover:bg-white/5"
+        className="border-mocha/40 bg-transparent text-coffee hover:border-gold hover:bg-white/5"
         onClick={() => setOpen(true)}
       >
         مساعدة

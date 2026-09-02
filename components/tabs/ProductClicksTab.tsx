@@ -37,7 +37,7 @@ export function ProductClicksTab() {
       {rows.length === 0 ? (
         <EmptyState title="ما فيه نقرات أفيليت مرتبطة بمحصول أو منتج محدد بعد" />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-latte bg-paper shadow-sm">
           {rows.map((row) => (
             <div
               key={`${row.item_type}-${row.item_id}`}

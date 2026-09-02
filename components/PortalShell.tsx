@@ -14,16 +14,16 @@ export function PortalShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-paper lg:flex">
-      <aside className="border-b border-latte/70 bg-cream lg:h-screen lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-l">
+    <div className="min-h-screen bg-canvas lg:flex">
+      <aside className="border-b border-latte/70 bg-espresso lg:h-screen lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-l">
         <div className="px-5 py-5">
-          <h1 className="font-[var(--font-cormorant)] text-xl font-bold tracking-wide text-ink">BARISTA DROP</h1>
-          <p className="text-xs text-mocha">{subtitle}</p>
+          <h1 className="font-[var(--font-cormorant)] text-xl font-bold tracking-wide text-gold">BARISTA DROP</h1>
+          <p className="text-xs text-coffee">{subtitle}</p>
         </div>
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-10 border-b border-latte/70 bg-cream/95 shadow-[0_1px_0_0_rgba(0,0,0,0.02)] backdrop-blur">
+        <header className="sticky top-0 z-10 border-b border-latte/70 bg-espresso/95 shadow-[0_1px_0_0_rgba(0,0,0,0.4)] backdrop-blur">
           <div className="flex items-center justify-between px-6 py-4">
             <h2 className="font-[var(--font-el-messiri)] text-lg text-ink">{title}</h2>
             <div className="flex items-center gap-3 text-sm text-mocha">

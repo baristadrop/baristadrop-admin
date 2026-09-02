@@ -46,7 +46,7 @@ export function DataTable<T extends { id: string | number }>({
   return (
     <>
       {/* سطح المكتب: جدول كامل */}
-      <div className="hidden overflow-x-auto rounded-2xl border border-latte bg-white lg:block">
+      <div className="hidden overflow-x-auto rounded-2xl border border-latte bg-paper lg:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-latte bg-sand/50">
@@ -94,7 +94,7 @@ export function DataTable<T extends { id: string | number }>({
       {/* الموبايل: قائمة بطاقات */}
       <div className="flex flex-col gap-3 lg:hidden">
         {sorted.map((row) => (
-          <div key={keyOf(row)} className="rounded-2xl border border-latte bg-white p-4">
+          <div key={keyOf(row)} className="rounded-2xl border border-latte bg-paper p-4">
             {columns.map((col) => (
               <div key={col.key} className="flex items-center justify-between gap-3 py-1 text-sm">
                 <span className="text-xs font-medium text-mocha">{col.header}</span>

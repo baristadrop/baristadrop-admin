@@ -1,34 +1,37 @@
 @import "tailwindcss";
 
-/* هوية "إسبريسو ونحاس" -- محايدات فحمية دافئة (بني غامق حقيقي، مو رمادي
-   بارد) + لون تمييز نحاسي أصيل (يرمز لتحميص القهوة بدون ما يكون كافيه
-   ساذج). Canvas فاتح للمحتوى + شريط جانبي/هيدر غامقين للهوية والتنقّل --
-   نفس نمط لوحات التحكم المؤسسية الجادة (Stripe/GitHub) بدل نمط "أداة
-   مطوّرين" بخلفية غامقة بالكامل. */
+/* "Night Pour" -- نفس هوية تطبيق باريستا دروب: عالم غامق واحد (شل غامق +
+   بطاقات غامقة + نص كريمي + لمسة جمرة ذهبية). القيم مطابقة لـ
+   mobile/src/theme/tokens.ts. الأسماء القديمة (ink/coffee/sand..) بقيت
+   لكن أعيد ربطها بقيم العالم الغامق حسب دورها الغالب: text-ink=نص فاتح،
+   bg-ink=كان شل غامق -> صار bg-espresso. */
 :root {
-  --color-ink: #1b1712;
-  --color-coffee: #2a231b;
-  --color-canvas: #f6f1e8;
-  --color-paper: #ffffff;
-  --color-sand: #ece1cd;
-  --color-latte: #d9cdb8;
-  --color-mocha: #6b5f4e;
-  --color-stone: #8a7d68;
-  --color-cream: #f5efe3;
-  --color-gold: #9c5f28;
-  --color-gold-soft: #b8763b;
+  --color-canvas: #0c0906;        /* خلفية الصفحة */
+  --color-espresso: #14100b;      /* شل غامق: شريط جانبي/هيدر */
+  --color-paper: #241a13;         /* البطاقات */
+  --color-sand: #3a2c1e;          /* أسطح مرفوعة / hover / رقائق */
+  --color-latte: #5c4634;         /* حدود + فواصل -- خط شعري واضح */
+  --color-line-strong: #8a6a42;   /* حد يميل للذهبي، للبطاقات المهمة */
+  --color-cream: #f4e7d2;         /* نص فاتح فوق الشل الغامق */
+  --color-ink: #f4e7d2;           /* نص أساسي فاتح */
+  --color-coffee: #c7b394;        /* نص ثانوي */
+  --color-mocha: #a89070;         /* نص خافت (148 استخدام -- رُفع للتباين) */
+  --color-stone: #8a6a42;         /* أيقونات/placeholder/حدود خافتة */
+  --color-gold: #e8a84c;          /* الجمرة -- لون التمييز */
+  --color-gold-soft: #c0862f;
+  --color-gold-bright: #f0bc6b;
+  --color-on-gold: #1a1108;       /* نص/أيقونة فوق تعبئة ذهبية */
 
-  /* حالات دلالية (نجاح/تحذير/خطر/معلومة) للشارات والتنبيهات */
-  --color-success: #16a34a;
-  --color-success-bg: #f0fdf4;
-  --color-warning: #d97706;
-  --color-warning-bg: #fffbeb;
-  --color-danger: #dc2626;
-  --color-danger-bg: #fef2f2;
-  --color-info: #2563eb;
-  --color-info-bg: #eff6ff;
+  /* حالات دلالية -- خلفيات غامقة + نص فاتح للحالة */
+  --color-success: #7fb77a;
+  --color-success-bg: #182a1e;
+  --color-warning: #e8a84c;
+  --color-warning-bg: #2e2311;
+  --color-danger: #de7365;
+  --color-danger-bg: #2e1a17;
+  --color-info: #6ba8d8;
+  --color-info-bg: #16242e;
 
-  /* مقياس تباعد/انحناء/ظل/انتقال موحّد */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -42,10 +45,11 @@
   --radius-xl: 1.5rem;
   --radius-full: 9999px;
 
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  /* على الغامق الظل خفيف -- نعتمد الحد + غمقة قوية للرفع */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 6px 14px -4px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 14px 30px -8px rgba(0, 0, 0, 0.6);
 
   --transition-fast: 150ms ease;
   --transition-base: 200ms ease;
@@ -56,14 +60,18 @@
   --color-cream: var(--color-cream);
   --color-paper: var(--color-paper);
   --color-canvas: var(--color-canvas);
+  --color-espresso: var(--color-espresso);
   --color-sand: var(--color-sand);
   --color-latte: var(--color-latte);
+  --color-line-strong: var(--color-line-strong);
   --color-ink: var(--color-ink);
   --color-coffee: var(--color-coffee);
   --color-mocha: var(--color-mocha);
   --color-stone: var(--color-stone);
   --color-gold: var(--color-gold);
   --color-gold-soft: var(--color-gold-soft);
+  --color-gold-bright: var(--color-gold-bright);
+  --color-on-gold: var(--color-on-gold);
   --color-success: var(--color-success);
   --color-success-bg: var(--color-success-bg);
   --color-warning: var(--color-warning);
@@ -81,16 +89,16 @@ body {
   color: var(--color-ink);
 }
 
-/* الحقول (input/textarea/select) توضع غالباً فوق خلفيات فاتحة (بطاقات
-   بيضاء) بعكس اللون الفاتح الافتراضي لل body (مصمم للخلفية الغامقة) --
-   بدون هذا، أي حقل ما يحدد لون نصه بشكل صريح يرث لون النص الفاتح فيصير
-   شبه غير مرئي فوق خلفية فاتحة. @layer base عشان أي كلاس Tailwind صريح
-   (زي text-ink) يقدر يتجاوزه عادي. */
 @layer base {
   input,
   textarea,
   select {
     color: var(--color-ink);
+    background-color: var(--color-canvas);
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-stone);
   }
 
   *:focus-visible {
@@ -105,7 +113,7 @@ body {
 
   ::selection {
     background: var(--color-gold);
-    color: white;
+    color: var(--color-on-gold);
   }
 }
 

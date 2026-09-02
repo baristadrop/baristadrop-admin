@@ -194,7 +194,7 @@ export function BusinessPortal() {
         {business && (
           <>
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-stone">الملف الشخصي</p>
-            <div className="mb-6 flex items-center gap-4 rounded-2xl border border-latte bg-white p-5 shadow-sm">
+            <div className="mb-6 flex items-center gap-4 rounded-2xl border border-latte bg-paper p-5 shadow-sm">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-latte bg-sand">
                 {business.logo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -221,7 +221,7 @@ export function BusinessPortal() {
               </div>
             </div>
 
-            <form onSubmit={saveLocation} className="mb-6 rounded-2xl border border-latte bg-white p-5 shadow-sm">
+            <form onSubmit={saveLocation} className="mb-6 rounded-2xl border border-latte bg-paper p-5 shadow-sm">
               <p className="mb-3 font-[var(--font-el-messiri)] text-base text-ink">تعديل الموقع/العنوان</p>
               {locationMessage && <p className="mb-3 rounded-lg bg-sand px-3 py-2 text-sm text-coffee">{locationMessage}</p>}
               <input
@@ -233,19 +233,19 @@ export function BusinessPortal() {
               <button
                 type="submit"
                 disabled={savingLocation}
-                className="mt-3 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-cream disabled:opacity-50"
+                className="mt-3 rounded-full bg-gold px-5 py-2.5 text-sm font-bold text-on-gold disabled:opacity-50"
               >
                 {savingLocation ? '...' : 'حفظ'}
               </button>
             </form>
 
             <p className="mb-2 mt-2 text-xs font-medium uppercase tracking-wide text-stone">المحاصيل</p>
-            <form onSubmit={handleAddBean} className="mb-6 rounded-2xl border border-latte bg-white p-5 shadow-sm">
+            <form onSubmit={handleAddBean} className="mb-6 rounded-2xl border border-latte bg-paper p-5 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
                 <p className="font-[var(--font-el-messiri)] text-base text-ink">أضف محصول جديد</p>
                 <span
                   className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    beans.length >= business.bean_limit ? 'bg-red-100 text-red-700' : 'bg-sand text-mocha'
+                    beans.length >= business.bean_limit ? 'bg-danger-bg text-danger' : 'bg-sand text-mocha'
                   }`}
                 >
                   {beans.length} / {business.bean_limit}
@@ -253,7 +253,7 @@ export function BusinessPortal() {
               </div>
               {message && <p className="mb-3 rounded-lg bg-sand px-3 py-2 text-sm text-coffee">{message}</p>}
               {beans.length >= business.bean_limit && (
-                <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <p className="mb-3 rounded-lg bg-warning-bg px-3 py-2 text-xs text-warning">
                   وصلت للحد المسموح بحسابك الحالي. تواصل مع فريق باريستا دروب لزيادة الحد.
                 </p>
               )}
@@ -294,14 +294,14 @@ export function BusinessPortal() {
               <button
                 type="submit"
                 disabled={submitting || !name.trim() || beans.length >= business.bean_limit}
-                className="mt-3 rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-cream disabled:opacity-50"
+                className="mt-3 rounded-full bg-gold px-5 py-2.5 text-sm font-bold text-on-gold disabled:opacity-50"
               >
                 {submitting ? '...' : 'إرسال للمراجعة'}
               </button>
             </form>
 
             <p className="mb-3 font-[var(--font-el-messiri)] text-base text-ink">محاصيلك</p>
-            <div className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-latte bg-paper shadow-sm">
               {beans.length === 0 && <p className="p-4 text-sm text-mocha">ما أضفت أي محصول بعد.</p>}
               {beans.map((b) => (
                 <div key={b.id} className="flex items-center justify-between border-b border-latte/60 p-4 last:border-0">
@@ -337,7 +337,7 @@ export function BusinessPortal() {
             </div>
 
             <p className="mb-2 mt-6 text-xs font-medium uppercase tracking-wide text-stone">منيو من شركة موردة</p>
-            <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-latte bg-paper p-5 shadow-sm">
               <p className="mb-1 font-[var(--font-el-messiri)] text-base text-ink">منيو إضافي (اختياري)</p>
               <p className="mb-3 text-xs text-mocha">
                 بجانب محاصيلك المباشرة فوق، تقدر تختار محاصيل جاهزة من شركة موردة تعرضها بمنيوك -- تواصل مع فريق

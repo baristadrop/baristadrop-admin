@@ -11,7 +11,7 @@ type ToastItem = ToastInput & { id: number };
 const ToastCtx = createContext<{ toast: (t: ToastInput) => void } | null>(null);
 
 const VARIANT_STYLES: Record<ToastVariant, string> = {
-  default: 'border-latte bg-white text-ink',
+  default: 'border-latte bg-paper text-ink',
   success: 'border-success/30 bg-success-bg text-success',
   destructive: 'border-danger/30 bg-danger-bg text-danger',
 };

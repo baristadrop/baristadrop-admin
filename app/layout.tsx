@@ -34,10 +34,10 @@ export default function RootLayout({
       dir="rtl"
       className={`${cairo.variable} ${elMessiri.variable} ${cormorant.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-[var(--font-cairo)] bg-paper text-ink">
+      <body className="min-h-full flex flex-col font-[var(--font-cairo)] bg-canvas text-ink">
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:start-4 focus:z-50 focus:rounded-lg focus:bg-gold focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:start-4 focus:z-50 focus:rounded-lg focus:bg-gold focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-on-gold"
         >
           تخطي إلى المحتوى
         </a>

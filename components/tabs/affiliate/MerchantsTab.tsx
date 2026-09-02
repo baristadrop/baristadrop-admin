@@ -143,7 +143,7 @@ export function MerchantsTab() {
   return (
     <div className="space-y-3">
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+        <div className="flex items-center justify-between rounded-lg border border-danger/40 bg-danger-bg px-3 py-2 text-xs text-danger">
           {error}
           <button onClick={() => setError(null)} className="mr-2 font-bold">
             ×
@@ -192,7 +192,7 @@ export function MerchantsTab() {
             <select
               value={form.roasterId}
               onChange={(e) => setForm((f) => ({ ...f, roasterId: e.target.value, supplierId: '' }))}
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             >
               <option value="">بدون</option>
               {roasters.map((r) => (
@@ -206,7 +206,7 @@ export function MerchantsTab() {
             <select
               value={form.supplierId}
               onChange={(e) => setForm((f) => ({ ...f, supplierId: e.target.value, roasterId: '' }))}
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             >
               <option value="">بدون</option>
               {suppliers.map((s) => (
@@ -235,7 +235,7 @@ export function MerchantsTab() {
               ? suppliers.find((s) => s.id === m.supplier_id)?.name
               : null;
           return (
-            <div key={m.id} className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
+            <div key={m.id} className="overflow-hidden rounded-2xl border border-latte bg-paper shadow-sm">
               <button onClick={() => setExpandedId(expanded ? null : m.id)} className="flex w-full items-center gap-3 p-3 text-right">
                 <div className="flex-1">
                   <p className="font-medium text-ink">{m.name}</p>
@@ -255,7 +255,7 @@ export function MerchantsTab() {
                           key={s}
                           onClick={() => (s === 'archived' ? setArchiveId(m.id) : setStatus(m.id, s))}
                           className={`rounded-full border px-3 py-1.5 text-xs ${
-                            m.status === s ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
+                            m.status === s ? 'border-gold bg-gold text-on-gold' : 'border-latte text-coffee'
                           }`}
                         >
                           {STATUS_META[s].label}
@@ -285,7 +285,7 @@ export function MerchantsTab() {
                       <select
                         value={m.roaster_id ?? ''}
                         onChange={(e) => relink(m.id, 'roaster', e.target.value)}
-                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                       >
                         <option value="">بدون</option>
                         {roasters.map((r) => (
@@ -299,7 +299,7 @@ export function MerchantsTab() {
                       <select
                         value={m.supplier_id ?? ''}
                         onChange={(e) => relink(m.id, 'supplier', e.target.value)}
-                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                       >
                         <option value="">بدون</option>
                         {suppliers.map((s) => (

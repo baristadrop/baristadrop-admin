@@ -23,9 +23,9 @@ type LedgerEntry = {
 };
 
 function BalanceCard({ label, value, currency, tone }: { label: string; value: number; currency: string; tone: 'neutral' | 'gold' | 'red' }) {
-  const toneClass = tone === 'gold' ? 'text-gold' : tone === 'red' ? 'text-red-600' : 'text-coffee';
+  const toneClass = tone === 'gold' ? 'text-gold' : tone === 'red' ? 'text-danger' : 'text-coffee';
   return (
-    <div className="rounded-xl border border-latte bg-white px-4 py-3 shadow-sm">
+    <div className="rounded-xl border border-latte bg-paper px-4 py-3 shadow-sm">
       <p className="text-[11px] font-medium uppercase tracking-wide text-mocha">{label}</p>
       <p className={`mt-1 font-[var(--font-el-messiri)] text-xl font-bold tabular-nums ${toneClass}`}>
         {value.toFixed(2)} {currency}
@@ -113,7 +113,7 @@ export function AccountingTab() {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+        <div className="flex items-center justify-between rounded-lg border border-danger/40 bg-danger-bg px-3 py-2 text-xs text-danger">
           {error}
           <button onClick={() => setError(null)} className="mr-2 font-bold">
             ×
@@ -124,7 +124,7 @@ export function AccountingTab() {
         <select
           value={selectedProgram}
           onChange={(e) => setSelectedProgram(e.target.value)}
-          className="rounded-lg border border-latte bg-white px-3 py-1.5 text-sm outline-none focus:border-gold"
+          className="rounded-lg border border-latte bg-paper px-3 py-1.5 text-sm outline-none focus:border-gold"
         >
           {programs.map((p) => (
             <option key={p.id} value={p.id}>
@@ -143,7 +143,7 @@ export function AccountingTab() {
             <select
               value={adj.direction}
               onChange={(e) => setAdj((f) => ({ ...f, direction: e.target.value as 'credit' | 'debit' }))}
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             >
               <option value="credit">رصيد (إضافة +)</option>
               <option value="debit">خصم (سحب −)</option>
@@ -181,7 +181,7 @@ export function AccountingTab() {
         </div>
       ) : null}
 
-      <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-latte bg-paper shadow-sm">
         <table className="w-full min-w-[600px] text-right text-sm">
           <thead className="bg-sand/60 text-[11px] uppercase tracking-wide text-mocha">
             <tr>
@@ -202,7 +202,7 @@ export function AccountingTab() {
             {ledger.map((entry) => (
               <tr key={entry.id} className="border-t border-latte">
                 <td className="px-3 py-2 text-xs text-coffee">{entry.event_type}</td>
-                <td className={`px-3 py-2 font-[var(--font-el-messiri)] tabular-nums ${entry.amount < 0 ? 'text-red-600' : 'text-gold'}`}>
+                <td className={`px-3 py-2 font-[var(--font-el-messiri)] tabular-nums ${entry.amount < 0 ? 'text-danger' : 'text-gold'}`}>
                   {entry.amount.toFixed(2)} {entry.currency}
                 </td>
                 <td className="px-3 py-2 text-[11px] text-stone">{entry.accounting_date}</td>

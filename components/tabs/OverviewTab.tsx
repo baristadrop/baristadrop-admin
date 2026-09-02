@@ -302,7 +302,7 @@ export function OverviewTab({
           <StatCard label="مشتركين نشطين" value={counts.activeSubscribers} onClick={() => onNavigate('subscribers')} />
           <StatCard label="إجمالي الطلبات" value={counts.totalOrders} onClick={() => onNavigate('orders')} />
         </div>
-        <div className="mt-4 rounded-2xl border border-latte bg-white p-4 shadow-sm">
+        <div className="mt-4 rounded-2xl border border-latte bg-paper p-4 shadow-sm">
           <p className="mb-2 text-xs font-semibold text-stone">توزيع الشركات حسب النوع</p>
           <BusinessTypeDonut />
         </div>
@@ -329,7 +329,7 @@ export function OverviewTab({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
           <SectionTitle>آخر التحديثات</SectionTitle>
-          <div className="flex flex-col divide-y divide-latte/60 rounded-2xl border border-latte bg-white shadow-sm">
+          <div className="flex flex-col divide-y divide-latte/60 rounded-2xl border border-latte bg-paper shadow-sm">
             {activity === null ? (
               <p className="p-4 text-sm text-mocha">تحميل...</p>
             ) : activity.length === 0 ? (
@@ -356,7 +356,7 @@ export function OverviewTab({
 
         <div>
           <SectionTitle>أفضل المحاصيل تقييماً</SectionTitle>
-          <div className="flex flex-col divide-y divide-latte/60 rounded-2xl border border-latte bg-white shadow-sm">
+          <div className="flex flex-col divide-y divide-latte/60 rounded-2xl border border-latte bg-paper shadow-sm">
             {topBeans === null ? (
               <p className="p-4 text-sm text-mocha">تحميل...</p>
             ) : topBeans.length === 0 ? (

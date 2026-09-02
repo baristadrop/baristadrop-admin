@@ -27,7 +27,7 @@ export function StatCard({
       disabled={!onClick}
       className={cn(
         'flex flex-col gap-2 rounded-2xl border p-4 text-start shadow-sm',
-        isUrgentActive ? 'border-gold/60 bg-sand' : 'border-latte bg-white',
+        isUrgentActive ? 'border-gold/60 bg-sand' : 'border-latte bg-paper',
         onClick && 'card-interactive cursor-pointer',
         !onClick && 'cursor-default',
         className

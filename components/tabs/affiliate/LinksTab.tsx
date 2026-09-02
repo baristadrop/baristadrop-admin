@@ -207,7 +207,7 @@ export function LinksTab() {
   return (
     <div className="space-y-3">
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+        <div className="flex items-center justify-between rounded-lg border border-danger/40 bg-danger-bg px-3 py-2 text-xs text-danger">
           {error}
           <button onClick={() => setError(null)} className="mr-2 font-bold">
             ×
@@ -233,7 +233,7 @@ export function LinksTab() {
         {showNoLinkProducts && (
           <div className="mt-2 space-y-1.5 border-t border-latte pt-2">
             {productsWithoutLinks.map((p) => (
-              <div key={p.id} className="flex items-center justify-between rounded-lg bg-white px-2 py-1.5">
+              <div key={p.id} className="flex items-center justify-between rounded-lg bg-paper px-2 py-1.5">
                 <span className="text-coffee">{p.name}</span>
                 <Button size="sm" variant="outline" onClick={() => quickCreateFor(p)}>
                   إنشاء رابط
@@ -250,7 +250,7 @@ export function LinksTab() {
             <select
               value={form.programId}
               onChange={(e) => setForm((f) => ({ ...f, programId: e.target.value }))}
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             >
               <option value="">اختر...</option>
               {activePrograms.map((p) => (
@@ -296,7 +296,7 @@ export function LinksTab() {
             />
           </Field>
           {previewTemplate && (
-            <p dir="ltr" className="break-all rounded-lg bg-white p-2 text-[11px] text-mocha sm:col-span-2">
+            <p dir="ltr" className="break-all rounded-lg bg-paper p-2 text-[11px] text-mocha sm:col-span-2">
               معاينة: {previewTemplate}
             </p>
           )}
@@ -311,7 +311,7 @@ export function LinksTab() {
       {rows.length === 0 ? (
         <EmptyState title="ما فيه روابط بعد" />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-2xl border border-latte bg-paper shadow-sm">
           <table className="w-full min-w-[820px] text-right text-sm">
             <thead className="bg-sand/60 text-[11px] uppercase tracking-wide text-mocha">
               <tr>
@@ -372,7 +372,7 @@ export function LinksTab() {
                                   const p = products.find((pr) => pr.id === e.target.value);
                                   setEditForm((f) => f && { ...f, product_id: e.target.value, destination_url: p?.external_url || f.destination_url });
                                 }}
-                                className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                                className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                               >
                                 <option value="">— بدون منتج —</option>
                                 {products.map((p) => (

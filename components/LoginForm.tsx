@@ -24,7 +24,7 @@ export function LoginForm() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-3xl border border-latte bg-white p-8 shadow-sm"
+        className="w-full max-w-sm rounded-3xl border border-latte bg-paper p-8 shadow-sm"
       >
         <h1 className="mb-1 text-center font-[var(--font-el-messiri)] text-2xl text-ink">
           {isPartnerHost ? 'بوابة شركاء Barista Drop' : 'لوحة تحكم Barista Drop'}
@@ -34,7 +34,7 @@ export function LoginForm() {
         </p>
 
         {error && (
-          <p className="mb-4 rounded-lg bg-sand px-3 py-2 text-center text-sm text-[#B3392C]">
+          <p className="mb-4 rounded-lg border border-danger/40 bg-danger-bg px-3 py-2 text-center text-sm text-danger">
             {error}
           </p>
         )}
@@ -60,7 +60,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-full bg-ink py-3 text-sm font-bold text-cream disabled:opacity-50"
+          className="w-full rounded-full bg-gold py-3 text-sm font-bold text-on-gold disabled:opacity-50"
         >
           {submitting ? '...' : 'دخول'}
         </button>

@@ -31,10 +31,10 @@ type PayoutRow = {
 type Option = { id: string; name: string; status?: string };
 
 const STATUS_META: Record<PayoutRow['status'], { label: string; className: string; badge: 'warning' | 'success' | 'info' | 'danger' }> = {
-  EXPECTED: { label: 'متوقّعة', className: 'bg-amber-100 text-amber-700', badge: 'warning' },
-  RECEIVED: { label: 'مستلمة', className: 'bg-green-100 text-green-700', badge: 'success' },
-  RECONCILED: { label: 'مُسوّاة', className: 'bg-blue-100 text-blue-700', badge: 'info' },
-  DISPUTED: { label: 'محل نزاع', className: 'bg-red-100 text-red-700', badge: 'danger' },
+  EXPECTED: { label: 'متوقّعة', className: 'bg-warning-bg text-warning', badge: 'warning' },
+  RECEIVED: { label: 'مستلمة', className: 'bg-success-bg text-success', badge: 'success' },
+  RECONCILED: { label: 'مُسوّاة', className: 'bg-info-bg text-info', badge: 'info' },
+  DISPUTED: { label: 'محل نزاع', className: 'bg-danger-bg text-danger', badge: 'danger' },
 };
 
 const TIMELINE_STEPS: PayoutRow['status'][] = ['EXPECTED', 'RECEIVED', 'RECONCILED'];
@@ -143,7 +143,7 @@ function PayoutsTabImpl() {
   return (
     <div className="space-y-3">
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+        <div className="flex items-center justify-between rounded-lg border border-danger/40 bg-danger-bg px-3 py-2 text-xs text-danger">
           {error}
           <button onClick={() => setError(null)} className="mr-2 font-bold">
             ×
@@ -152,7 +152,7 @@ function PayoutsTabImpl() {
       )}
       <div className="flex items-center justify-between">
         <p className="text-xs text-mocha">دفعات فعلية مستلمة من الشبكة/التاجر -- "تعليم كمستلمة" يسجّل قيد PAYOUT_RECEIVED بدفتر الأستاذ تلقائياً.</p>
-        <button onClick={() => setShowAdd((v) => !v)} className="rounded-full bg-ink px-4 py-1.5 text-xs font-bold text-cream">
+        <button onClick={() => setShowAdd((v) => !v)} className="rounded-full bg-gold px-4 py-1.5 text-xs font-bold text-on-gold">
           {showAdd ? 'إلغاء' : '+ دفعة جديدة'}
         </button>
       </div>
@@ -163,7 +163,7 @@ function PayoutsTabImpl() {
             <select
               value={form.programId}
               onChange={(e) => setForm((f) => ({ ...f, programId: e.target.value }))}
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             >
               <option value="">اختر...</option>
               {activePrograms.map((p) => (
@@ -180,7 +180,7 @@ function PayoutsTabImpl() {
               type="number"
               step="0.01"
               dir="ltr"
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             />
           </Field>
           <Field label="تاريخ الدفعة">
@@ -189,7 +189,7 @@ function PayoutsTabImpl() {
               onChange={(e) => setForm((f) => ({ ...f, payoutDate: e.target.value }))}
               type="date"
               dir="ltr"
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             />
           </Field>
           <Field label="مرجع الدفعة">
@@ -197,7 +197,7 @@ function PayoutsTabImpl() {
               value={form.reference}
               onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
               dir="ltr"
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             />
           </Field>
           <Field label="بداية نافذة التحويلات (اختياري)">
@@ -206,7 +206,7 @@ function PayoutsTabImpl() {
               onChange={(e) => setForm((f) => ({ ...f, periodStart: e.target.value }))}
               type="date"
               dir="ltr"
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             />
           </Field>
           <Field label="نهاية نافذة التحويلات (اختياري)">
@@ -215,7 +215,7 @@ function PayoutsTabImpl() {
               onChange={(e) => setForm((f) => ({ ...f, periodEnd: e.target.value }))}
               type="date"
               dir="ltr"
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             />
           </Field>
           <div className="border-t border-latte pt-3 sm:col-span-2">
@@ -262,7 +262,7 @@ function PayoutsTabImpl() {
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-latte bg-paper shadow-sm">
         <table className="w-full min-w-[640px] text-right text-sm">
           <thead className="bg-sand/60 text-[11px] uppercase tracking-wide text-mocha">
             <tr>
@@ -345,7 +345,7 @@ function PayoutsTabImpl() {
                                         ? p.status === 'DISPUTED'
                                           ? 'bg-danger'
                                           : 'bg-gold'
-                                        : 'border border-latte bg-white'
+                                        : 'border border-latte bg-paper'
                                   }`}
                                 />
                                 <span className="text-[10px] text-stone">{STATUS_META[step].label}</span>

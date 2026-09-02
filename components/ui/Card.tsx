@@ -15,7 +15,7 @@ export function Card({
     <div
       onClick={onClick}
       className={cn(
-        'rounded-2xl border border-latte bg-white shadow-sm',
+        'rounded-2xl border border-latte bg-paper shadow-sm',
         interactive && 'card-interactive cursor-pointer',
         className
       )}

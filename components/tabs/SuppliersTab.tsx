@@ -230,7 +230,7 @@ function SuppliersTabImpl() {
           const expanded = expandedId === s.id;
           const meta = STATUS_META[s.status];
           return (
-            <div key={s.id} className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
+            <div key={s.id} className="overflow-hidden rounded-2xl border border-latte bg-paper shadow-sm">
               <button
                 onClick={() => setExpandedId(expanded ? null : s.id)}
                 className="flex w-full items-center gap-3 p-3 text-right"
@@ -248,7 +248,7 @@ function SuppliersTabImpl() {
                 <div className="flex items-center gap-1.5">
                   {s.is_advertiser && <Badge variant="accent">معلن</Badge>}
                   {s.is_sponsor && (
-                    <Badge variant="accent" className="bg-gold text-white border-gold">
+                    <Badge variant="accent" className="bg-gold text-on-gold border-gold">
                       Sponsor
                     </Badge>
                   )}
@@ -295,7 +295,7 @@ function SuppliersTabImpl() {
                             key={c}
                             onClick={() => toggleCategory(s.id, c)}
                             className={`rounded-full border px-3 py-1.5 text-xs ${
-                              active ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
+                              active ? 'border-gold bg-gold text-on-gold' : 'border-latte text-coffee'
                             }`}
                           >
                             {c}
@@ -336,7 +336,7 @@ function SuppliersTabImpl() {
                           onBlur={(e) => saveField(s.id, 'website', e.target.value)}
                           placeholder="https://..."
                           dir="ltr"
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
                       <Field label="نسبتك (%)">
@@ -347,7 +347,7 @@ function SuppliersTabImpl() {
                           type="number"
                           step="0.5"
                           dir="ltr"
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
                     </div>
@@ -358,15 +358,15 @@ function SuppliersTabImpl() {
                         const conversionRate = st.clicks > 0 ? ((st.confirmedPurchases / st.clicks) * 100).toFixed(0) : '—';
                         return (
                           <>
-                            <div className="rounded-lg border border-latte bg-white p-2 text-center">
+                            <div className="rounded-lg border border-latte bg-paper p-2 text-center">
                               <p className="text-[10px] text-mocha">نقرات</p>
                               <p className="text-sm font-bold text-coffee">{st.clicks}</p>
                             </div>
-                            <div className="rounded-lg border border-latte bg-white p-2 text-center">
+                            <div className="rounded-lg border border-latte bg-paper p-2 text-center">
                               <p className="text-[10px] text-mocha">مشتريات مؤكدة</p>
                               <p className="text-sm font-bold text-coffee">{st.confirmedPurchases}</p>
                             </div>
-                            <div className="rounded-lg border border-latte bg-white p-2 text-center">
+                            <div className="rounded-lg border border-latte bg-paper p-2 text-center">
                               <p className="text-[10px] text-mocha">
                                 معدل التحويل
                                 <InfoTip text="نسبة النقرات اللي تحولت لشراء مؤكد فعلاً (مشتريات مؤكدة ÷ نقرات)." />
@@ -397,7 +397,7 @@ function SuppliersTabImpl() {
                             value={`${WEBHOOK_BASE_URL}?token=${s.postback_secret}`}
                             dir="ltr"
                             onFocus={(e) => e.target.select()}
-                            className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-[11px] text-coffee outline-none"
+                            className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-[11px] text-coffee outline-none"
                           />
                           <Button size="sm" variant="outline" className="shrink-0 text-[11px]" onClick={() => copyWebhookUrl(s.id, s.postback_secret)}>
                             {copiedId === s.id ? 'تم النسخ ✓' : 'نسخ'}
@@ -405,7 +405,7 @@ function SuppliersTabImpl() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="shrink-0 text-[11px] text-stone hover:border-red-400 hover:text-red-600"
+                            className="shrink-0 text-[11px] text-stone hover:border-danger/40 hover:text-danger"
                             onClick={() => rotatePostbackSecret(s.id)}
                           >
                             تجديد
@@ -421,7 +421,7 @@ function SuppliersTabImpl() {
                           onBlur={(e) => saveField(s.id, 'promo_code', e.target.value.toUpperCase())}
                           placeholder="BARISTADROP10"
                           dir="ltr"
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
                       <Field label="نص الخصم" helper="يظهر بجانب زر زيارة المتجر بالتطبيق، مثال: «خصم 15%»">
@@ -429,7 +429,7 @@ function SuppliersTabImpl() {
                           defaultValue={s.discount_label ?? ''}
                           onBlur={(e) => saveField(s.id, 'discount_label', e.target.value)}
                           placeholder="خصم 15%"
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
                     </div>
@@ -444,7 +444,7 @@ function SuppliersTabImpl() {
                         type="number"
                         min={0}
                         dir="ltr"
-                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                       />
                     </Field>
                   </div>
@@ -467,7 +467,7 @@ function SuppliersTabImpl() {
                           onChange={(e) => setOwnerInput((prev) => ({ ...prev, [s.id]: e.target.value }))}
                           placeholder="إيميل حساب المورّد"
                           dir="ltr"
-                          className="flex-1 rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="flex-1 rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                         <Button size="sm" variant="secondary" onClick={() => linkOwner(s.id)}>
                           ربط

@@ -88,10 +88,10 @@ export function OwnerProductsPanel({ ownerType, ownerId }: { ownerType: OwnerTyp
   const atLimit = products != null && products.length >= productLimit;
 
   return (
-    <div className="mt-6 rounded-2xl border border-latte bg-white p-5 shadow-sm">
+    <div className="mt-6 rounded-2xl border border-latte bg-paper p-5 shadow-sm">
       <div className="mb-1 flex items-center justify-between">
         <p className="font-[var(--font-el-messiri)] text-base text-ink">منتجاتنا</p>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${atLimit ? 'bg-red-100 text-red-700' : 'bg-sand text-mocha'}`}>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${atLimit ? 'bg-danger-bg text-danger' : 'bg-sand text-mocha'}`}>
           {products?.length ?? 0} / {productLimit}
         </span>
       </div>
@@ -100,7 +100,7 @@ export function OwnerProductsPanel({ ownerType, ownerId }: { ownerType: OwnerTyp
         العميل مباشرة لنفس المنتج بموقعك أو صفحتك — مو رابط الموقع العام.
       </p>
       {atLimit && (
-        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <p className="mb-3 rounded-lg bg-warning-bg px-3 py-2 text-xs text-warning">
           وصلت للحد المسموح بحسابك الحالي. تواصل مع فريق باريستا دروب لزيادة الحد.
         </p>
       )}
@@ -201,12 +201,12 @@ function NewProductForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="اسم المنتج"
-          className="rounded-lg border border-latte bg-white px-3 py-2 text-sm outline-none focus:border-gold"
+          className="rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold"
         />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-lg border border-latte bg-white px-3 py-2 text-sm outline-none focus:border-gold"
+          className="rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold"
         >
           {categories.map((c) => (
             <option key={c.key} value={c.key}>
@@ -221,14 +221,14 @@ function NewProductForm({
           step="0.01"
           dir="ltr"
           placeholder="السعر (د.إ)"
-          className="rounded-lg border border-latte bg-white px-3 py-2 text-sm outline-none focus:border-gold"
+          className="rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold"
         />
         <input
           value={externalUrl}
           onChange={(e) => setExternalUrl(e.target.value)}
           placeholder="رابط المنتج (يودّي مباشرة لنفس المنتج بموقعك)"
           dir="ltr"
-          className="rounded-lg border border-latte bg-white px-3 py-2 text-sm outline-none focus:border-gold sm:col-span-2"
+          className="rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold sm:col-span-2"
         />
         <div className="sm:col-span-2">
           <input
@@ -236,7 +236,7 @@ function NewProductForm({
             type="file"
             accept="image/*"
             onChange={(e) => handleFile(e.target.files?.[0])}
-            className="w-full rounded-lg border border-latte bg-white px-3 py-1.5 text-xs outline-none file:mr-2 file:rounded-md file:border-0 file:bg-sand file:px-2 file:py-1 file:text-xs"
+            className="w-full rounded-lg border border-latte bg-paper px-3 py-1.5 text-xs outline-none file:mr-2 file:rounded-md file:border-0 file:bg-sand file:px-2 file:py-1 file:text-xs"
           />
           {uploading && <p className="mt-1 text-xs text-mocha">جاري الرفع...</p>}
           {imageUrl && !uploading && (
@@ -249,13 +249,13 @@ function NewProductForm({
           onChange={(e) => setDescription(e.target.value)}
           placeholder="الوصف (اختياري)"
           rows={2}
-          className="rounded-lg border border-latte bg-white px-3 py-2 text-sm outline-none focus:border-gold sm:col-span-2"
+          className="rounded-lg border border-latte bg-paper px-3 py-2 text-sm outline-none focus:border-gold sm:col-span-2"
         />
       </div>
       <button
         onClick={submit}
         disabled={!canSubmit || submitting}
-        className="mt-3 rounded-full bg-ink px-5 py-2 text-sm font-medium text-cream disabled:opacity-40"
+        className="mt-3 rounded-full bg-gold px-5 py-2 text-sm font-medium text-on-gold disabled:opacity-40"
       >
         {submitting ? 'جاري الإرسال...' : 'إضافة منتج'}
       </button>
@@ -383,7 +383,7 @@ function ProductRowItem({
           )}
           <button
             onClick={remove}
-            className={`text-xs underline ${confirmingDelete ? 'font-bold text-red-700' : 'text-red-600'}`}
+            className={`text-xs underline ${confirmingDelete ? 'font-bold text-danger' : 'text-danger'}`}
           >
             {confirmingDelete ? 'تأكيد الحذف؟' : 'حذف'}
           </button>

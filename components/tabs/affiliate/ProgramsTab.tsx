@@ -81,9 +81,9 @@ const PROVIDER_CODES = [
 const CREDENTIAL_TYPES = ['api_key', 'api_secret', 'affiliate_id', 'publisher_id', 'postback_secret', 'webhook_secret'];
 
 const STATUS_META: Record<ProgramRow['status'], { label: string; className: string }> = {
-  active: { label: 'نشط', className: 'bg-green-100 text-green-700' },
-  paused: { label: 'موقوف مؤقتاً', className: 'bg-amber-100 text-amber-700' },
-  expired: { label: 'منتهي', className: 'bg-red-100 text-red-700' },
+  active: { label: 'نشط', className: 'bg-success-bg text-success' },
+  paused: { label: 'موقوف مؤقتاً', className: 'bg-warning-bg text-warning' },
+  expired: { label: 'منتهي', className: 'bg-danger-bg text-danger' },
   archived: { label: 'مؤرشف', className: 'bg-stone/20 text-stone' },
 };
 
@@ -394,7 +394,7 @@ function ProgramsTabImpl() {
   return (
     <div className="space-y-3">
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+        <div className="flex items-center justify-between rounded-lg border border-danger/40 bg-danger-bg px-3 py-2 text-xs text-danger">
           {error}
           <button onClick={() => setError(null)} className="mr-2 font-bold">
             ×
@@ -403,7 +403,7 @@ function ProgramsTabImpl() {
       )}
       <div className="flex items-center justify-between">
         <p className="text-xs text-mocha">البرنامج هو حدّ التكامل الفعلي: تاجر + شبكة (اختياري) + إعدادات تتبّع/تحويل/عمولة.</p>
-        <button onClick={() => setShowAdd((v) => !v)} className="rounded-full bg-ink px-4 py-1.5 text-xs font-bold text-cream">
+        <button onClick={() => setShowAdd((v) => !v)} className="rounded-full bg-gold px-4 py-1.5 text-xs font-bold text-on-gold">
           {showAdd ? 'إلغاء' : '+ برنامج جديد'}
         </button>
       </div>
@@ -414,14 +414,14 @@ function ProgramsTabImpl() {
             <input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             />
           </Field>
           <Field label="التاجر *">
             <select
               value={form.merchantId}
               onChange={(e) => setForm((f) => ({ ...f, merchantId: e.target.value }))}
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             >
               <option value="">اختر...</option>
               {merchants.map((m) => (
@@ -435,7 +435,7 @@ function ProgramsTabImpl() {
             <select
               value={form.networkId}
               onChange={(e) => setForm((f) => ({ ...f, networkId: e.target.value }))}
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             >
               <option value="">بدون (تاجر مباشر)</option>
               {networks.map((n) => (
@@ -449,7 +449,7 @@ function ProgramsTabImpl() {
             <select
               value={form.commissionModel}
               onChange={(e) => setForm((f) => ({ ...f, commissionModel: e.target.value }))}
-              className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+              className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
             >
               {['percentage', 'fixed', 'per_item', 'tiered', 'category', 'provider_reported'].map((v) => (
                 <option key={v} value={v}>
@@ -506,7 +506,7 @@ function ProgramsTabImpl() {
           const integration = integrations[p.id];
           const merchantName = merchants.find((m) => m.id === p.merchant_id)?.name ?? '—';
           return (
-            <div key={p.id} className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
+            <div key={p.id} className="overflow-hidden rounded-2xl border border-latte bg-paper shadow-sm">
               <button
                 onClick={() => {
                   const next = expanded ? null : p.id;
@@ -520,7 +520,7 @@ function ProgramsTabImpl() {
                   <p className="text-xs text-mocha">{merchantName}</p>
                 </div>
                 {integration && (
-                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700">{integration.provider_code}</span>
+                  <span className="rounded-full bg-info-bg px-2 py-0.5 text-[10px] text-info">{integration.provider_code}</span>
                 )}
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${meta.className}`}>{meta.label}</span>
                 <span className={`text-mocha transition-transform ${expanded ? 'rotate-180' : ''}`}>▾</span>
@@ -542,7 +542,7 @@ function ProgramsTabImpl() {
                           key={s}
                           onClick={() => (s === 'archived' ? setArchiveProgramId(p.id) : setStatus(p.id, s))}
                           className={`rounded-full border px-3 py-1.5 text-xs ${
-                            p.status === s ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
+                            p.status === s ? 'border-gold bg-gold text-on-gold' : 'border-latte text-coffee'
                           }`}
                         >
                           {STATUS_META[s].label}
@@ -556,12 +556,12 @@ function ProgramsTabImpl() {
 
                   <div className="sm:col-span-2">
                     <SectionTitle>حقول إضافية</SectionTitle>
-                    <div className="grid gap-3 rounded-xl border border-latte bg-white p-3 sm:grid-cols-2">
+                    <div className="grid gap-3 rounded-xl border border-latte bg-paper p-3 sm:grid-cols-2">
                       <Field label="التاجر" helper="تغيير التاجر يؤثر على التحويلات والروابط المرتبطة">
                         <select
                           value={p.merchant_id}
                           onChange={(e) => e.target.value !== p.merchant_id && requestMerchantChange(p.id, e.target.value)}
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         >
                           {merchants
                             .filter((m) => m.status !== 'archived' || m.id === p.merchant_id) // G-03: استبعاد المؤرشفين (إلا الحالي)
@@ -608,7 +608,7 @@ function ProgramsTabImpl() {
                         <select
                           defaultValue={p.legacy_roaster_id ?? ''}
                           onChange={(e) => setDetailForm((f) => ({ ...f, [p.id]: { ...f[p.id], legacy_roaster_id: e.target.value || null } }))}
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         >
                           <option value="">بدون</option>
                           {roasters.map((r) => (
@@ -622,7 +622,7 @@ function ProgramsTabImpl() {
                         <select
                           defaultValue={p.legacy_supplier_id ?? ''}
                           onChange={(e) => setDetailForm((f) => ({ ...f, [p.id]: { ...f[p.id], legacy_supplier_id: e.target.value || null } }))}
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         >
                           <option value="">بدون</option>
                           {suppliers.map((s) => (
@@ -649,7 +649,7 @@ function ProgramsTabImpl() {
 
                   <div className="sm:col-span-2">
                     <SectionTitle>شرائح العمولة حسب السعر</SectionTitle>
-                    <div className="space-y-2 rounded-xl border border-latte bg-white p-3">
+                    <div className="space-y-2 rounded-xl border border-latte bg-paper p-3">
                       <p className="text-[11px] text-mocha">
                         النسبة اللي تاخذها من هذه الشركة حسب قيمة المنتج. مثال: من 0 إلى 200 → 6% · من 201 إلى 500 → 5%. آخر شريحة اترك
                         «إلى» فارغة = «وما فوق». أي عدد شرائح مسموح — استخدم «+ شريحة».
@@ -718,7 +718,7 @@ function ProgramsTabImpl() {
                   <div className="sm:col-span-2">
                     <SectionTitle>ربط أدابتر المزوّد</SectionTitle>
                     {integration ? (
-                      <div className="space-y-3 rounded-xl border border-latte bg-white p-3">
+                      <div className="space-y-3 rounded-xl border border-latte bg-paper p-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-xs text-coffee">
                             مربوط بأدابتر <strong>{integration.provider_code}</strong>
@@ -756,7 +756,7 @@ function ProgramsTabImpl() {
                               <select
                                 value={credForm.type}
                                 onChange={(e) => setCredForm((f) => ({ ...f, type: e.target.value }))}
-                                className="rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                                className="rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                               >
                                 {CREDENTIAL_TYPES.map((t) => (
                                   <option key={t} value={t}>
@@ -770,11 +770,11 @@ function ProgramsTabImpl() {
                                 placeholder="القيمة السرية"
                                 dir="ltr"
                                 type="password"
-                                className="min-w-[180px] flex-1 rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                                className="min-w-[180px] flex-1 rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                               />
                               <button
                                 onClick={() => addCredential(integration.id)}
-                                className="rounded-lg bg-ink px-3 py-1.5 text-xs text-cream"
+                                className="rounded-lg bg-gold px-3 py-1.5 text-xs text-on-gold"
                               >
                                 حفظ
                               </button>
@@ -807,7 +807,7 @@ function ProgramsTabImpl() {
                                         type="password"
                                         dir="ltr"
                                         placeholder="القيمة الجديدة"
-                                        className="min-w-[160px] flex-1 rounded-lg border border-latte bg-white px-2 py-1 text-[11px] outline-none focus:border-gold"
+                                        className="min-w-[160px] flex-1 rounded-lg border border-latte bg-paper px-2 py-1 text-[11px] outline-none focus:border-gold"
                                       />
                                       <Button
                                         size="sm"

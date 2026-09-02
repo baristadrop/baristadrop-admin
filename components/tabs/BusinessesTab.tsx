@@ -238,7 +238,7 @@ function BusinessesTabImpl() {
           const expanded = expandedId === r.id;
           const meta = STATUS_META[r.status];
           return (
-            <div key={r.id} className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
+            <div key={r.id} className="overflow-hidden rounded-2xl border border-latte bg-paper shadow-sm">
               <button
                 onClick={() => setExpandedId(expanded ? null : r.id)}
                 className="flex w-full items-center gap-3 p-3 text-right"
@@ -257,7 +257,7 @@ function BusinessesTabImpl() {
                   <Badge variant="neutral">{TYPE_LABEL[r.business_type]}</Badge>
                   {r.is_advertiser && <Badge variant="accent">معلن</Badge>}
                   {r.is_sponsor && (
-                    <Badge variant="accent" className="bg-gold text-white border-gold">
+                    <Badge variant="accent" className="bg-gold text-on-gold border-gold">
                       Sponsor
                     </Badge>
                   )}
@@ -275,7 +275,7 @@ function BusinessesTabImpl() {
                       <select
                         value={r.business_type}
                         onChange={(e) => setBusinessType(r.id, e.target.value as BusinessType)}
-                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                       >
                         <option value="roaster">محمصة</option>
                         <option value="cafe">كوفي شوب</option>
@@ -313,7 +313,7 @@ function BusinessesTabImpl() {
                           defaultValue={r.location ?? ''}
                           onBlur={(e) => saveField(r.id, 'location', e.target.value)}
                           placeholder="مثال: دبي، الجميرا"
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
                     </div>
@@ -356,7 +356,7 @@ function BusinessesTabImpl() {
                           onBlur={(e) => saveField(r.id, 'affiliate_base_url', e.target.value)}
                           placeholder="https://..."
                           dir="ltr"
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
                       <Field label="نسبتك (%)">
@@ -367,7 +367,7 @@ function BusinessesTabImpl() {
                           type="number"
                           step="0.5"
                           dir="ltr"
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
                     </div>
@@ -378,15 +378,15 @@ function BusinessesTabImpl() {
                         const conversionRate = s.clicks > 0 ? ((s.confirmedPurchases / s.clicks) * 100).toFixed(0) : '—';
                         return (
                           <>
-                            <div className="rounded-lg border border-latte bg-white p-2 text-center">
+                            <div className="rounded-lg border border-latte bg-paper p-2 text-center">
                               <p className="text-[10px] text-mocha">نقرات</p>
                               <p className="text-sm font-bold text-coffee">{s.clicks}</p>
                             </div>
-                            <div className="rounded-lg border border-latte bg-white p-2 text-center">
+                            <div className="rounded-lg border border-latte bg-paper p-2 text-center">
                               <p className="text-[10px] text-mocha">مشتريات مؤكدة</p>
                               <p className="text-sm font-bold text-coffee">{s.confirmedPurchases}</p>
                             </div>
-                            <div className="rounded-lg border border-latte bg-white p-2 text-center">
+                            <div className="rounded-lg border border-latte bg-paper p-2 text-center">
                               <p className="text-[10px] text-mocha">
                                 معدل التحويل
                                 <InfoTip text="نسبة النقرات اللي تحولت لشراء مؤكد فعلاً (مشتريات مؤكدة ÷ نقرات)." />
@@ -417,7 +417,7 @@ function BusinessesTabImpl() {
                             value={`${WEBHOOK_BASE_URL}?token=${r.postback_secret}`}
                             dir="ltr"
                             onFocus={(e) => e.target.select()}
-                            className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-[11px] text-coffee outline-none"
+                            className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-[11px] text-coffee outline-none"
                           />
                           <Button size="sm" variant="outline" className="shrink-0 text-[11px]" onClick={() => copyWebhookUrl(r.id, r.postback_secret)}>
                             {copiedId === r.id ? 'تم النسخ ✓' : 'نسخ'}
@@ -425,7 +425,7 @@ function BusinessesTabImpl() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="shrink-0 text-[11px] text-stone hover:border-red-400 hover:text-red-600"
+                            className="shrink-0 text-[11px] text-stone hover:border-danger/40 hover:text-danger"
                             onClick={() => rotatePostbackSecret(r.id)}
                           >
                             تجديد
@@ -441,7 +441,7 @@ function BusinessesTabImpl() {
                           onBlur={(e) => saveField(r.id, 'promo_code', e.target.value.toUpperCase())}
                           placeholder="BARISTADROP10"
                           dir="ltr"
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
                       <Field label="نص الخصم" helper="يظهر بجانب الزر بالتطبيق، مثال: «خصم 15%»">
@@ -449,7 +449,7 @@ function BusinessesTabImpl() {
                           defaultValue={r.discount_label ?? ''}
                           onBlur={(e) => saveField(r.id, 'discount_label', e.target.value)}
                           placeholder="خصم 15%"
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
                     </div>
@@ -465,7 +465,7 @@ function BusinessesTabImpl() {
                           type="number"
                           min={0}
                           dir="ltr"
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
                       <Field label="عدد المنتجات" helper="الحد الافتراضي 5 للحساب المجاني">
@@ -475,7 +475,7 @@ function BusinessesTabImpl() {
                           type="number"
                           min={0}
                           dir="ltr"
-                          className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                       </Field>
                     </div>
@@ -487,7 +487,7 @@ function BusinessesTabImpl() {
                       <select
                         value={r.supplying_roaster_id ?? ''}
                         onChange={(e) => setSupplyingRoaster(r.id, e.target.value)}
-                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                       >
                         <option value="">— بدون —</option>
                         {rows
@@ -519,7 +519,7 @@ function BusinessesTabImpl() {
                           onChange={(e) => setOwnerInput((prev) => ({ ...prev, [r.id]: e.target.value }))}
                           placeholder="إيميل حساب الشركة"
                           dir="ltr"
-                          className="flex-1 rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                          className="flex-1 rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                         />
                         <Button size="sm" variant="secondary" onClick={() => linkOwner(r.id)}>
                           ربط

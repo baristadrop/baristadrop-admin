@@ -100,7 +100,7 @@ export function SubscribersTab() {
             <Button size="sm" variant="link" onClick={() => renew(r.id)}>
               تجديد شهر
             </Button>
-            <Button size="sm" variant="link" className="text-red-600" onClick={() => cancel(r.id)}>
+            <Button size="sm" variant="link" className="text-danger" onClick={() => cancel(r.id)}>
               إلغاء
             </Button>
           </div>

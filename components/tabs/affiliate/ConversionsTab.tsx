@@ -156,7 +156,7 @@ export function ConversionsTab() {
   return (
     <div className="space-y-3">
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+        <div className="flex items-center justify-between rounded-lg border border-danger/40 bg-danger-bg px-3 py-2 text-xs text-danger">
           {error}
           <button onClick={() => setError(null)} className="mr-2 font-bold">
             ×
@@ -175,7 +175,7 @@ export function ConversionsTab() {
         onChange={(v) => setStatusFilter(v as 'all' | ConversionStatus)}
       />
 
-      <div className="overflow-x-auto rounded-2xl border border-latte bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-latte bg-paper shadow-sm">
         <table className="w-full min-w-[760px] text-right text-sm">
           <thead className="bg-sand/60 text-[11px] uppercase tracking-wide text-mocha">
             <tr>
@@ -268,7 +268,7 @@ export function ConversionsTab() {
                               <p className="mb-1.5 font-semibold text-stone">أحداث التحويلة</p>
                               <div className="space-y-1.5">
                                 {events[c.id]!.conversionEvents.map((ev) => (
-                                  <div key={ev.id} className="flex items-center justify-between rounded-lg border border-latte bg-white px-3 py-2">
+                                  <div key={ev.id} className="flex items-center justify-between rounded-lg border border-latte bg-paper px-3 py-2">
                                     <span className="text-coffee">
                                       {ev.event_type}
                                       {ev.status_before && ev.status_after ? ` — ${ev.status_before} → ${ev.status_after}` : ''}
@@ -284,7 +284,7 @@ export function ConversionsTab() {
                               <p className="mb-1.5 font-semibold text-stone">أحداث Webhook الخام (مطابقة بأفضل جهد)</p>
                               <div className="space-y-1.5">
                                 {events[c.id]!.postbackEvents.map((ev) => (
-                                  <div key={ev.id} className="flex items-center justify-between rounded-lg border border-latte bg-white px-3 py-2">
+                                  <div key={ev.id} className="flex items-center justify-between rounded-lg border border-latte bg-paper px-3 py-2">
                                     <span className="text-coffee">
                                       {ev.provider_code ?? '—'} · {ev.status}
                                       {ev.rejection_reason ? ` (${ev.rejection_reason})` : ''}

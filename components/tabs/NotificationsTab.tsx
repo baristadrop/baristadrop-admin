@@ -97,7 +97,7 @@ export function NotificationsTab() {
         </div>
       </Card>
 
-      <div className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-latte bg-paper shadow-sm">
         <p className="border-b border-latte p-4 font-[var(--font-el-messiri)] text-base text-ink">
           آخر الإشعارات المرسلة
         </p>

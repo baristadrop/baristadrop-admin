@@ -11,7 +11,7 @@ export function Input({ className, error, ...props }: InputProps) {
     <div>
       <input
         className={cn(
-          'h-10 w-full rounded-xl border bg-white px-3 text-sm text-ink placeholder:text-stone focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50',
+          'h-10 w-full rounded-xl border bg-paper px-3 text-sm text-ink placeholder:text-stone focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50',
           error ? 'border-danger' : 'border-latte',
           className
         )}

@@ -101,7 +101,7 @@ export function OrdersTab() {
   return (
     <div className="space-y-4">
       {orders.map((o) => (
-        <div key={o.id} className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
+        <div key={o.id} className="rounded-2xl border border-latte bg-paper p-5 shadow-sm">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <span className="font-[var(--font-cormorant)] text-xl font-bold text-ink">#{o.order_number}</span>
@@ -122,7 +122,7 @@ export function OrdersTab() {
               <Button size="sm" variant="secondary" onClick={() => copyOrder(o)}>
                 {copiedId === o.id ? 'تم النسخ ✓' : 'نسخ لبيانات المخزن'}
               </Button>
-              <Button size="sm" variant="outline" className="border-red-300 text-red-600 hover:border-red-500 hover:text-red-700" onClick={() => setConfirmingId(o.id)}>
+              <Button size="sm" variant="outline" className="border-danger/40 text-danger hover:border-danger hover:text-danger" onClick={() => setConfirmingId(o.id)}>
                 حذف
               </Button>
               <AlertDialog

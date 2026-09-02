@@ -11,7 +11,7 @@ export function Textarea({ className, error, ...props }: TextareaProps) {
     <div>
       <textarea
         className={cn(
-          'w-full rounded-xl border bg-white px-3 py-2 text-sm text-ink placeholder:text-stone focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50',
+          'w-full rounded-xl border bg-paper px-3 py-2 text-sm text-ink placeholder:text-stone focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50',
           error ? 'border-danger' : 'border-latte',
           className
         )}

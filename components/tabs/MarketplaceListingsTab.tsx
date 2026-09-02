@@ -149,7 +149,7 @@ export function MarketplaceListingsTab() {
         <EmptyState title="ما فيه إعلانات بهذي الحالة" />
       ) : (
         <div className="flex gap-6">
-          <div className="w-72 shrink-0 rounded-2xl border border-latte bg-white shadow-sm">
+          <div className="w-72 shrink-0 rounded-2xl border border-latte bg-paper shadow-sm">
             {rows.map((r) => {
               const meta = STATUS_META[r.status];
               return (
@@ -175,7 +175,7 @@ export function MarketplaceListingsTab() {
           </div>
 
           {selected && (
-            <div className="flex-1 rounded-2xl border border-latte bg-white p-6 shadow-sm">
+            <div className="flex-1 rounded-2xl border border-latte bg-paper p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="font-[var(--font-el-messiri)] text-xl text-ink">{selected.title}</h3>
@@ -211,9 +211,9 @@ export function MarketplaceListingsTab() {
               </div>
 
               {selected.status === 'rejected' && selected.rejection_reason && (
-                <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4">
-                  <p className="text-sm font-bold text-red-700">سبب الرفض المُرسَل للبائع</p>
-                  <p className="mt-1 text-sm text-red-700">{selected.rejection_reason}</p>
+                <div className="mt-6 rounded-2xl border border-danger/40 bg-danger-bg p-4">
+                  <p className="text-sm font-bold text-danger">سبب الرفض المُرسَل للبائع</p>
+                  <p className="mt-1 text-sm text-danger">{selected.rejection_reason}</p>
                 </div>
               )}
 
@@ -231,7 +231,7 @@ export function MarketplaceListingsTab() {
                     size="sm"
                     disabled={busy || !reasonDraft.trim()}
                     onClick={reject}
-                    className="mt-2 border-red-300 text-red-600 hover:border-red-500 hover:text-red-700"
+                    className="mt-2 border-danger/40 text-danger hover:border-danger hover:text-danger"
                   >
                     رفض وإرسال السبب
                   </Button>

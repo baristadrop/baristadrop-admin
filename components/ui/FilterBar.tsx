@@ -24,7 +24,7 @@ export function FilterBar({
             onClick={() => onChange(opt.value)}
             className={cn(
               'shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors',
-              active ? 'border-gold bg-gold text-white' : 'border-latte bg-white text-coffee hover:border-gold hover:text-gold'
+              active ? 'border-gold bg-gold text-on-gold' : 'border-latte bg-paper text-coffee hover:border-gold hover:text-gold'
             )}
           >
             {opt.label}

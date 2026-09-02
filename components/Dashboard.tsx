@@ -257,7 +257,7 @@ export function Dashboard({
     () => (
       <div>
         <h1 className="font-[var(--font-cormorant)] text-xl font-bold tracking-wide text-gold">BARISTA DROP</h1>
-        <p className="text-xs text-sand/80">لوحة التحكم</p>
+        <p className="text-xs text-coffee/80">لوحة التحكم</p>
       </div>
     ),
     []
@@ -265,16 +265,16 @@ export function Dashboard({
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-ink lg:flex">
+      <div className="min-h-screen bg-espresso lg:flex">
         <Sidebar groups={navGroups} active={active} onSelect={setActive} header={headerBrand} />
 
         <div className="min-w-0 flex-1">
           <PageHeader title={activeLabel}>
             <HelpPanel />
-            <span className="rounded-full bg-white/10 px-3 py-1.5 font-medium text-sand">
+            <span className="rounded-full bg-white/10 px-3 py-1.5 font-medium text-coffee">
               {profile?.full_name || session?.user.email}
             </span>
-            <Button variant="outline" size="sm" onClick={() => signOut()} className="border-mocha/40 bg-transparent text-sand hover:border-gold hover:bg-white/5">
+            <Button variant="outline" size="sm" onClick={() => signOut()} className="border-mocha/40 bg-transparent text-coffee hover:border-gold hover:bg-white/5">
               تسجيل خروج
             </Button>
           </PageHeader>

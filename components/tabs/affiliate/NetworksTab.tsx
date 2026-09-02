@@ -31,9 +31,9 @@ type NetworkRow = {
 };
 
 const STATUS_META: Record<NetworkRow['status'], { label: string; className: string }> = {
-  active: { label: 'مفعّلة', className: 'bg-green-100 text-green-700' },
-  inactive: { label: 'موقوفة', className: 'bg-amber-100 text-amber-700' },
-  deprecated: { label: 'قديمة', className: 'bg-red-100 text-red-700' },
+  active: { label: 'مفعّلة', className: 'bg-success-bg text-success' },
+  inactive: { label: 'موقوفة', className: 'bg-warning-bg text-warning' },
+  deprecated: { label: 'قديمة', className: 'bg-danger-bg text-danger' },
 };
 
 export function NetworksTab() {
@@ -107,7 +107,7 @@ export function NetworksTab() {
   return (
     <div className="space-y-3">
       {error && (
-        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+        <div className="flex items-center justify-between rounded-lg border border-danger/40 bg-danger-bg px-3 py-2 text-xs text-danger">
           {error}
           <button onClick={() => setError(null)} className="mr-2 font-bold">
             ×
@@ -169,7 +169,7 @@ export function NetworksTab() {
           const expanded = expandedId === n.id;
           const meta = STATUS_META[n.status];
           return (
-            <div key={n.id} className="overflow-hidden rounded-2xl border border-latte bg-white shadow-sm">
+            <div key={n.id} className="overflow-hidden rounded-2xl border border-latte bg-paper shadow-sm">
               <button onClick={() => setExpandedId(expanded ? null : n.id)} className="flex w-full items-center gap-3 p-3 text-right">
                 <div className="flex-1">
                   <p className="font-medium text-ink">{n.name}</p>
@@ -192,7 +192,7 @@ export function NetworksTab() {
                           key={s}
                           onClick={() => setStatus(n.id, s)}
                           className={`rounded-full border px-3 py-1.5 text-xs ${
-                            n.status === s ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
+                            n.status === s ? 'border-gold bg-gold text-on-gold' : 'border-latte text-coffee'
                           }`}
                         >
                           {STATUS_META[s].label}
@@ -214,7 +214,7 @@ export function NetworksTab() {
                         onBlur={(e) => saveField(n.id, 'website_url', e.target.value)}
                         dir="ltr"
                         placeholder="https://..."
-                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                       />
                     </Field>
                     <Field label="رابط API الأساسي">
@@ -223,7 +223,7 @@ export function NetworksTab() {
                         onBlur={(e) => saveField(n.id, 'api_base_url', e.target.value)}
                         dir="ltr"
                         placeholder="https://api...."
-                        className="w-full rounded-lg border border-latte bg-white px-2 py-1.5 text-xs outline-none focus:border-gold"
+                        className="w-full rounded-lg border border-latte bg-paper px-2 py-1.5 text-xs outline-none focus:border-gold"
                       />
                     </Field>
                   </div>

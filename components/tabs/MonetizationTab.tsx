@@ -43,7 +43,7 @@ function StatCard({
   const isLg = size === 'lg';
   return (
     <div
-      className={`rounded-2xl border bg-white text-right shadow-sm ${
+      className={`rounded-2xl border bg-paper text-right shadow-sm ${
         isLg ? 'border-gold/40 p-6' : 'border-latte p-5'
       }`}
     >

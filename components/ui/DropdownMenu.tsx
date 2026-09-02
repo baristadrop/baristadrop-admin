@@ -12,7 +12,7 @@ export function DropdownMenuContent({ className, children }: { className?: strin
       <RadixDropdown.Content
         align="end"
         sideOffset={6}
-        className={cn('z-50 min-w-[10rem] rounded-xl border border-latte bg-white p-1 shadow-lg', className)}
+        className={cn('z-50 min-w-[10rem] rounded-xl border border-latte bg-paper p-1 shadow-lg', className)}
       >
         {children}
       </RadixDropdown.Content>

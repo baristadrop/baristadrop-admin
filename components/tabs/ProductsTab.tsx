@@ -110,7 +110,7 @@ function CategoryManager({
   };
 
   return (
-    <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-latte bg-paper p-5 shadow-sm">
       <button
         onClick={() => setExpanded((v) => !v)}
         className="flex w-full items-center justify-between text-right"
@@ -131,7 +131,7 @@ function CategoryManager({
                 <span className="text-ink">{c.name_ar}</span>
                 <button
                   onClick={() => removeCategory(c.key)}
-                  className="text-xs text-red-600 hover:text-red-800"
+                  className="text-xs text-danger hover:text-danger"
                   title="حذف"
                 >
                   ✕
@@ -175,7 +175,7 @@ function CategoryManager({
             <button
               onClick={addCategory}
               disabled={submitting || !newKey.trim() || !newNameAr.trim()}
-              className="col-span-2 rounded-full bg-ink px-4 py-1.5 text-xs font-medium text-cream disabled:opacity-40 sm:col-span-2"
+              className="col-span-2 rounded-full bg-gold px-4 py-1.5 text-xs font-medium text-on-gold disabled:opacity-40 sm:col-span-2"
             >
               {submitting ? '...' : 'إضافة تصنيف'}
             </button>
@@ -247,7 +247,7 @@ function NewProductForm({
   };
 
   return (
-    <div className="rounded-2xl border border-latte bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-latte bg-paper p-5 shadow-sm">
       <h3 className="mb-4 font-medium text-ink">إضافة منتج جديد (باريستا دروب)</h3>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
@@ -315,7 +315,7 @@ function NewProductForm({
       <button
         onClick={submit}
         disabled={!canSubmit || submitting}
-        className="mt-4 rounded-full bg-ink px-5 py-2 text-sm font-medium text-cream disabled:opacity-40"
+        className="mt-4 rounded-full bg-gold px-5 py-2 text-sm font-medium text-on-gold disabled:opacity-40"
       >
         {submitting ? 'جاري الإضافة...' : 'إضافة المنتج'}
       </button>
@@ -380,7 +380,7 @@ function ProductCard({
   };
 
   return (
-    <div className={`rounded-2xl border border-latte bg-white p-4 ${!product.is_active ? 'opacity-50' : ''}`}>
+    <div className={`rounded-2xl border border-latte bg-paper p-4 ${!product.is_active ? 'opacity-50' : ''}`}>
       <div className="mb-2 flex items-center justify-between">
         <span className={`rounded-full px-2 py-0.5 text-[10px] ${isVendorOwned ? 'bg-sand text-coffee' : 'bg-gold/20 text-gold'}`}>
           {ownerLabel(product)}
@@ -461,7 +461,7 @@ function ProductCard({
         <div className="mb-3 flex gap-2">
           <button
             onClick={() => setStatus('approved')}
-            className="flex-1 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-white"
+            className="flex-1 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-on-gold"
           >
             قبول
           </button>
@@ -480,7 +480,7 @@ function ProductCard({
           مفعّل
         </label>
         <div className="flex items-center gap-2">
-          <button onClick={() => setConfirmingDelete(true)} className="text-xs text-red-600 underline">
+          <button onClick={() => setConfirmingDelete(true)} className="text-xs text-danger underline">
             حذف
           </button>
           <AlertDialog
@@ -554,14 +554,14 @@ function ProductsTabImpl() {
             key={value}
             onClick={() => setOwnerFilter(value)}
             className={`rounded-full border px-3 py-1.5 text-xs ${
-              ownerFilter === value ? 'border-gold bg-gold text-white' : 'border-latte text-coffee'
+              ownerFilter === value ? 'border-gold bg-gold text-on-gold' : 'border-latte text-coffee'
             }`}
           >
             {label}
           </button>
         ))}
         {pendingCount > 0 && (
-          <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
+          <span className="rounded-full bg-danger-bg px-2.5 py-1 text-xs font-bold text-danger">
             {pendingCount} بانتظار المراجعة
           </span>
         )}
