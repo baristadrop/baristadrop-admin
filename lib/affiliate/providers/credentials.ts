@@ -15,9 +15,13 @@ function getEncryptionKey(): Buffer {
   return Buffer.from(key, 'hex');
 }
 
+// authTagLength مثبّت على 16 -- بدونه Node يقبل عند فك التشفير tag أقصر
+// (4-15 بايت) لو المهاجم قدر يزرع صفًّا، وهذا يضعف ضمان السلامة.
+const GCM_OPTS = { authTagLength: 16 } as const;
+
 export function encryptCredential(value: string): string {
   const iv = randomBytes(16);
-  const cipher = createCipheriv('aes-256-gcm', getEncryptionKey(), iv);
+  const cipher = createCipheriv('aes-256-gcm', getEncryptionKey(), iv, GCM_OPTS);
   let encrypted = cipher.update(value, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   return `${iv.toString('hex')}:${cipher.getAuthTag().toString('hex')}:${encrypted}`;
@@ -26,7 +30,7 @@ export function encryptCredential(value: string): string {
 export function decryptCredential(encrypted: string): string {
   const [ivHex, tagHex, data] = encrypted.split(':');
   if (!ivHex || !tagHex || !data) throw new Error('malformed encrypted credential');
-  const decipher = createDecipheriv('aes-256-gcm', getEncryptionKey(), Buffer.from(ivHex, 'hex'));
+  const decipher = createDecipheriv('aes-256-gcm', getEncryptionKey(), Buffer.from(ivHex, 'hex'), GCM_OPTS);
   decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
   let decrypted = decipher.update(data, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
