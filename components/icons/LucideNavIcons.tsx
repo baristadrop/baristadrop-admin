@@ -23,6 +23,7 @@ import {
   Scale,
   Wallet,
   Tag,
+  Flag,
 } from 'lucide-react';
 
 type Props = { className?: string };
@@ -52,3 +53,4 @@ export const LinkIcon = wrap(LinkIconLucide);
 export const ScaleIcon = wrap(Scale);
 export const WalletIcon = wrap(Wallet);
 export const TagIcon = wrap(Tag);
+export const FlagIcon = wrap(Flag);

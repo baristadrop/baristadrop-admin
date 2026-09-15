@@ -105,6 +105,10 @@ const NotificationsTab = dynamic(() => import('./tabs/NotificationsTab').then((m
   loading: () => <Skeleton className="h-64 w-full" />,
   ssr: false,
 });
+const ReportsTab = dynamic(() => import('./tabs/ReportsTab').then((m) => m.ReportsTab), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
 const MonetizationTab = dynamic(() => import('./tabs/MonetizationTab').then((m) => m.MonetizationTab), {
   loading: () => <StatCardSkeletonGrid />,
   ssr: false,
@@ -133,6 +137,7 @@ import {
   ScaleIcon,
   WalletIcon,
   TagIcon,
+  FlagIcon,
 } from './icons/LucideNavIcons';
 
 export type TabKey =
@@ -159,7 +164,8 @@ export type TabKey =
   | 'affiliateAccounting'
   | 'affiliateReconciliation'
   | 'affiliatePayouts'
-  | 'affiliateJobs';
+  | 'affiliateJobs'
+  | 'reports';
 
 type NavGroup = SidebarGroup<TabKey>;
 
@@ -180,6 +186,7 @@ function buildNavGroups(counts: { recipes: number; beans: number; marketplaceLis
       { key: 'recipes', label: 'الوصفات المعلّقة', Icon: CupIcon, badge: counts.recipes },
       { key: 'beans', label: 'المحاصيل المعلّقة', Icon: BeanIcon, badge: counts.beans },
       { key: 'marketplaceListings', label: 'سوق المعدات المستعملة', Icon: TagIcon, badge: counts.marketplaceListings },
+      { key: 'reports', label: 'البلاغات', Icon: FlagIcon },
     ],
   },
   {
@@ -287,6 +294,7 @@ export function Dashboard({
           {active === 'recipes' && <RecipesTab />}
           {active === 'beans' && <BeansTab />}
           {active === 'marketplaceListings' && <MarketplaceListingsTab />}
+          {active === 'reports' && <ReportsTab />}
           {active === 'businesses' && <BusinessesTab />}
           {active === 'suppliers' && <SuppliersTab />}
           {active === 'store' && <ProductsTab />}
