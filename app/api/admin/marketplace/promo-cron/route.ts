@@ -42,10 +42,16 @@ export const POST = withErrorHandler(async (request: Request) => {
   const tokens = (recipients ?? []).map((r) => r.push_token).filter(Boolean) as string[];
   if (tokens.length === 0) return NextResponse.json({ sent: false, reason: 'no_recipients' });
 
-  const message = MARKETING_MESSAGES[Math.floor(Math.random() * MARKETING_MESSAGES.length)];
-  await sendExpoPush(tokens.map((to) => ({ to, title: 'سوق باريستا دروب', body: message })));
-
+  // نحجز "الدور" بتسجيل وقت الإرسال قبل الإرسال الفعلي (نداء شبكة بطيء)، مو
+  // بعده -- لو نفس المهمة انطلقت مرتين بالتوازي (إعادة محاولة، تشغيلتين
+  // متزامنتين من المجدول الخارجي)، ثاني نداء يشوف هذا السجل بفحص "recent" أول
+  // ما يبدأ ويوقف نفسه، بدل ما ينتظر لين يخلص الإرسال الأول ويرسل إشعار مكرر.
   await supabase.from('marketplace_promo_log').insert({});
+
+  const message = MARKETING_MESSAGES[Math.floor(Math.random() * MARKETING_MESSAGES.length)];
+  await sendExpoPush(
+    tokens.map((to) => ({ to, title: 'سوق باريستا دروب', body: message, data: { screen: 'MarketplaceBrowse' } }))
+  );
 
   return NextResponse.json({ sent: true, recipientCount: tokens.length });
 });

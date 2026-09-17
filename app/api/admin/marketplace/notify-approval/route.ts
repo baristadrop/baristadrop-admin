@@ -37,6 +37,7 @@ export const POST = withErrorHandler(async (request: Request) => {
       to: owner.push_token,
       title: 'إعلانك نشط الآن',
       body: `"${listing.title}" نُشر ويظهر للجميع في سوق المعدات المستعملة`,
+      data: { screen: 'MarketplaceListingDetail', listingId: body.listingId },
     },
   ]);
 

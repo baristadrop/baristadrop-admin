@@ -40,6 +40,7 @@ export const POST = withErrorHandler(async (request: Request) => {
       body: listing.rejection_reason
         ? `"${listing.title}" — ${listing.rejection_reason}`
         : `إعلانك "${listing.title}" يحتاج تعديل قبل النشر`,
+      data: { screen: 'MarketplaceMyListings' },
     },
   ]);
 

@@ -52,7 +52,13 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(
-        batch.map((to) => ({ to, title: title.trim(), body: messageBody.trim(), sound: 'default' }))
+        batch.map((to) => ({
+          to,
+          title: title.trim(),
+          body: messageBody.trim(),
+          sound: 'default',
+          data: { screen: 'Home' },
+        }))
       ),
     }).catch(() => null);
   }

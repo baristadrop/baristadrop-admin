@@ -2,7 +2,15 @@
 // بـsend-notification/route.ts (حد 100 رسالة بكل نداء)، مستخرَج هنا عشان
 // يستخدمها أكثر من راوت بدون تكرار (إشعار رفض إعلان لمستخدم واحد، وإشعار
 // تسويقي دوري لشريحة).
-type ExpoPushMessage = { to: string; title: string; body: string; sound?: 'default' };
+type ExpoPushMessage = {
+  to: string;
+  title: string;
+  body: string;
+  sound?: 'default';
+  /** يقرأها توجيه الضغط على الإشعار بالتطبيق (RootTabs.usePushNotificationTaps)
+   * — بدونها الإشعار يوصل بس ما يوديك لأي مكان عند الضغط. */
+  data?: Record<string, unknown>;
+};
 
 function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
